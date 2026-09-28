@@ -24,6 +24,7 @@ ios:Q_ENABLE_BITCODE.value = NO
 ios:QMAKE_MAC_XCODE_SETTINGS += Q_ENABLE_BITCODE
 ios:QMAKE_ASSET_CATALOGS += Images.xcassets
 ios:QMAKE_INFO_PLIST = Info.plist
+ios:QMAKE_IOS_LAUNCH_SCREEN = $$PWD/LaunchScreen.storyboard
 VERSION_BUILD='$(shell cd $$PWD;git rev-parse --short HEAD)'
 DEFINES += VERSION_NUMBER=\"\\\"$${VERSION_BUILD}\\\"\"
 DEFINES += QT_DEPRECATED_WARNINGS
