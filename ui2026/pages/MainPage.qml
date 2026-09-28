@@ -39,11 +39,14 @@ Page {
     Tokens { id: t }
 
     FontLoader { id: segFont; source: "qrc:/DroidStar/fonts/DSEG7Classic-Bold.ttf" }
+    FontLoader { id: faFont; source: "qrc:/DroidStar/fontawesome-webfont.ttf" }
 
     property var modeComboBoxRef: null
     property var hostComboBoxRef: null
 
     readonly property bool isTgMode: !!(appState && (appState.mode === "DMR" || appState.mode === "P25" || appState.mode === "NXDN"))
+    // Private call only exists in DMR; the destination is still appState.dmrtgid.
+    readonly property bool isPc: !!(appState && appState.privateCall && appState.mode === "DMR")
     readonly property bool connected: !!(appState && appState.connected)
     readonly property bool connecting: !!(appState && appState.connecting)
     readonly property bool onAir: !!(appState && appState.txActive)
@@ -76,7 +79,8 @@ Page {
         function onData1Changed() {
             page.rxStartMs = (page.appState.data1 !== "") ? (page.rxStartMs > 0 ? page.rxStartMs : Date.now()) : 0
         }
-        function onDmrtgidChanged() { page.lookupTgName(page.appState.dmrtgid) }
+        function onDmrtgidChanged() { page.lookupCurrentName() }
+        function onPrivateCallChanged() { page.lookupCurrentName() }
     }
 
     onVisibleChanged: {
@@ -118,8 +122,8 @@ Page {
     Component.onCompleted: {
         if (droidstarRef && droidstarRef.get_auto_connect()) autoConnectTimer.start()
         refreshLastHeardFromLog()
-        Qt.callLater(refreshFavoriteTgs)
-        if (appState) Qt.callLater(function() { page.lookupTgName(appState.dmrtgid) })
+        Qt.callLater(refreshFavorites)
+        if (appState) Qt.callLater(lookupCurrentName)
     }
 
     Connections {
@@ -227,14 +231,156 @@ Page {
         return i >= 0 ? v.substring(0, i) : v
     }
 
-    // ---- Favorite talkgroups ----
+    // ---- Saved channels: talkgroups ("FavoriteTGs/list") and private-call contacts ("FavoritePCs/list") ----
+    // favoriteTgs: [{tg, name}], favoritePcs: [{id, name}], in the user's order.
     property var favoriteTgs: []
-    property bool currentTgIsFavorite: false
+    property var favoritePcs: []
 
-    function refreshFavoriteTgs() {
+    // Chip row / saved list model: talkgroups first, then contacts (DMR only).
+    // Each entry: { kind: "tg" | "pc", id, name, idx (position in its own list), count }
+    readonly property var channels: {
+        var out = []
+        var i
+        for (i = 0; i < favoriteTgs.length; ++i)
+            out.push({ kind: "tg", id: favoriteTgs[i].tg, name: favoriteTgs[i].name, idx: i, count: favoriteTgs.length })
+        if (appState && appState.mode === "DMR") {
+            for (i = 0; i < favoritePcs.length; ++i)
+                out.push({ kind: "pc", id: favoritePcs[i].id, name: favoritePcs[i].name, idx: i, count: favoritePcs.length })
+        }
+        return out
+    }
+
+    // Is what the LCD shows (TG in group mode, ID in private call) saved?
+    readonly property bool currentIsSaved: {
+        if (!appState) return false
+        var id = "" + appState.dmrtgid
+        var list = isPc ? favoritePcs : favoriteTgs
+        for (var i = 0; i < list.length; ++i)
+            if ((isPc ? list[i].id : list[i].tg) === id) return true
+        return false
+    }
+
+    function refreshFavorites() {
         if (!droidstarRef) return
         favoriteTgs = droidstarRef.loadFavoriteTGs()
-        currentTgIsFavorite = !!(appState && droidstarRef.isFavoriteTG(appState.dmrtgid))
+        favoritePcs = droidstarRef.loadFavoritePCs()
+    }
+    // Kept for older call sites.
+    function refreshFavoriteTgs() { refreshFavorites() }
+
+    function savedName(kind, id) {
+        id = "" + id
+        var list = kind === "pc" ? favoritePcs : favoriteTgs
+        for (var i = 0; i < list.length; ++i)
+            if ((kind === "pc" ? list[i].id : list[i].tg) === id) return list[i].name || ""
+        return ""
+    }
+    function isSaved(kind, id) {
+        id = "" + id
+        var list = kind === "pc" ? favoritePcs : favoriteTgs
+        for (var i = 0; i < list.length; ++i)
+            if ((kind === "pc" ? list[i].id : list[i].tg) === id) return true
+        return false
+    }
+
+    // Saved contact name first, then the DMR ID database ("CALL - Name").
+    function pcName(id) {
+        id = "" + id
+        return savedName("pc", id) || dmrIdNames[id] || ""
+    }
+    // Name for what the LCD currently shows.
+    function currentName() {
+        if (!appState) return ""
+        return isPc ? pcName(appState.dmrtgid) : tgName(appState.dmrtgid)
+    }
+    function lookupCurrentName() {
+        if (!appState) return
+        if (isPc) lookupDmrUser(appState.dmrtgid)
+        else lookupTgName(appState.dmrtgid)
+    }
+
+    // Automatic name suggestion: BrandMeister name for a TG, "CALL Firstname" for a DMR ID.
+    function suggestName(kind, id) {
+        id = "" + id
+        if (kind === "pc") return (dmrIdNames[id] || "").replace(" - ", " ")
+        return tgNames[id] || ""
+    }
+    function lookupFor(kind, id) {
+        if (kind === "pc") lookupDmrUser(id)
+        else lookupTgName(id)
+    }
+    // "" | "loading" | "ok" | "missing" | "error"
+    function lookupState(kind, id) {
+        id = "" + id
+        return (kind === "pc" ? dmrIdLookupState[id] : tgLookupState[id]) || ""
+    }
+
+    function isActive(kind, id) {
+        if (!appState || ("" + appState.dmrtgid) !== ("" + id)) return false
+        return kind === "pc" ? isPc : !isPc
+    }
+
+    // Saved entries whose name was empty when saved; filled once the lookup answers.
+    // Only an empty saved name is filled, so a name the user typed is never replaced.
+    property var pendingAutoNames: []
+
+    function queueAutoName(kind, id) {
+        if (!appState || appState.mode !== "DMR") return
+        var p = pendingAutoNames
+        p.push({ kind: kind, id: "" + id })
+        pendingAutoNames = p
+        lookupFor(kind, id)
+        resolvePendingNames()
+    }
+
+    function resolvePendingNames() {
+        if (pendingAutoNames.length === 0 || !droidstarRef) return
+        var keep = []
+        var changed = false
+        for (var i = 0; i < pendingAutoNames.length; ++i) {
+            var p = pendingAutoNames[i]
+            var st = lookupState(p.kind, p.id)
+            if (st === "" || st === "loading") { keep.push(p); continue }
+            var nm = suggestName(p.kind, p.id)
+            if (nm === "") continue
+            if (isSaved(p.kind, p.id) && savedName(p.kind, p.id) === "") {
+                if (p.kind === "pc") droidstarRef.addFavoritePC(p.id, nm)
+                else droidstarRef.addFavoriteTG(p.id, nm)
+                changed = true
+            }
+            nameDialog.offerAutoName(p.kind, p.id, nm)
+        }
+        pendingAutoNames = keep
+        if (changed) refreshFavorites()
+    }
+    onTgLookupStateChanged: resolvePendingNames()
+    onDmrIdLookupStateChanged: resolvePendingNames()
+
+    // Add or edit (rename and/or renumber) a saved channel. oldId "" = new entry.
+    // An empty name is filled with the automatic name once it is known.
+    function saveChannel(kind, oldId, newId, name) {
+        if (!droidstarRef) return false
+        newId = ("" + newId).trim()
+        if (!/^[0-9]+$/.test(newId) || parseInt(newId) <= 0) return false
+        name = ("" + name).trim()
+        var from = (oldId && ("" + oldId) !== "") ? ("" + oldId) : newId
+        var ok = kind === "pc" ? droidstarRef.updateFavoritePC(from, newId, name)
+                               : droidstarRef.updateFavoriteTG(from, newId, name)
+        refreshFavorites()
+        if (ok && name === "") queueAutoName(kind, newId)
+        return ok
+    }
+    function removeChannel(kind, id) {
+        if (!droidstarRef) return
+        if (kind === "pc") droidstarRef.removeFavoritePC(id)
+        else droidstarRef.removeFavoriteTG(id)
+        refreshFavorites()
+    }
+    function moveChannel(kind, from, to) {
+        if (!droidstarRef) return
+        if (kind === "pc") droidstarRef.moveFavoritePC(from, to)
+        else droidstarRef.moveFavoriteTG(from, to)
+        refreshFavorites()
     }
 
     function selectTg(tg) {
@@ -246,34 +392,33 @@ Page {
         droidstarRef.tgid_text_changed(tg)
         droidstarRef.addRecentTGID(tg)
         refreshRecentTgids()
-        refreshFavoriteTgs()
     }
 
+    // Pick a saved channel: a talkgroup switches to group call, a contact to private call.
+    function selectChannel(kind, id) {
+        if (!appState || !droidstarRef) return
+        var pc = kind === "pc"
+        if (!!appState.privateCall !== pc) {
+            appState.privateCall = pc
+            droidstarRef.set_dmr_pc(pc ? 1 : 0)
+        }
+        selectTg(id)
+    }
+
+    // The star on the LCD: save what is shown (TG in group mode, contact in private call)
+    // and offer to name it right away; a second tap removes it.
     function toggleCurrentFavorite() {
         if (!appState || !droidstarRef) return
-        var tg = ("" + appState.dmrtgid).trim()
-        if (!/^[0-9]+$/.test(tg)) return
-        if (droidstarRef.isFavoriteTG(tg)) {
-            droidstarRef.removeFavoriteTG(tg)
-            refreshFavoriteTgs()
+        var id = ("" + appState.dmrtgid).trim()
+        if (!/^[0-9]+$/.test(id)) return
+        var kind = isPc ? "pc" : "tg"
+        if (isSaved(kind, id)) {
+            removeChannel(kind, id)
             return
         }
-        droidstarRef.addFavoriteTG(tg, tgName(tg))
-        refreshFavoriteTgs()
-        if (appState.mode !== "DMR" || tgName(tg) !== "") return
-        var xhr = new XMLHttpRequest()
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || xhr.status !== 200) return
-            try {
-                var r = JSON.parse(xhr.responseText)
-                if (r && r.Name && droidstarRef.isFavoriteTG(tg)) {
-                    droidstarRef.addFavoriteTG(tg, r.Name)
-                    refreshFavoriteTgs()
-                }
-            } catch (e) {}
-        }
-        xhr.open("GET", "https://api.brandmeister.network/v2/talkgroup/" + tg, true)
-        xhr.send()
+        var auto = suggestName(kind, id)
+        saveChannel(kind, "", id, auto)   // an empty name is queued for the auto name
+        nameDialog.openFor(kind, id, auto)
     }
 
     // ---- Receive timer ----
@@ -599,7 +744,11 @@ Page {
                     spacing: 8
                     Label {
                         Layout.fillWidth: true
-                        readonly property string nm: page.tgName(appState ? appState.dmrtgid : "")
+                        // Private call: the contact's saved name, else the DMR ID lookup.
+                        readonly property string nm: {
+                            var a = page.dmrIdNames, b = page.tgNames, c = page.favoritePcs, d = page.favoriteTgs
+                            return page.currentName()
+                        }
                         readonly property bool hasTg: !!(appState && appState.dmrtgid !== "")
                         text: page.isTgMode ? (nm !== "" ? nm : (hasTg ? qsTr("Tap to change") : qsTr("Tap to choose a talkgroup")))
                                             : ((appState && appState.selectedHost) ? appState.selectedHost : "")
@@ -611,11 +760,11 @@ Page {
                     }
                     ToolButton {
                         visible: page.isTgMode
-                        text: page.currentTgIsFavorite ? "★" : "☆"
+                        text: page.currentIsSaved ? "★" : "☆"
                         font.pixelSize: 24
                         contentItem: Label { text: parent.text; color: t.lcdInk; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         background: Item {}
-                        Accessible.name: page.currentTgIsFavorite ? qsTr("Remove from favorites") : qsTr("Add to favorites")
+                        Accessible.name: page.currentIsSaved ? qsTr("Remove from saved channels") : qsTr("Save channel")
                         onClicked: page.toggleCurrentFavorite()
                     }
                 }
@@ -668,63 +817,139 @@ Page {
             }
         }
 
-        // ── Channel presets: favorite talkgroups. Long press to reorder or remove. ──
-        ListView {
+        // ── Channel presets: saved talkgroups and private-call contacts. ──
+        // Tap = switch to it (a contact switches to private call). Long press = reorder, rename, remove.
+        // The button at the end opens the saved channels sheet ("+ Save channel" while the list is empty).
+        RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 48
-            visible: page.isTgMode && page.favoriteTgs.length > 0
-            orientation: ListView.Horizontal
+            visible: page.isTgMode
             spacing: 8
-            clip: true
-            model: page.favoriteTgs
-            delegate: Rectangle {
-                required property var modelData
-                required property int index
-                readonly property bool active: !!(appState && ("" + appState.dmrtgid) === modelData.tg)
-                height: 48
-                width: Math.min(chipCol.implicitWidth + 28, 180)
-                radius: 12
-                color: active ? Qt.rgba(t.lcd.r, t.lcd.g, t.lcd.b, 0.16) : t.surface
-                border.color: active ? t.lcd : t.stroke
-                border.width: active ? 2 : 1
 
-                Column {
-                    id: chipCol
+            ListView {
+                id: chipRow
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+                visible: count > 0
+                orientation: ListView.Horizontal
+                spacing: 8
+                clip: true
+                model: page.channels
+                delegate: Rectangle {
+                    id: chip
+                    required property var modelData
+                    readonly property bool isContact: modelData.kind === "pc"
+                    readonly property bool active: page.isActive(modelData.kind, modelData.id)
+                    readonly property color tint: isContact ? t.accent : t.lcd
+                    readonly property string subtitle: {
+                        var dn = page.dmrIdNames
+                        if (modelData.name) return modelData.name
+                        return isContact ? page.dmrIdCallsign(modelData.id) : ""
+                    }
+                    height: 48
+                    width: Math.max(64, Math.min(Math.max(chipNum.implicitWidth, chipSub.implicitWidth) + 28, 180))
+                    radius: 12
+                    color: active ? Qt.rgba(tint.r, tint.g, tint.b, 0.16)
+                                  : (isContact ? Qt.rgba(t.accent.r, t.accent.g, t.accent.b, 0.07) : t.surface)
+                    border.color: active ? tint : (isContact ? Qt.rgba(t.accent.r, t.accent.g, t.accent.b, 0.45) : t.stroke)
+                    border.width: active ? 2 : 1
+
+                    Column {
+                        id: chipCol
+                        anchors.centerIn: parent
+                        width: parent.width - 20
+                        Row {
+                            id: chipNum
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            spacing: 5
+                            Label {
+                                visible: chip.isContact
+                                text: "\uf007"   // person
+                                font.family: faFont.name
+                                font.pixelSize: 12
+                                color: t.accent
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Label {
+                                text: chip.modelData.id
+                                color: chip.active ? chip.tint : t.text
+                                font.pixelSize: 15
+                                font.weight: Font.Bold
+                            }
+                        }
+                        Label {
+                            id: chipSub
+                            width: parent.width
+                            visible: chip.subtitle !== ""
+                            text: chip.subtitle
+                            color: t.textMuted
+                            font.pixelSize: 11
+                            elide: Text.ElideRight
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: page.selectChannel(chip.modelData.kind, chip.modelData.id)
+                        onPressAndHold: chipMenu.openFor(chip.modelData)
+                    }
+                }
+            }
+
+            Rectangle {
+                id: editChip
+                Layout.preferredHeight: 48
+                Layout.preferredWidth: chipRow.count > 0 ? 48 : editRow.implicitWidth + 32
+                Layout.fillWidth: chipRow.count === 0
+                radius: 12
+                color: editArea.pressed ? t.surface2 : "transparent"
+                border.color: t.stroke
+                border.width: 1
+                Accessible.name: qsTr("Saved channels")
+                Row {
+                    id: editRow
                     anchors.centerIn: parent
-                    width: parent.width - 20
+                    spacing: 8
                     Label {
-                        width: parent.width
-                        text: modelData.tg
-                        color: parent.parent.active ? t.lcd : t.text
-                        font.pixelSize: 15
-                        font.weight: Font.Bold
-                        horizontalAlignment: Text.AlignHCenter
+                        text: chipRow.count > 0 ? "\uf03a" : "\uf067"   // list / plus
+                        font.family: faFont.name
+                        font.pixelSize: 16
+                        color: t.textMuted
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                     Label {
-                        width: parent.width
-                        visible: !!modelData.name
-                        text: modelData.name || ""
+                        visible: chipRow.count === 0
+                        text: qsTr("Save channel")
                         color: t.textMuted
-                        font.pixelSize: 11
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignHCenter
+                        font.pixelSize: 14
+                        font.weight: Font.DemiBold
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
                 MouseArea {
+                    id: editArea
                     anchors.fill: parent
-                    onClicked: page.selectTg(modelData.tg)
-                    onPressAndHold: { chipMenu.tg = modelData.tg; chipMenu.idx = index; chipMenu.popup() }
+                    onClicked: channelsSheet.openFor(page.isPc ? "pc" : "tg")
                 }
             }
         }
 
         Menu {
             id: chipMenu
-            property string tg: ""
+            property string kind: "tg"
+            property string chId: ""
+            property string chName: ""
             property int idx: -1
-            MenuItem { text: qsTr("Move left"); enabled: chipMenu.idx > 0; onTriggered: { droidstarRef.moveFavoriteTG(chipMenu.idx, chipMenu.idx - 1); page.refreshFavoriteTgs() } }
-            MenuItem { text: qsTr("Move right"); enabled: chipMenu.idx >= 0 && chipMenu.idx < page.favoriteTgs.length - 1; onTriggered: { droidstarRef.moveFavoriteTG(chipMenu.idx, chipMenu.idx + 1); page.refreshFavoriteTgs() } }
-            MenuItem { text: qsTr("Remove %1").arg(chipMenu.tg); onTriggered: { droidstarRef.removeFavoriteTG(chipMenu.tg); page.refreshFavoriteTgs() } }
+            property int chCount: 0
+            function openFor(ch) {
+                kind = ch.kind; chId = ch.id; chName = ch.name || ""; idx = ch.idx; chCount = ch.count
+                popup()
+            }
+            MenuItem { text: qsTr("Rename"); onTriggered: nameDialog.openFor(chipMenu.kind, chipMenu.chId, chipMenu.chName, true) }
+            MenuItem { text: qsTr("Move left"); enabled: chipMenu.idx > 0; onTriggered: page.moveChannel(chipMenu.kind, chipMenu.idx, chipMenu.idx - 1) }
+            MenuItem { text: qsTr("Move right"); enabled: chipMenu.idx >= 0 && chipMenu.idx < chipMenu.chCount - 1; onTriggered: page.moveChannel(chipMenu.kind, chipMenu.idx, chipMenu.idx + 1) }
+            MenuItem { text: qsTr("Edit list"); onTriggered: channelsSheet.openFor(chipMenu.kind) }
+            MenuItem { text: qsTr("Remove %1").arg(chipMenu.chId); onTriggered: page.removeChannel(chipMenu.kind, chipMenu.chId) }
         }
 
         // ── Who is talking (or who was last heard) ──
@@ -786,7 +1011,7 @@ Page {
                         var who = [appState.fetchedFirstName, appState.fetchedCountry].filter(function(s) { return !!s }).join(", ")
                         return who
                     }
-                    if (page.onAir) return page.tgName(appState.dmrtgid)
+                    if (page.onAir) return page.currentName()
                     var p = page.lastHeardOther.split(" - ")
                     return p.slice(1).join(", ")
                 }
@@ -866,7 +1091,7 @@ Page {
                     Label {
                         anchors.horizontalCenter: parent.horizontalCenter
                         visible: page.connected && !page.onAir
-                        text: appState ? ("TG " + appState.dmrtgid) : ""
+                        text: appState ? ((page.isPc ? "PC " : "TG ") + appState.dmrtgid) : ""
                         color: t.textMuted
                         font.pixelSize: 13
                     }
@@ -1037,6 +1262,85 @@ Page {
                     }
                 }
             }
+            // Saved channels: tap to switch straight to one (contacts switch to private call).
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                Label {
+                    Layout.fillWidth: true
+                    text: page.channels.length > 0 ? qsTr("Saved") : qsTr("No saved channels yet")
+                    color: t.textMuted
+                    font.pixelSize: 12
+                }
+                Button {
+                    flat: true
+                    padding: 4
+                    text: page.channels.length > 0 ? qsTr("Manage") : qsTr("+ Save channel")
+                    font.pixelSize: 12
+                    onClicked: {
+                        var k = tgDialog.pcMode ? "pc" : "tg"
+                        tgDialog.close()
+                        channelsSheet.openFor(k)
+                    }
+                }
+            }
+            Flickable {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.min(savedFlow.implicitHeight, 132)
+                visible: page.channels.length > 0
+                contentHeight: savedFlow.implicitHeight
+                clip: true
+                Flow {
+                    id: savedFlow
+                    width: parent.width
+                    spacing: 6
+                    Repeater {
+                        model: page.channels
+                        delegate: Button {
+                            id: savedBtn
+                            required property var modelData
+                            readonly property bool isContact: modelData.kind === "pc"
+                            flat: true
+                            highlighted: page.isActive(modelData.kind, modelData.id)
+                            contentItem: Column {
+                                spacing: 0
+                                Row {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    spacing: 4
+                                    Label {
+                                        visible: savedBtn.isContact
+                                        text: "\uf007"
+                                        font.family: faFont.name
+                                        font.pixelSize: 11
+                                        color: t.accent
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                    Label {
+                                        text: savedBtn.modelData.id
+                                        font.family: segFont.name
+                                        font.pixelSize: 15
+                                        color: savedBtn.isContact ? t.accent : t.lcd
+                                    }
+                                }
+                                Label {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    visible: !!savedBtn.modelData.name
+                                    text: savedBtn.modelData.name || ""
+                                    width: Math.min(implicitWidth, 120)
+                                    elide: Text.ElideRight
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: 10
+                                    color: t.textMuted
+                                }
+                            }
+                            onClicked: {
+                                page.selectChannel(modelData.kind, modelData.id)
+                                tgDialog.close()
+                            }
+                        }
+                    }
+                }
+            }
             Label {
                 visible: !!(appState && appState.recentTgids && appState.recentTgids.length > 0)
                 text: qsTr("Recent")
@@ -1107,6 +1411,90 @@ Page {
                 if (isDmr && ("" + rec[i]).length === 7) page.lookupDmrUser(rec[i])
             }
         }
+    }
+
+    // ── Name a saved channel (right after ★, or "Rename" on a chip) ──
+    Dialog {
+        id: nameDialog
+        modal: true
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(page.width - 32, 360)
+        title: rename ? (kind === "pc" ? qsTr("Rename contact") : qsTr("Rename talkgroup"))
+                      : (kind === "pc" ? qsTr("Contact saved") : qsTr("Talkgroup saved"))
+
+        property string kind: "tg"
+        property string chId: ""
+        property bool rename: false
+        // Set once the user types, so a late automatic name never replaces their text.
+        property bool userEdited: false
+
+        function openFor(k, id, name, isRename) {
+            kind = k
+            chId = "" + id
+            rename = !!isRename
+            userEdited = false
+            nameEdit.text = name || ""
+            open()
+        }
+        // Called when an automatic name arrives after the dialog opened.
+        function offerAutoName(k, id, name) {
+            if (!visible || k !== kind || ("" + id) !== chId || userEdited || nameEdit.text !== "") return
+            nameEdit.text = name
+        }
+
+        onOpened: { nameEdit.forceActiveFocus(); nameEdit.selectAll() }
+        onAccepted: page.saveChannel(kind, chId, chId, nameEdit.text)
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 10
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Label {
+                    text: nameDialog.kind === "pc" ? "\uf007" : ""
+                    visible: nameDialog.kind === "pc"
+                    font.family: faFont.name
+                    font.pixelSize: 16
+                    color: t.accent
+                }
+                Label {
+                    text: nameDialog.chId
+                    font.family: segFont.name
+                    font.pixelSize: 24
+                    color: nameDialog.kind === "pc" ? t.accent : t.lcd
+                }
+                Item { Layout.fillWidth: true }
+            }
+            TextField {
+                id: nameEdit
+                Layout.fillWidth: true
+                placeholderText: nameDialog.kind === "pc" ? qsTr("Name, e.g. Ahmet (TA1ABC)") : qsTr("Name, e.g. Club net")
+                font.pixelSize: 17
+                onTextEdited: nameDialog.userEdited = true
+                onAccepted: nameDialog.accept()
+            }
+            Label {
+                Layout.fillWidth: true
+                text: qsTr("Give it any name you like. Leave it empty to use the automatic name.")
+                color: t.textMuted
+                font.pixelSize: 12
+                wrapMode: Text.Wrap
+            }
+        }
+
+        footer: DialogButtonBox {
+            Button { text: qsTr("Cancel", "name dialog"); flat: true; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
+            Button { text: qsTr("Save"); highlighted: true; DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole }
+        }
+    }
+
+    // ── Saved channels: manage talkgroups and private-call contacts ──
+    ChannelsSheet {
+        id: channelsSheet
+        host: page
+        width: page.width
+        height: page.height * 0.88
     }
 
     // ── Connection & audio sheet ──

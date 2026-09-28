@@ -49,6 +49,15 @@ public:
     Q_INVOKABLE void removeFavoriteTG(const QString &tg);
     Q_INVOKABLE void moveFavoriteTG(int from, int to);
     Q_INVOKABLE bool isFavoriteTG(const QString &tg) const;
+    // Rename and/or renumber in place; returns false for an invalid new number.
+    Q_INVOKABLE bool updateFavoriteTG(const QString &oldTg, const QString &newTg, const QString &name);
+    // Saved private-call contacts: ordered list of {id, name} ("FavoritePCs/list")
+    Q_INVOKABLE QVariantList loadFavoritePCs() const;
+    Q_INVOKABLE void addFavoritePC(const QString &id, const QString &name);
+    Q_INVOKABLE bool updateFavoritePC(const QString &oldId, const QString &newId, const QString &name);
+    Q_INVOKABLE void removeFavoritePC(const QString &id);
+    Q_INVOKABLE void moveFavoritePC(int from, int to);
+    Q_INVOKABLE bool isFavoritePC(const QString &id) const;
     // Local DMR ID database lookup: "CALL - Name" (or "CALL"), empty when unknown/not loaded.
     Q_INVOKABLE QString lookupDmrId(uint id) const;
     // Received transmissions saved for replay, newest first:

@@ -2296,73 +2296,134 @@ void DroidStar::updateNowPlayingRX(const QString& callsign, const QString& name,
 #endif
 }
 
-// Stored as "tg|name" strings so the order survives and QSettings stays human-readable.
-static QStringList favoriteTGEntries()
+// Saved channel lists (talkgroups and private-call contacts) are stored as
+// "id|name" strings so the order survives and QSettings stays human-readable.
+// Both lists share these helpers; only the settings key differs.
+static const char *kFavoriteTGKey = "FavoriteTGs/list";
+static const char *kFavoritePCKey = "FavoritePCs/list";
+
+static QStringList favoriteEntries(const char *key)
 {
     QSettings settings;
-    return settings.value("FavoriteTGs/list").toStringList();
+    return settings.value(key).toStringList();
 }
 
-static void saveFavoriteTGEntries(const QStringList &entries)
+static void saveFavoriteEntries(const char *key, const QStringList &entries)
 {
     QSettings settings;
-    settings.setValue("FavoriteTGs/list", entries);
+    settings.setValue(key, entries);
 }
 
-static int favoriteTGIndex(const QStringList &entries, const QString &tg)
+static int favoriteIndex(const QStringList &entries, const QString &id)
 {
     for (int i = 0; i < entries.size(); ++i) {
-        if (entries.at(i).section('|', 0, 0) == tg) return i;
+        if (entries.at(i).section('|', 0, 0) == id) return i;
     }
     return -1;
 }
 
-QVariantList DroidStar::loadFavoriteTGs() const {
+static bool validFavoriteId(const QString &id)
+{
+    bool ok = false;
+    const uint v = id.toUInt(&ok);
+    return ok && v > 0;
+}
+
+static QString cleanFavoriteName(const QString &name)
+{
+    QString label = name.simplified();
+    label.replace('|', ' ');
+    return label;
+}
+
+static QVariantList loadFavorites(const char *key, const char *idField)
+{
     QVariantList out;
-    for (const QString &e : favoriteTGEntries()) {
+    for (const QString &e : favoriteEntries(key)) {
         QVariantMap m;
-        m["tg"] = e.section('|', 0, 0);
+        m[idField] = e.section('|', 0, 0);
         m["name"] = e.section('|', 1);
         out.append(m);
     }
     return out;
 }
 
-void DroidStar::addFavoriteTG(const QString &tg, const QString &name) {
-    const QString id = tg.simplified();
-    bool ok = false;
-    id.toUInt(&ok);
-    if (!ok) return;
-    QString label = name.simplified();
-    label.replace('|', ' ');
-    QStringList entries = favoriteTGEntries();
-    const int i = favoriteTGIndex(entries, id);
+static void addFavorite(const char *key, const QString &rawId, const QString &name)
+{
+    const QString id = rawId.simplified();
+    if (!validFavoriteId(id)) return;
+    const QString label = cleanFavoriteName(name);
+    QStringList entries = favoriteEntries(key);
+    const int i = favoriteIndex(entries, id);
     if (i >= 0) {
         entries[i] = id + "|" + label;   // update name in place, keep position
     } else {
         entries.append(id + "|" + label);
     }
-    saveFavoriteTGEntries(entries);
+    saveFavoriteEntries(key, entries);
 }
 
-void DroidStar::removeFavoriteTG(const QString &tg) {
-    QStringList entries = favoriteTGEntries();
-    const int i = favoriteTGIndex(entries, tg.simplified());
+// Rename and/or renumber an entry, keeping its position. If the new number is
+// already saved elsewhere, that other entry is dropped so ids stay unique.
+static bool updateFavorite(const char *key, const QString &rawOldId, const QString &rawNewId, const QString &name)
+{
+    const QString oldId = rawOldId.simplified();
+    const QString newId = rawNewId.simplified();
+    if (!validFavoriteId(newId)) return false;
+    const QString label = cleanFavoriteName(name);
+    QStringList entries = favoriteEntries(key);
+    int i = favoriteIndex(entries, oldId);
+    if (i < 0) {
+        addFavorite(key, newId, label);
+        return true;
+    }
+    if (newId != oldId) {
+        const int dup = favoriteIndex(entries, newId);
+        if (dup >= 0) {
+            entries.removeAt(dup);
+            if (dup < i) --i;
+        }
+    }
+    entries[i] = newId + "|" + label;
+    saveFavoriteEntries(key, entries);
+    return true;
+}
+
+static void removeFavorite(const char *key, const QString &id)
+{
+    QStringList entries = favoriteEntries(key);
+    const int i = favoriteIndex(entries, id.simplified());
     if (i < 0) return;
     entries.removeAt(i);
-    saveFavoriteTGEntries(entries);
+    saveFavoriteEntries(key, entries);
 }
 
-void DroidStar::moveFavoriteTG(int from, int to) {
-    QStringList entries = favoriteTGEntries();
+static void moveFavorite(const char *key, int from, int to)
+{
+    QStringList entries = favoriteEntries(key);
     if (from < 0 || from >= entries.size() || to < 0 || to >= entries.size() || from == to) return;
     entries.move(from, to);
-    saveFavoriteTGEntries(entries);
+    saveFavoriteEntries(key, entries);
 }
 
-bool DroidStar::isFavoriteTG(const QString &tg) const {
-    return favoriteTGIndex(favoriteTGEntries(), tg.simplified()) >= 0;
+static bool isFavorite(const char *key, const QString &id)
+{
+    return favoriteIndex(favoriteEntries(key), id.simplified()) >= 0;
 }
+
+QVariantList DroidStar::loadFavoriteTGs() const { return loadFavorites(kFavoriteTGKey, "tg"); }
+void DroidStar::addFavoriteTG(const QString &tg, const QString &name) { addFavorite(kFavoriteTGKey, tg, name); }
+bool DroidStar::updateFavoriteTG(const QString &oldTg, const QString &newTg, const QString &name) { return updateFavorite(kFavoriteTGKey, oldTg, newTg, name); }
+void DroidStar::removeFavoriteTG(const QString &tg) { removeFavorite(kFavoriteTGKey, tg); }
+void DroidStar::moveFavoriteTG(int from, int to) { moveFavorite(kFavoriteTGKey, from, to); }
+bool DroidStar::isFavoriteTG(const QString &tg) const { return isFavorite(kFavoriteTGKey, tg); }
+
+QVariantList DroidStar::loadFavoritePCs() const { return loadFavorites(kFavoritePCKey, "id"); }
+void DroidStar::addFavoritePC(const QString &id, const QString &name) { addFavorite(kFavoritePCKey, id, name); }
+bool DroidStar::updateFavoritePC(const QString &oldId, const QString &newId, const QString &name) { return updateFavorite(kFavoritePCKey, oldId, newId, name); }
+void DroidStar::removeFavoritePC(const QString &id) { removeFavorite(kFavoritePCKey, id); }
+void DroidStar::moveFavoritePC(int from, int to) { moveFavorite(kFavoritePCKey, from, to); }
+bool DroidStar::isFavoritePC(const QString &id) const { return isFavorite(kFavoritePCKey, id); }
 
 QVariantList DroidStar::loadRecordings() const {
     QVariantList out;
