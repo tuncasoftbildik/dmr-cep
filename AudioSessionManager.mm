@@ -84,6 +84,7 @@ static void (*g_pttReleaseCallback)(void) = NULL;
 // Keep-alive audio
 - (void)startKeepAliveAudio;
 - (void)stopKeepAliveAudio;
+- (void)reclaimAudioSessionAttempt:(int)attempt;
 
 // Now Playing refresh timer
 - (void)startNowPlayingTimer;
@@ -669,16 +670,12 @@ static void (*g_pttReleaseCallback)(void) = NULL;
         
         self->_bgTask = [[UIApplication sharedApplication] beginBackgroundTaskWithName:@"DroidStarAudio"
                                                                       expirationHandler:^{
-            NSLog(@"[AudioSessionManager] Background task expiring - renewing");
+            // Just end it. Re-beginning a task from its own expiration handler (what this used to do,
+            // dozens of times per second) is treated by iOS as abuse and the app gets SIGKILLed.
+            // Background life comes from the audio session, not from chained background tasks.
+            NSLog(@"[AudioSessionManager] Background task expired (audio playing: %d)", self->_isAudioSessionActive);
             [[UIApplication sharedApplication] endBackgroundTask:self->_bgTask];
             self->_bgTask = UIBackgroundTaskInvalid;
-            
-            // Try to renew if still connected
-            if (self->_isConnected) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [self startBackgroundTask];
-                });
-            }
         }];
         
         if (self->_bgTask != UIBackgroundTaskInvalid) {
@@ -711,9 +708,17 @@ static void (*g_pttReleaseCallback)(void) = NULL;
     NSUInteger interruptionType = [notification.userInfo[AVAudioSessionInterruptionTypeKey] unsignedIntegerValue];
 
     if (interruptionType == AVAudioSessionInterruptionTypeBegan) {
-        NSLog(@"[AudioSessionManager] Audio interruption began");
+        NSUInteger reason = 0;
+        if (@available(iOS 14.5, *)) {
+            reason = [notification.userInfo[AVAudioSessionInterruptionReasonKey] unsignedIntegerValue];
+        }
+        NSLog(@"[AudioSessionManager] Audio interruption began (reason %lu, other audio playing: %d)",
+              (unsigned long)reason, [AVAudioSession sharedInstance].isOtherAudioPlaying);
         _isAudioSessionActive = NO;
         [self stopKeepAliveAudio];
+        // In the background nobody may ever send "ended" (seen with the PushToTalk channel joined),
+        // and without playing audio iOS suspends/kills us. Try to take the session back.
+        if (_isConnected) [self reclaimAudioSessionAttempt:0];
     } else if (interruptionType == AVAudioSessionInterruptionTypeEnded) {
         NSLog(@"[AudioSessionManager] Audio interruption ended");
         
@@ -739,6 +744,26 @@ static void (*g_pttReleaseCallback)(void) = NULL;
             [self setupAVAudioSession];
         }
     }
+}
+
+- (void)reclaimAudioSessionAttempt:(int)attempt {
+    if (attempt >= 7) {
+        NSLog(@"[AudioSessionManager] Giving up reclaiming the audio session");
+        return;
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((attempt == 0 ? 1.5 : 5.0) * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        if (!self->_isConnected || self->_isAudioSessionActive) return;
+        NSError *error = nil;
+        if ([[AVAudioSession sharedInstance] setActive:YES error:&error]) {
+            self->_isAudioSessionActive = YES;
+            [self startKeepAliveAudio];
+            NSLog(@"[AudioSessionManager] Audio session reclaimed after interruption (attempt %d)", attempt + 1);
+        } else {
+            NSLog(@"[AudioSessionManager] Reclaim attempt %d failed: %@", attempt + 1, error.localizedDescription);
+            [self reclaimAudioSessionAttempt:attempt + 1];
+        }
+    });
 }
 
 - (void)handleAudioRouteChange:(NSNotification *)notification {
