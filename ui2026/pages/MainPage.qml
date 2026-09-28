@@ -28,7 +28,7 @@ import "../theme"
 // Everything technical (mode, host, slot, CC, mic) lives in the "Connection & audio" sheet.
 Page {
     id: page
-    title: qsTr("Main")
+    title: qsTr("DMR Cep")
     padding: 0
 
     required property var droidstarRef
@@ -93,7 +93,15 @@ Page {
 
         page.appState.lastHeard1 = saved.length > 0 ? fmt(saved[0]) : ""
         page.appState.lastHeard2 = saved.length > 1 ? fmt(saved[1]) : ""
+        // The main screen shows the last station other than ourselves.
+        var me = (page.appState.callsign || "").toUpperCase()
+        var other = ""
+        for (var i = 0; i < saved.length; ++i) {
+            if (saved[i] && (saved[i].callsign || "").toUpperCase() !== me) { other = fmt(saved[i]); break }
+        }
+        page.lastHeardOther = other
     }
+    property string lastHeardOther: ""
 
     Component.onCompleted: {
         refreshLastHeardFromLog()
@@ -442,10 +450,13 @@ Page {
                     spacing: 8
                     Label {
                         Layout.fillWidth: true
-                        text: page.isTgMode ? (page.tgName(appState ? appState.dmrtgid : "") || qsTr("Tap to choose a talkgroup"))
+                        readonly property string nm: page.tgName(appState ? appState.dmrtgid : "")
+                        readonly property bool hasTg: !!(appState && appState.dmrtgid !== "")
+                        text: page.isTgMode ? (nm !== "" ? nm : (hasTg ? qsTr("Tap to change") : qsTr("Tap to choose a talkgroup")))
                                             : ((appState && appState.selectedHost) ? appState.selectedHost : "")
                         color: t.lcdInk
-                        font.pixelSize: 17
+                        opacity: (page.isTgMode && nm === "") ? 0.7 : 1.0
+                        font.pixelSize: (page.isTgMode && nm === "") ? 14 : 17
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
                     }
@@ -556,7 +567,7 @@ Page {
                     if (!appState) return ""
                     if (page.onAir) return appState.callsign
                     if (page.receiving) return appState.data1.split(" - ")[0]
-                    var lh = appState.lastHeard1 || ""
+                    var lh = page.lastHeardOther
                     return lh !== "" ? lh.split(" - ")[0] : "—"
                 }
                 color: page.onAir ? t.danger : t.text
@@ -575,7 +586,7 @@ Page {
                         return who
                     }
                     if (page.onAir) return page.tgName(appState.dmrtgid)
-                    var p = (appState.lastHeard1 || "").split(" - ")
+                    var p = page.lastHeardOther.split(" - ")
                     return p.slice(1).join(", ")
                 }
                 color: t.textMuted
@@ -607,7 +618,7 @@ Page {
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: keySize + 34
-            readonly property real keySize: Math.min(page.width * 0.5, 200)
+            readonly property real keySize: Math.min(page.width * 0.56, 230)
 
             // Level ring: grows with the audio level while receiving or transmitting
             Rectangle {

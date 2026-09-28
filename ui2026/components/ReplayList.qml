@@ -89,10 +89,24 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 8
 
-            Button {
-                text: parent.playing ? "■" : "▶"
+            RoundButton {
+                id: playBtn
                 Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
                 onClicked: root.toggle(modelData.url)
+                contentItem: Label {
+                    text: parent.parent.playing ? "■" : "▶"
+                    color: t.text
+                    font.pixelSize: 18
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    radius: width / 2
+                    color: parent.parent.playing ? Qt.rgba(t.success.r, t.success.g, t.success.b, 0.25) : t.surface2
+                    border.color: parent.parent.playing ? t.success : t.stroke
+                    border.width: 1
+                }
             }
 
             ColumnLayout {
