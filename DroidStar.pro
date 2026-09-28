@@ -13,7 +13,9 @@ macx:LIBS += -framework AVFoundation
 macx:QMAKE_MACOSX_DEPLOYMENT_TARGET = 12.0
 macx:QMAKE_INFO_PLIST = Info.plist.mac
 ios:LIBS += -framework AVFoundation -framework AudioToolbox -framework UIKit -framework MobileCoreServices -framework MediaPlayer -lz
-ios:QMAKE_IOS_DEPLOYMENT_TARGET=14.0
+ios:QMAKE_IOS_DEPLOYMENT_TARGET=15.0
+# Qt 6.8+ defaults to the FFmpeg multimedia backend on iOS; the native Darwin one is enough here.
+ios:QTPLUGIN.multimedia = darwinmediaplugin
 ios:QMAKE_TARGET_BUNDLE_PREFIX = org.dudetronics
 ios:QMAKE_BUNDLE = droidstar
 ios:VERSION = 0.44.16

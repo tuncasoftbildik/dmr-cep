@@ -13,9 +13,40 @@
 
 
 
+#ifdef Q_OS_IOS
+#include <QDir>
+#include <QFileInfo>
+#include <QStandardPaths>
+#include <cstdio>
+#include <unistd.h>
+
+// Keep a persistent debug log on the phone (qDebug and NSLog both write to stderr).
+// It survives the app being killed in the background, so a disconnect or termination can be
+// diagnosed afterwards by copying debug.log out of the app container. Rotates at 2 MB.
+static void startFileLog()
+{
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir().mkpath(dir);
+    const QString path = dir + "/debug.log";
+    QFileInfo fi(path);
+    if (fi.exists() && fi.size() > 2 * 1024 * 1024) {
+        QFile::remove(path + ".1");
+        QFile::rename(path, path + ".1");
+    }
+    if (freopen(path.toLocal8Bit().constData(), "a", stderr)) {
+        setvbuf(stderr, nullptr, _IOLBF, 0);
+    }
+    qSetMessagePattern("%{time yyyy-MM-dd hh:mm:ss.zzz} %{message}");
+    qDebug() << "==== DroidStar start, pid" << getpid();
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+#ifdef Q_OS_IOS
+    startFileLog();
+#endif
     // Use Material styling for a modern dark UI (Fusion defaults to a light palette).
     QQuickStyle::setStyle("Material");
     // QRC icon (registered via `DroidStar.pro` resources.files)

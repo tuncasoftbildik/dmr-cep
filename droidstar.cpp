@@ -609,6 +609,7 @@ void DroidStar::schedule_reconnect(const QString &reason, int delayMs)
         delayMs = qMin(5000 << qMin(m_reconnectAttempt, 4), 60000);
     }
     m_reconnectAttempt++;
+    qDebug() << "Reconnect scheduled:" << reason << "in" << delayMs << "ms, attempt" << m_reconnectAttempt;
     emit update_log(reason + " - retrying in " + QString::number(delayMs / 1000) + " s (" +
                     QString::number(m_reconnectAttempt) + "/" + QString::number(kMaxReconnectAttempts) + ")");
     m_reconnectTimer->start(delayMs);
@@ -641,6 +642,7 @@ void DroidStar::connect_failed(const QString &reason)
 {
     const bool autoAttempt = m_autoReconnect && (m_reconnectAttempt > 0);
     const bool retry = autoAttempt && (m_reconnectAttempt < kMaxReconnectAttempts);
+    qDebug() << "Connect failed:" << reason << "auto" << autoAttempt << "retry" << retry;
     m_errortxt = autoAttempt && !retry
         ? reason + " (gave up after " + QString::number(m_reconnectAttempt) + " reconnect attempts)"
         : reason;

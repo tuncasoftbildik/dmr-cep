@@ -4,5 +4,8 @@
 <dict>
 	<key>com.apple.developer.push-to-talk</key>
 	<true/>
+	<!-- PushToTalk refuses to start without an APNs environment (PTInstantiationError 3). -->
+	<key>aps-environment</key>
+	<string>development</string>
 </dict>
 </plist>
