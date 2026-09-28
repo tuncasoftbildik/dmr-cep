@@ -925,12 +925,28 @@ Page {
                 title: qsTr("Network")
                 summary: {
                     var parts = []
+                    if (autoConnectRow.on) parts.push(qsTr("Auto-connect"))
                     if (page.appState && page.appState.ipv6) parts.push(qsTr("IPv6"))
                     if (page.appState && page.appState.xrf2ref) parts.push(qsTr("XRF→REF"))
                     return parts.join("  ·  ")
                 }
                 expanded: page.networkExpanded
                 onExpandedChanged: page.networkExpanded = expanded
+
+                SettingRow {
+                    id: autoConnectRow
+                    property bool on: page.droidstarRef ? page.droidstarRef.get_auto_connect() : true
+                    title: qsTr("Auto-connect on launch")
+                    hint: qsTr("Connects to the last server and talk group when the app opens")
+                    Switch {
+                        checked: autoConnectRow.on
+                        onToggled: {
+                            page.droidstarRef.set_auto_connect(checked)
+                            autoConnectRow.on = checked
+                        }
+                    }
+                }
+                Rule {}
 
                 SettingRow {
                     title: qsTr("IPv6")

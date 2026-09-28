@@ -196,6 +196,10 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 <context>
     <name>MainPage</name>
     <message>
+        <source>Auto-connecting…</source>
+        <translation>Otomatik bağlanıyor…</translation>
+    </message>
+    <message>
         <location filename="../ui2026/pages/MainPage.qml" line="994" />
         <source>Connection</source>
         <translation>Bağlantı</translation>
@@ -661,6 +665,18 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 </context>
 <context>
     <name>SettingsPage</name>
+    <message>
+        <source>Auto-connect on launch</source>
+        <translation>Açılışta otomatik bağlan</translation>
+    </message>
+    <message>
+        <source>Connects to the last server and talk group when the app opens</source>
+        <translation>Uygulama açılınca son sunucuya ve konuşma grubuna bağlanır</translation>
+    </message>
+    <message>
+        <source>Auto-connect</source>
+        <translation>Otomatik bağlan</translation>
+    </message>
     <message>
         <location filename="../ui2026/pages/SettingsPage.qml" line="28" />
         <source>Settings</source>

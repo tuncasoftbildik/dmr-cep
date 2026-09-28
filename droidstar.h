@@ -72,6 +72,14 @@ public:
     // latitude/longitude. Persisted as USEPHONEGPS, off by default.
     Q_INVOKABLE bool get_use_phone_gps() const { return m_usePhoneGps; }
     Q_INVOKABLE void set_use_phone_gps(bool on);
+    // Connect to the last server/TG when the app opens. Persisted as AUTOCONNECT, on by default.
+    Q_INVOKABLE bool get_auto_connect() const { return m_autoConnect; }
+    Q_INVOKABLE void set_auto_connect(bool on);
+    // True once per launch if auto-connect should run now: the setting is on, we are idle and
+    // nothing (a manual connect, cancel or disconnect) has touched the link yet. Consumes it.
+    Q_INVOKABLE bool take_launch_auto_connect();
+    // Launch auto-connect; the UI has already pushed the connection settings like for Connect.
+    Q_INVOKABLE void process_auto_connect();
     // Short English status, e.g. "41.0082, 28.9784 (±12 m)", "Waiting for location",
     // "Location permission denied", "Off". Changes are signalled by gps_status_changed().
     Q_INVOKABLE QString get_gps_status() const;
@@ -483,6 +491,8 @@ private:
     void dmr_login_position(QString &lat, QString &lon);
     int m_rogerBeep = 2;
     int m_txTone = 1;
+    bool m_autoConnect = true;
+    bool m_launchAutoConnectUsed = false;   // any connect/disconnect this session disables it
     bool m_keepPttChannel = false;   // teardown for an automatic reconnect keeps the PTT channel
     QString m_pttTalker;
     // iOS Live Activity (lock screen / Dynamic Island card). DroidStar drives it directly so

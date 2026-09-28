@@ -390,6 +390,9 @@ void DroidStar::process_connect()
              << "module=" << QChar(m_module)
              << "saved_dmrhost=" << m_saved_dmrhost;
 
+    // Whatever the user (or a reconnect) does with the link, launch auto-connect is off now.
+    m_launchAutoConnectUsed = true;
+
     if((connect_status == Mode::DISCONNECTED) && m_autoReconnect && m_reconnectTimer->isActive()){
         // Waiting between automatic attempts; the UI shows "Cancel", so this click cancels.
         m_reconnectTimer->stop();
@@ -915,6 +918,7 @@ void DroidStar::save_settings()
     m_settings->setValue("PTTFRAMEWORK", m_pttFramework ? "true" : "false");
     m_settings->setValue("HEADPHONEPTT", m_headphonePtt ? "true" : "false");
     m_settings->setValue("USEPHONEGPS", m_usePhoneGps ? "true" : "false");
+    m_settings->setValue("AUTOCONNECT", m_autoConnect ? "true" : "false");
     m_settings->setValue("ROGERBEEP", m_rogerBeep);
     m_settings->setValue("TXTONE", m_txTone);
     m_settings->setValue("XRF2REF", m_xrf2ref ? "true" : "false");
@@ -996,6 +1000,7 @@ void DroidStar::process_settings()
     m_pttFramework = (m_settings->value("PTTFRAMEWORK", "false").toString().simplified() == "true");
     m_headphonePtt = (m_settings->value("HEADPHONEPTT", "false").toString().simplified() == "true");
     m_usePhoneGps = (m_settings->value("USEPHONEGPS", "false").toString().simplified() == "true");
+    m_autoConnect = (m_settings->value("AUTOCONNECT", "true").toString().simplified() == "true");
     m_rogerBeep = m_settings->value("ROGERBEEP", 2).toInt();
     m_txTone = m_settings->value("TXTONE", 1).toInt();
     m_dstarusertxt = m_settings->value("USRTXT").toString().simplified();
@@ -1946,6 +1951,43 @@ void DroidStar::set_use_phone_gps(bool on)
     save_settings();
     apply_phone_gps();
     emit gps_status_changed();
+}
+
+void DroidStar::set_auto_connect(bool on)
+{
+    if(on == m_autoConnect){
+        return;
+    }
+    m_autoConnect = on;
+    save_settings();
+}
+
+bool DroidStar::take_launch_auto_connect()
+{
+    if(!m_autoConnect || m_launchAutoConnectUsed || (connect_status != Mode::DISCONNECTED) || m_autoReconnect){
+        return false;
+    }
+    m_launchAutoConnectUsed = true;
+    return true;
+}
+
+// Same as the Connect button, but counted as an automatic attempt: right after launch the
+// network may still be coming up, so a failure goes through the reconnect backoff instead of
+// an error dialog. Without a network we just wait; on_network_state_changed() fires it early.
+void DroidStar::process_auto_connect()
+{
+    if(connect_status != Mode::DISCONNECTED){
+        return;
+    }
+    emit update_log("Auto-connecting on launch");
+    QNetworkInformation *ni = QNetworkInformation::instance();
+    if(ni && (ni->reachability() == QNetworkInformation::Reachability::Disconnected)){
+        m_autoReconnect = true;
+        schedule_reconnect("Auto-connect: no network");
+        return;
+    }
+    m_reconnectAttempt = 1;
+    process_connect();
 }
 
 QString DroidStar::get_gps_status() const
