@@ -1033,80 +1033,10 @@ ApplicationWindow {
                 Label {
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
-                    text: qsTr("Made with \u2665  VU3LVO")
+                    text: qsTr("Made with \u2665  TB1BDL")
                     opacity: 0.75
                     font.pixelSize: 12
                     wrapMode: Text.WordWrap
-                }
-
-                // Buy Me a Coffee (same styling as About page)
-                Button {
-                    Layout.fillWidth: true
-                    height: 48
-                    text: qsTr("☕ Buy Me a Coffee")
-                    font.bold: true
-                    font.pixelSize: 14
-
-                    background: Rectangle {
-                        radius: 14
-                        color: "#FF813F"
-                        border.color: "#FFA366"
-                        border.width: 2
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: parent.radius
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: "#FFA366" }
-                                GradientStop { position: 1.0; color: "#FF813F" }
-                            }
-                        }
-                    }
-
-                    contentItem: Label {
-                        text: parent.text
-                        font: parent.font
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    onClicked: Qt.openUrlExternally("https://buymeacoffee.com/rohithz")
-                }
-
-                // PayPal (same styling as About page)
-                Button {
-                    Layout.fillWidth: true
-                    height: 48
-                    text: qsTr("💳 PayPal Donation")
-                    font.bold: true
-                    font.pixelSize: 14
-
-                    background: Rectangle {
-                        radius: 14
-                        color: "#0070BA"
-                        border.color: "#009CDE"
-                        border.width: 2
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: parent.radius
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: "#009CDE" }
-                                GradientStop { position: 1.0; color: "#0070BA" }
-                            }
-                        }
-                    }
-
-                    contentItem: Label {
-                        text: parent.text
-                        font: parent.font
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    onClicked: Qt.openUrlExternally("https://www.paypal.com/ncp/payment/NU89529268M2W")
                 }
             }
         }

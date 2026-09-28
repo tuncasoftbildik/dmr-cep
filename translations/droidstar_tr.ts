@@ -67,31 +67,11 @@ You should have received a copy of the GNU General Public License along with thi
     </message>
     <message>
         <location filename="../ui2026/pages/AboutPage.qml" line="185" />
-        <source>Support the Project</source>
-        <translation>Projeye Destek Ol</translation>
-    </message>
-    <message>
-        <location filename="../ui2026/pages/AboutPage.qml" line="195" />
-        <source>If you find this app useful, please consider supporting the development.</source>
-        <translation>Uygulamayı faydalı bulduysan geliştirmeye destek olmayı düşünebilirsin.</translation>
-    </message>
-    <message>
-        <location filename="../ui2026/pages/AboutPage.qml" line="202" />
-        <source>☕ Buy Me a Coffee</source>
-        <translation>☕ Bir Kahve Ismarla</translation>
-    </message>
-    <message>
-        <location filename="../ui2026/pages/AboutPage.qml" line="237" />
-        <source>💳 PayPal Donation</source>
-        <translation>💳 PayPal ile Bağış</translation>
-    </message>
-    <message>
-        <location filename="../ui2026/pages/AboutPage.qml" line="280" />
         <source>Project Links</source>
         <translation>Proje Bağlantıları</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/AboutPage.qml" line="287" />
+        <location filename="../ui2026/pages/AboutPage.qml" line="192" />
         <source>GitHub Project Page</source>
         <translation>GitHub Proje Sayfası</translation>
     </message>
@@ -105,7 +85,7 @@ You should have received a copy of the GNU General Public License along with thi
     </message>
     <message>
         <location filename="../ui2026/App2026.qml" line="995" />
-        <location filename="../ui2026/App2026.qml" line="1141" />
+        <location filename="../ui2026/App2026.qml" line="1071" />
         <source>DroidStar</source>
         <translation>DroidStar</translation>
     </message>
@@ -141,18 +121,8 @@ You should have received a copy of the GNU General Public License along with thi
     </message>
     <message>
         <location filename="../ui2026/App2026.qml" line="1036" />
-        <source>Made with ♥  VU3LVO</source>
-        <translation>♥ ile yapıldı  VU3LVO</translation>
-    </message>
-    <message>
-        <location filename="../ui2026/App2026.qml" line="1046" />
-        <source>☕ Buy Me a Coffee</source>
-        <translation>☕ Bir Kahve Ismarla</translation>
-    </message>
-    <message>
-        <location filename="../ui2026/App2026.qml" line="1081" />
-        <source>💳 PayPal Donation</source>
-        <translation>💳 PayPal ile Bağış</translation>
+        <source>Made with ♥  TB1BDL</source>
+        <translation>♥ ile yapıldı  TB1BDL</translation>
     </message>
 </context>
 <context>
