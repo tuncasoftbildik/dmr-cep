@@ -22,6 +22,7 @@
 #include "rxrecorder.h"
 #include "DMRDefines.h"
 #include "cbptc19696.h"
+#include <QElapsedTimer>
 
 class DMR : public Mode
 {
@@ -105,6 +106,41 @@ private:
     float m_rx_last_gain = 8.0f;
     void apply_rx_gain(int16_t *pcm, int n);
     static const qint64 RX_WATCHDOG_MS = 20000;
+    // Link quality ("signal bars"): measured from traffic that flows anyway, no extra packets.
+    //  - RTT of each RPTPING -> MSTPONG (last + EWMA),
+    //  - ping loss over the last LQ_PING_WINDOW pings (a ping without a pong before the next one),
+    //  - voice frame loss from gaps in the DMRD sequence byte (buf[4]) of the current/last RX stream,
+    //  - RX inter-arrival jitter (RFC 3550 style, against the nominal 60 ms per DMRD voice packet).
+    static const int LQ_PING_WINDOW = 10;
+    static const qint64 LQ_EMIT_MIN_MS = 1000;
+    static const qint64 LQ_LOG_INTERVAL_MS = 60000;
+    static const qint64 LQ_RX_LOSS_RELEVANT_MS = 120000;   // a stream's loss counts in the score this long after it ended
+    QElapsedTimer m_lq_ping_clock;
+    bool m_lq_ping_pending = false;
+    int m_lq_rtt_last = -1;          // ms, -1 = no pong yet
+    double m_lq_rtt_avg = -1;        // ms, EWMA (alpha 0.25)
+    quint16 m_lq_ping_hist = 0;      // bit i = 1: ping i (newest = bit 0) got no pong
+    int m_lq_ping_count = 0;         // pings resolved so far (capped at LQ_PING_WINDOW)
+    int m_lq_consecutive_miss = 0;
+    uint32_t m_lq_streamid = 0;
+    int m_lq_last_seq = -1;
+    int m_lq_rx_received = 0;
+    int m_lq_rx_lost = 0;
+    int m_lq_rx_loss_pct = -1;       // -1 = nothing received yet this session
+    double m_lq_jitter = 0;          // ms
+    bool m_lq_prev_voice = false;
+    qint64 m_lq_last_frame_ms = 0;
+    qint64 m_lq_stream_end_ms = 0;
+    qint64 m_lq_last_emit_ms = 0;
+    qint64 m_lq_last_log_ms = 0;
+    QString m_lq_emitted_sig;
+    void lq_ping_sent();
+    void lq_pong_received();
+    void lq_track_rx(const QByteArray &buf);
+    void lq_stream_ended();
+    int lq_ping_loss_pct() const;
+    int lq_bars() const;
+    void lq_emit(bool force);
     void report_connection_lost(const QString &reason);
     void record_rx(const int16_t *pcm);
     void finish_recording();

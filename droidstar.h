@@ -83,12 +83,17 @@ public:
     // Short English status, e.g. "41.0082, 28.9784 (±12 m)", "Waiting for location",
     // "Location permission denied", "Off". Changes are signalled by gps_status_changed().
     Q_INVOKABLE QString get_gps_status() const;
+    // DMR link quality ("signal bars"): {bars, rtt, rttAvg, pingLoss, rxLoss, jitter}.
+    // bars: -1 unknown (no pong yet), 0 lost .. 4 excellent; ms / percent, -1 = not measured.
+    // Changes are signalled by link_quality_changed() (at most about once a second).
+    Q_INVOKABLE QVariantMap get_link_quality() const;
     Q_INVOKABLE void updateNowPlayingRX(const QString& callsign, const QString& name, const QString& country);
     void setup_state_change_listeners();
     
 
 signals:
     void gps_status_changed();
+    void link_quality_changed();
     void dmr_position_changed(QString lat, QString lon);   // to DMR::send_position (mode thread)
     void recordings_changed();
     void restart_capture_requested();
@@ -428,6 +433,13 @@ private:
     const uint8_t header[5] = {0x80,0x44,0x53,0x56,0x54}; //DVSI packet header
     uint16_t m_outlevel;
     QString m_errortxt;
+    // Latest DMR link quality from the mode thread, see get_link_quality().
+    int m_lqBars = -1;
+    int m_lqRtt = -1;
+    int m_lqRttAvg = -1;
+    int m_lqPingLoss = -1;
+    int m_lqRxLoss = -1;
+    int m_lqJitter = -1;
     bool m_xrf2ref;
     bool m_ipv6;
     QString m_vocoder;
@@ -538,6 +550,7 @@ private slots:
     void updatelog(QString);
     void save_settings();
     void update_output_level(unsigned short l){ m_outlevel = l;}
+    void update_link_quality(int bars, int rtt, int rttAvg, int pingLoss, int rxLoss, int jitter);
     //void load_md380_fw();
 };
 
