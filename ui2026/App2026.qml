@@ -966,14 +966,14 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 6
                             // From QRC (see `DroidStar.pro` resources.files)
-                            source: "qrc:/DroidStar/images/droidstar.png"
+                            source: "qrc:/DroidStar/images/dmrcep.png"
                             fillMode: Image.PreserveAspectFit
                             smooth: true
                             asynchronous: true
                             onStatusChanged: {
                                 // Dev/build fallback: if QRC is missing, try relative file (keeps UI usable).
                                 if (status === Image.Error) {
-                                    source = Qt.resolvedUrl("../../images/droidstar.png")
+                                    source = Qt.resolvedUrl("../../images/dmrcep.png")
                                 }
                             }
                         }
@@ -992,7 +992,7 @@ ApplicationWindow {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 6
-                        Label { text: qsTr("DroidStar"); font.pixelSize: 20; font.bold: true }
+                        Label { text: qsTr("DMR Cep"); font.pixelSize: 20; font.bold: true }
                         Label { text: appState.netstatus; opacity: 0.8; wrapMode: Text.WordWrap }
                     }
                 }
@@ -1068,7 +1068,7 @@ ApplicationWindow {
             }
 
             Label {
-                text: (stack.currentItem && stack.currentItem.title) ? stack.currentItem.title : qsTr("DroidStar")
+                text: (stack.currentItem && stack.currentItem.title) ? stack.currentItem.title : qsTr("DMR Cep")
                 Layout.fillWidth: true
                 font.pixelSize: 18
                 elide: Text.ElideRight

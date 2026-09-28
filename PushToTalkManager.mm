@@ -68,7 +68,7 @@ API_AVAILABLE(ios(16.0))
             [d setObject:u forKey:@"DSPTTChannelUUID"];
         }
         _channelUUID = [[NSUUID alloc] initWithUUIDString:u];
-        _channelName = @"DroidStar";
+        _channelName = @"DMR Cep";
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive)
                                                      name:UIApplicationDidBecomeActiveNotification object:nil];
     }
@@ -250,10 +250,10 @@ extern "C" void ptt_set_callbacks(PTTSystemCallback beginTx, PTTSystemCallback e
 extern "C" void ptt_join(const char *channelName)
 {
     if (@available(iOS 16.0, *)) {
-        NSString *name = channelName ? [NSString stringWithUTF8String:channelName] : @"DroidStar";
+        NSString *name = channelName ? [NSString stringWithUTF8String:channelName] : @"DMR Cep";
         dispatch_async(dispatch_get_main_queue(), ^{
             DSPushToTalk *p = [DSPushToTalk shared];
-            p.channelName = name.length ? name : @"DroidStar";
+            p.channelName = name.length ? name : @"DMR Cep";
             [p join];
         });
     }
@@ -262,7 +262,7 @@ extern "C" void ptt_join(const char *channelName)
 extern "C" void ptt_update_name(const char *channelName)
 {
     if (@available(iOS 16.0, *)) {
-        NSString *name = channelName ? [NSString stringWithUTF8String:channelName] : @"DroidStar";
+        NSString *name = channelName ? [NSString stringWithUTF8String:channelName] : @"DMR Cep";
         dispatch_async(dispatch_get_main_queue(), ^{
             DSPushToTalk *p = [DSPushToTalk shared];
             p.channelName = name;

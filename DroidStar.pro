@@ -139,6 +139,7 @@ resources.files = main.qml AboutTab.qml HostsTab.qml LogTab.qml MainTab.qml Sett
                   sounds/connected.wav \
                   translations/droidstar_tr.qm \
                   images/droidstar.png \
+                  images/dmrcep.png \
                   qml/AppShell.qml \
                   qml/theme/Theme.qml \
                   qml/components/AppCard.qml \

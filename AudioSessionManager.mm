@@ -542,7 +542,7 @@ static void (*g_pttReleaseCallback)(void) = NULL;
     nowPlayingInfo[MPMediaItemPropertyArtist] = artist;
     
     // Album: Show connection info
-    NSString *album = @"DroidStar";
+    NSString *album = @"DMR Cep";
     if (_currentHost.length > 0) {
         album = [NSString stringWithFormat:@"%@ - %@", _currentMode, _currentHost];
     }

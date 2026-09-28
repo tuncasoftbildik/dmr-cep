@@ -1811,7 +1811,8 @@ bool DroidStar::ptt_framework_available() const
 
 QString DroidStar::ptt_channel_name() const
 {
-    QString name = "DroidStar \u00b7 " + m_refname;
+    // The PTT UI already shows the app name; keep the channel short so it isn't truncated.
+    QString name = m_refname;
     if ((m_protocol == "DMR") && m_dmr_destid) {
         name += " \u00b7 TG " + QString::number(m_dmr_destid);
     }

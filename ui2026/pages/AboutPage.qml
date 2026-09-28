@@ -56,7 +56,7 @@ Page {
                     
                     // App Icon
                     Image {
-                        source: "qrc:/DroidStar/images/droidstar.png"
+                        source: "qrc:/DroidStar/images/dmrcep.png"
                         Layout.preferredWidth: 80
                         Layout.preferredHeight: 80
                         Layout.alignment: Qt.AlignHCenter
@@ -66,7 +66,7 @@ Page {
                     }
 
                     Label {
-                        text: qsTr("DroidStar")
+                        text: qsTr("DMR Cep")
                         font.pixelSize: 24
                         font.bold: true
                         Layout.alignment: Qt.AlignHCenter
