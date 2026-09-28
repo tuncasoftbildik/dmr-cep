@@ -20,6 +20,7 @@ import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
+import QtMultimedia
 import QtQuick.Dialogs
 import Qt.labs.settings
 
@@ -590,6 +591,13 @@ ApplicationWindow {
         }
     }
 
+    // Short rising chime played when a connection comes up.
+    SoundEffect {
+        id: connectSound
+        source: "qrc:/DroidStar/sounds/connected.wav"
+        volume: 0.8
+    }
+
     // If QSO log is saved/cleared from anywhere, keep Last Heard in sync (no navigation required).
     Connections {
         target: window.logHandlerRef
@@ -745,6 +753,8 @@ ApplicationWindow {
                 appState.txActive = false
             }
             if (c === 2) {
+                // Audible cue that the link is up (also after an automatic reconnect).
+                connectSound.play()
                 // Legacy parity: backend may set MYCALL/URCALL/RPTR1/RPTR2 on connect.
                 // Pull them into appState so Settings page reflects it immediately.
                 window.syncSettingsFromBackend()

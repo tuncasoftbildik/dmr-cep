@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#132036"/><stop offset="1" stop-color="#070B14"/></linearGradient>
+ <radialGradient id="glow" cx="0.5" cy="0.43" r="0.45"><stop offset="0" stop-color="#F59E0B" stop-opacity="0.28"/><stop offset="1" stop-color="#F59E0B" stop-opacity="0"/></radialGradient>
+ <linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FCD34D"/><stop offset="1" stop-color="#F97316"/></linearGradient>
+</defs>
+<rect width="1024" height="1024" fill="url(#bg)"/>
+<rect width="1024" height="1024" fill="url(#glow)"/>
+<g fill="none" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"><g stroke-opacity="0.95"><path d="M740.5,261.5 A290,290 0 0 1 740.5,618.5" /><path d="M283.5,618.5 A290,290 0 0 1 283.5,261.5" /></g><g stroke-opacity="0.6"><path d="M795.7,218.4 A360,360 0 0 1 795.7,661.6" /><path d="M228.3,661.6 A360,360 0 0 1 228.3,218.4" /></g><g stroke-opacity="0.3"><path d="M850.8,175.3 A430,430 0 0 1 850.8,704.7" /><path d="M173.2,704.7 A430,430 0 0 1 173.2,175.3" /></g></g>
+<polygon points="512.0,225.0 566.1,365.6 716.5,373.6 599.5,468.4 638.4,613.9 512.0,532.0 385.6,613.9 424.5,468.4 307.5,373.6 457.9,365.6" fill="url(#st)" stroke="#FDE68A" stroke-width="10" stroke-linejoin="round"/>
+<text x="512" y="880" text-anchor="middle" font-family="Helvetica Neue" font-weight="bold" font-size="132" letter-spacing="10" fill="#E5E7EB">TB1BDL</text>
+</svg>

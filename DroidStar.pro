@@ -136,6 +136,7 @@ ios:QMAKE_MAC_XCODE_SETTINGS += EMBEDDED_CONTENT_CONTAINS_SWIFT=YES
 
 resources.files = main.qml AboutTab.qml HostsTab.qml LogTab.qml MainTab.qml SettingsTab.qml fontawesome-webfont.ttf QsoTab.qml \
                   qtquickcontrols2.conf \
+                  sounds/connected.wav \
                   images/droidstar.png \
                   qml/AppShell.qml \
                   qml/theme/Theme.qml \
