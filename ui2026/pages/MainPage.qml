@@ -657,10 +657,10 @@ Page {
             implicitHeight: lcdCol.implicitHeight + 28
             radius: 18
             gradient: Gradient {
-                GradientStop { position: 0.0; color: page.receiving ? t.lcdRxHi : t.lcdHi; Behavior on color { ColorAnimation { duration: 180 } } }
-                GradientStop { position: 1.0; color: page.receiving ? t.lcdRx : t.lcd; Behavior on color { ColorAnimation { duration: 180 } } }
+                GradientStop { position: 0.0; color: page.onAir ? t.lcdTxHi : (page.receiving ? t.lcdRxHi : t.lcdHi); Behavior on color { ColorAnimation { duration: 180 } } }
+                GradientStop { position: 1.0; color: page.onAir ? t.lcdTx : (page.receiving ? t.lcdRx : t.lcd); Behavior on color { ColorAnimation { duration: 180 } } }
             }
-            border.color: page.receiving ? t.lcdRxBorder : t.lcdBorder
+            border.color: page.onAir ? t.lcdTxBorder : (page.receiving ? t.lcdRxBorder : t.lcdBorder)
             border.width: 2
             opacity: page.connected ? 1.0 : 0.82
 
@@ -710,7 +710,7 @@ Page {
                     Item { Layout.fillWidth: true }
                     Label {
                         text: page.statusText()
-                        color: page.onAir ? "#8A1208" : t.lcdInk
+                        color: t.lcdInk
                         font.pixelSize: 13
                         font.weight: Font.DemiBold
                     }
@@ -726,7 +726,7 @@ Page {
                         text: "8888888"
                         font.family: segFont.name
                         font.pixelSize: Math.min(64, lcd.width / 6.2)
-                        color: page.receiving ? t.lcdRxGhost : t.lcdGhost
+                        color: page.onAir ? t.lcdTxGhost : (page.receiving ? t.lcdRxGhost : t.lcdGhost)
                         opacity: 0.55
                     }
                     Label {
@@ -1044,7 +1044,8 @@ Page {
         // ── The key: connect when idle, push-to-talk when connected ──
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: keySize + 34
+            // Room for the level ring (up to ~28 px around the key) above the hint text.
+            Layout.preferredHeight: keySize + 78
             readonly property real keySize: Math.min(page.width * 0.56, 230)
 
             // Level ring: grows with the audio level while receiving or transmitting
@@ -1064,7 +1065,7 @@ Page {
                 id: key
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
-                anchors.topMargin: 11
+                anchors.topMargin: 26
                 width: parent.keySize
                 height: width
                 radius: width / 2

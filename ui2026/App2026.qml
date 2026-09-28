@@ -970,10 +970,11 @@ ApplicationWindow {
                             implicitWidth: drawerLcdRow.implicitWidth + 16
                             implicitHeight: 34
                             radius: 8
-                            // Green while someone is talking, as on the main screen.
-                            readonly property bool rx: appState.txActive !== true && (appState.data1 || "") !== ""
-                            color: rx ? t.lcdRx : t.lcd
-                            border.color: rx ? t.lcdRxBorder : t.lcdBorder
+                            // Backlight as on the main screen: green while receiving, red while we transmit.
+                            readonly property bool tx: appState.txActive === true
+                            readonly property bool rx: !tx && (appState.data1 || "") !== ""
+                            color: tx ? t.lcdTx : (rx ? t.lcdRx : t.lcd)
+                            border.color: tx ? t.lcdTxBorder : (rx ? t.lcdRxBorder : t.lcdBorder)
                             border.width: 1
                             Row {
                                 id: drawerLcdRow

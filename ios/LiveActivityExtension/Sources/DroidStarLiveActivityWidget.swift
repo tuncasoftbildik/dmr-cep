@@ -36,6 +36,11 @@ private enum Palette {
     static let lcdInk = Color(hex: 0x2B1702)
     static let rx = Color(hex: 0x3DD68C)         // receiving
     static let tx = Color(hex: 0xFF5147)         // transmitting
+    // LCD backlight follows the radio: green while receiving, red while we transmit.
+    static let lcdRx = Color(hex: 0x5CCB6E)
+    static let lcdRxHi = Color(hex: 0x9BEAA4)
+    static let lcdTx = Color(hex: 0xF2574A)
+    static let lcdTxHi = Color(hex: 0xFF9A8A)
 }
 
 private extension Color {
@@ -164,6 +169,15 @@ private struct ElapsedText: View {
 private struct LcdPanel: View {
     let model: CardModel
 
+    private var backlight: [Color] {
+        if model.stale { return [Palette.lcdHi, Palette.lcd] }
+        switch model.kind {
+        case .rx: return [Palette.lcdRxHi, Palette.lcdRx]
+        case .tx: return [Palette.lcdTxHi, Palette.lcdTx]
+        default: return [Palette.lcdHi, Palette.lcd]
+        }
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
@@ -195,8 +209,7 @@ private struct LcdPanel: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(LinearGradient(colors: [Palette.lcdHi, Palette.lcd],
-                                     startPoint: .top, endPoint: .bottom))
+                .fill(LinearGradient(colors: backlight, startPoint: .top, endPoint: .bottom))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)

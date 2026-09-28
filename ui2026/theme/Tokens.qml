@@ -42,6 +42,11 @@ QtObject {
     readonly property color lcdRxHi: "#9BEAA4"
     readonly property color lcdRxGhost: "#4DB45E"
     readonly property color lcdRxBorder: "#2F8A3F"
+    // Transmitting: red, like the TX-lit display on a handheld.
+    readonly property color lcdTx: "#F2574A"
+    readonly property color lcdTxHi: "#FF9A8A"
+    readonly property color lcdTxGhost: "#DB4A3E"
+    readonly property color lcdTxBorder: "#9E2A20"
 
     // Link quality bars (radio-style RSSI indicator on the LCD)
     readonly property real lqBarWidth: 4
