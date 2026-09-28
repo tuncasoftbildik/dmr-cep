@@ -94,6 +94,7 @@ Page {
 
     Component.onCompleted: {
         refreshLastHeardFromLog()
+        Qt.callLater(refreshFavoriteTgs)
         // If we're already connected when this page is created, auto-collapse immediately.
         collapseConnectionIfConnected()
     }
@@ -133,6 +134,55 @@ Page {
 
     function refreshRecentTgids() {
         if (appState) appState.recentTgids = droidstarRef.loadRecentTGIDs()
+    }
+
+    // ---- Favorite talkgroups ----
+    property var favoriteTgs: []
+    property bool currentTgIsFavorite: false
+
+    function refreshFavoriteTgs() {
+        if (!droidstarRef) return
+        favoriteTgs = droidstarRef.loadFavoriteTGs()
+        currentTgIsFavorite = !!(appState && droidstarRef.isFavoriteTG(appState.dmrtgid))
+    }
+
+    function selectTg(tg) {
+        if (!appState || !droidstarRef) return
+        appState.dmrtgid = tg
+        droidstarRef.set_dmrtgid(tg)
+        droidstarRef.tgid_text_changed(tg)
+        droidstarRef.addRecentTGID(tg)
+        refreshRecentTgids()
+        refreshFavoriteTgs()
+    }
+
+    // Toggle the current TG in favorites. The name comes from BrandMeister when available;
+    // the favorite is saved immediately with the bare number and renamed when the lookup returns.
+    function toggleCurrentFavorite() {
+        if (!appState || !droidstarRef) return
+        var tg = ("" + appState.dmrtgid).trim()
+        if (!/^[0-9]+$/.test(tg)) return
+        if (droidstarRef.isFavoriteTG(tg)) {
+            droidstarRef.removeFavoriteTG(tg)
+            refreshFavoriteTgs()
+            return
+        }
+        droidstarRef.addFavoriteTG(tg, "")
+        refreshFavoriteTgs()
+        if (appState.mode !== "DMR") return
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || xhr.status !== 200) return
+            try {
+                var r = JSON.parse(xhr.responseText)
+                if (r && r.Name && droidstarRef.isFavoriteTG(tg)) {
+                    droidstarRef.addFavoriteTG(tg, r.Name)
+                    refreshFavoriteTgs()
+                }
+            } catch (e) {}
+        }
+        xhr.open("GET", "https://api.brandmeister.network/v2/talkgroup/" + tg, true)
+        xhr.send()
     }
 
     function connectOrDisconnect() {
@@ -434,7 +484,16 @@ Page {
                                 droidstarRef.tgid_text_changed(text)
                                 droidstarRef.addRecentTGID(text)
                                 refreshRecentTgids()
+                                refreshFavoriteTgs()
                             }
+                        }
+
+                        ToolButton {
+                            text: page.currentTgIsFavorite ? "\u2605" : "\u2606"
+                            font.pixelSize: 22
+                            ToolTip.visible: hovered
+                            ToolTip.text: page.currentTgIsFavorite ? qsTr("Remove from favorites") : qsTr("Add to favorites")
+                            onClicked: page.toggleCurrentFavorite()
                         }
 
                         ComboBox {
@@ -446,6 +505,7 @@ Page {
                                 appState.dmrtgid = currentText
                                 droidstarRef.set_dmrtgid(currentText)
                                 droidstarRef.tgid_text_changed(currentText)
+                                refreshFavoriteTgs()
                             }
                         }
 
@@ -454,6 +514,68 @@ Page {
                             text: qsTr("Pvt")
                             checked: appState ? appState.privateCall : false
                             onToggled: droidstarRef.set_dmr_pc(checked)
+                        }
+                    }
+
+                    // Favorite TG chips: tap = select, press and hold = reorder / remove
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        visible: !!(appState && (appState.mode === "DMR" || appState.mode === "P25" || appState.mode === "NXDN")) && page.favoriteTgs.length > 0
+
+                        Repeater {
+                            model: page.favoriteTgs
+                            delegate: Rectangle {
+                                required property var modelData
+                                required property int index
+                                readonly property bool active: !!(appState && ("" + appState.dmrtgid) === modelData.tg)
+                                radius: t.rSm
+                                height: 34
+                                width: chipLabel.width + 20
+                                color: active ? t.accent : t.surface2
+                                border.color: active ? t.accent : t.stroke
+                                border.width: 1
+
+                                Label {
+                                    id: chipLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.name ? (modelData.tg + " \u00b7 " + modelData.name) : modelData.tg
+                                    color: parent.active ? t.bg : t.text
+                                    font.pixelSize: 13
+                                    elide: Text.ElideRight
+                                    width: Math.min(implicitWidth, 220)
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: page.selectTg(modelData.tg)
+                                    onPressAndHold: {
+                                        chipMenu.tg = modelData.tg
+                                        chipMenu.idx = index
+                                        chipMenu.popup()
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Menu {
+                        id: chipMenu
+                        property string tg: ""
+                        property int idx: -1
+                        MenuItem {
+                            text: qsTr("Move left")
+                            enabled: chipMenu.idx > 0
+                            onTriggered: { droidstarRef.moveFavoriteTG(chipMenu.idx, chipMenu.idx - 1); page.refreshFavoriteTgs() }
+                        }
+                        MenuItem {
+                            text: qsTr("Move right")
+                            enabled: chipMenu.idx >= 0 && chipMenu.idx < page.favoriteTgs.length - 1
+                            onTriggered: { droidstarRef.moveFavoriteTG(chipMenu.idx, chipMenu.idx + 1); page.refreshFavoriteTgs() }
+                        }
+                        MenuItem {
+                            text: qsTr("Remove %1").arg(chipMenu.tg)
+                            onTriggered: { droidstarRef.removeFavoriteTG(chipMenu.tg); page.refreshFavoriteTgs() }
                         }
                     }
 

@@ -1726,6 +1726,74 @@ void DroidStar::updateNowPlayingRX(const QString& callsign, const QString& name,
 #endif
 }
 
+// Stored as "tg|name" strings so the order survives and QSettings stays human-readable.
+static QStringList favoriteTGEntries()
+{
+    QSettings settings;
+    return settings.value("FavoriteTGs/list").toStringList();
+}
+
+static void saveFavoriteTGEntries(const QStringList &entries)
+{
+    QSettings settings;
+    settings.setValue("FavoriteTGs/list", entries);
+}
+
+static int favoriteTGIndex(const QStringList &entries, const QString &tg)
+{
+    for (int i = 0; i < entries.size(); ++i) {
+        if (entries.at(i).section('|', 0, 0) == tg) return i;
+    }
+    return -1;
+}
+
+QVariantList DroidStar::loadFavoriteTGs() const {
+    QVariantList out;
+    for (const QString &e : favoriteTGEntries()) {
+        QVariantMap m;
+        m["tg"] = e.section('|', 0, 0);
+        m["name"] = e.section('|', 1);
+        out.append(m);
+    }
+    return out;
+}
+
+void DroidStar::addFavoriteTG(const QString &tg, const QString &name) {
+    const QString id = tg.simplified();
+    bool ok = false;
+    id.toUInt(&ok);
+    if (!ok) return;
+    QString label = name.simplified();
+    label.replace('|', ' ');
+    QStringList entries = favoriteTGEntries();
+    const int i = favoriteTGIndex(entries, id);
+    if (i >= 0) {
+        entries[i] = id + "|" + label;   // update name in place, keep position
+    } else {
+        entries.append(id + "|" + label);
+    }
+    saveFavoriteTGEntries(entries);
+}
+
+void DroidStar::removeFavoriteTG(const QString &tg) {
+    QStringList entries = favoriteTGEntries();
+    const int i = favoriteTGIndex(entries, tg.simplified());
+    if (i < 0) return;
+    entries.removeAt(i);
+    saveFavoriteTGEntries(entries);
+}
+
+void DroidStar::moveFavoriteTG(int from, int to) {
+    QStringList entries = favoriteTGEntries();
+    if (from < 0 || from >= entries.size() || to < 0 || to >= entries.size() || from == to) return;
+    entries.move(from, to);
+    saveFavoriteTGEntries(entries);
+}
+
+bool DroidStar::isFavoriteTG(const QString &tg) const {
+    return favoriteTGIndex(favoriteTGEntries(), tg.simplified()) >= 0;
+}
+
 QStringList DroidStar::loadRecentTGIDs() const {
     QSettings settings;
     settings.beginGroup("RecentTGIDs");

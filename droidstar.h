@@ -42,6 +42,12 @@ public:
     Q_INVOKABLE void addRecentTGID(const QString& tgid);
     Q_INVOKABLE QStringList loadRecentTGIDs() const;
     Q_INVOKABLE void clearRecentTGIDs();
+    // Favorite talkgroups: ordered list of {tg, name}
+    Q_INVOKABLE QVariantList loadFavoriteTGs() const;
+    Q_INVOKABLE void addFavoriteTG(const QString &tg, const QString &name);
+    Q_INVOKABLE void removeFavoriteTG(const QString &tg);
+    Q_INVOKABLE void moveFavoriteTG(int from, int to);
+    Q_INVOKABLE bool isFavoriteTG(const QString &tg) const;
     Q_INVOKABLE void updateNowPlayingRX(const QString& callsign, const QString& name, const QString& country);
     void setup_state_change_listeners();
     
