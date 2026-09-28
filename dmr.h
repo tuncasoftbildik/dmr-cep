@@ -69,6 +69,12 @@ private:
     VocoderPlugin *m_tx_loop_vocoder = nullptr;
 #endif
     void save_tx_debug_audio();
+    // Roger beep: short chirp replaces the first ~70 ms, two-tone tail is sent before the EOT.
+    QVector<int16_t> m_roger_head;
+    QVector<int16_t> m_roger_tail;
+    int m_roger_head_pos = 0;
+    int m_roger_tail_pos = 0;
+    bool m_roger_tail_started = false;
     // RX diagnostics: voice frames queued vs decoded per stream.
     int m_rx_frames_in = 0;
     int m_rx_frames_decoded = 0;

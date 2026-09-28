@@ -836,6 +836,38 @@ Page {
                         }
                     }
 
+                    // Roger beep sent over the air
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 56
+                        radius: 10
+                        color: t.surface2
+                        border.color: t.stroke
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Label { text: qsTr("Roger beep") }
+                                Label {
+                                    text: qsTr("Short tone sent to the other side when you start and stop talking")
+                                    font.pixelSize: 10; opacity: 0.5
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+                            ComboBox {
+                                Layout.preferredWidth: 150
+                                model: [qsTr("Off"), qsTr("End only"), qsTr("Start and end")]
+                                currentIndex: page.droidstarRef ? page.droidstarRef.get_roger_beep() : 2
+                                onActivated: function(index) { page.droidstarRef.set_roger_beep(index) }
+                            }
+                        }
+                    }
+
                     // Apple PushToTalk (iOS 16+)
                     Rectangle {
                         id: pttRow

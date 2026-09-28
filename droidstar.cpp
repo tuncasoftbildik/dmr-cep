@@ -538,6 +538,8 @@ void DroidStar::process_connect()
         connect(this, SIGNAL(tx_pressed()), m_mode, SLOT(start_tx()));
         connect(this, SIGNAL(tx_released()), m_mode, SLOT(stop_tx()));
         connect(this, SIGNAL(restart_capture_requested()), m_mode, SLOT(restart_capture()));
+        connect(this, SIGNAL(roger_beep_changed(int)), m_mode, SLOT(set_roger_beep(int)));
+        QMetaObject::invokeMethod(m_mode, "set_roger_beep", Qt::QueuedConnection, Q_ARG(int, m_rogerBeep));
         connect(this, SIGNAL(in_audio_vol_changed(qreal)), m_mode, SLOT(in_audio_vol_changed(qreal)));
         connect(this, SIGNAL(mycall_changed(QString)), m_mode, SLOT(mycall_changed(QString)));
         connect(this, SIGNAL(urcall_changed(QString)), m_mode, SLOT(urcall_changed(QString)));
@@ -882,6 +884,7 @@ void DroidStar::save_settings()
     m_settings->setValue("TXTOGGLE", m_toggletx ? "true" : "false");
     m_settings->setValue("PTTFRAMEWORK", m_pttFramework ? "true" : "false");
     m_settings->setValue("HEADPHONEPTT", m_headphonePtt ? "true" : "false");
+    m_settings->setValue("ROGERBEEP", m_rogerBeep);
     m_settings->setValue("XRF2REF", m_xrf2ref ? "true" : "false");
     m_settings->setValue("USRTXT", m_dstarusertxt);
 
@@ -960,6 +963,7 @@ void DroidStar::process_settings()
     m_toggletx = (m_settings->value("TXTOGGLE", "true").toString().simplified() == "true") ? true : false;
     m_pttFramework = (m_settings->value("PTTFRAMEWORK", "false").toString().simplified() == "true");
     m_headphonePtt = (m_settings->value("HEADPHONEPTT", "false").toString().simplified() == "true");
+    m_rogerBeep = m_settings->value("ROGERBEEP", 2).toInt();
     m_dstarusertxt = m_settings->value("USRTXT").toString().simplified();
     m_xrf2ref = (m_settings->value("XRF2REF").toString().simplified() == "true") ? true : false;
     m_localhosts = m_settings->value("LOCALHOSTS").toString();
@@ -1856,6 +1860,13 @@ void DroidStar::set_ptt_framework(bool on)
     m_pttFramework = on;
     save_settings();
     ptt_sync_channel();
+}
+
+void DroidStar::set_roger_beep(int mode)
+{
+    m_rogerBeep = qBound(0, mode, 2);
+    save_settings();
+    emit roger_beep_changed(m_rogerBeep);
 }
 
 void DroidStar::set_headphone_ptt(bool on)

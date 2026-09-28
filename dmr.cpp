@@ -638,10 +638,23 @@ void DMR::process_modem_data(QByteArray d)
     }
 }
 
+// Tone helper for the roger beeps: 8 kHz, soft 5 ms fades so the vocoder does not click.
+static void append_tone(QVector<int16_t> &v, double hz, int ms, double amp)
+{
+    const int n = 8 * ms, fade = 40;
+    for(int i = 0; i < n; ++i){
+        double env = 1.0;
+        if(i < fade) env = double(i) / fade;
+        else if(i > n - fade) env = double(n - i) / fade;
+        v.append(int16_t(amp * env * std::sin(2.0 * M_PI * hz * i / 8000.0)));
+    }
+}
+
 void DMR::transmit()
 {
     uint8_t ambe[72];
     int16_t pcm[160];
+    bool synth = false;
 
 #ifdef USE_FLITE
     if(m_ttsid > 0){
@@ -664,13 +677,46 @@ void DMR::transmit()
         m_tx_starved = 0;
         m_tx_peak = 0;
         m_tx_mic_restarted = false;
-        qDebug() << "DMR TX start: src" << m_dmrid << "dst" << m_txdstid << (m_flco == FLCO_USER_USER ? "private" : "group") << "slot" << m_txslot;
+        qDebug() << "DMR TX start: src" << m_dmrid << "dst" << m_txdstid << (m_flco == FLCO_USER_USER ? "private" : "group") << "slot" << m_txslot << "roger" << m_roger_beep;
+        m_roger_head.clear();
+        m_roger_head_pos = 0;
+        m_roger_tail_started = false;
+        if(m_roger_beep == 2) append_tone(m_roger_head, 1200.0, 70, 6000.0);
     }
-    if(m_ttsid == 0){
+
+    // Released: keep the stream open until the roger tail has gone out, then fall through to EOT.
+    if(!m_tx && m_tx_logged && (m_roger_beep >= 1) && !m_roger_tail_started){
+        m_roger_tail_started = true;
+        m_roger_tail.clear();
+        m_roger_tail_pos = 0;
+        append_tone(m_roger_tail, 0.0, 40, 0.0);          // short gap after the last word
+        append_tone(m_roger_tail, 1000.0, 100, 6000.0);
+        append_tone(m_roger_tail, 1500.0, 120, 6000.0);
+        append_tone(m_roger_tail, 0.0, 60, 0.0);          // let the vocoder flush the tone
+        m_tx = true;
+    }
+    if(m_tx && m_roger_tail_started){
+        if(m_roger_tail_pos < m_roger_tail.size()){
+            for(int i = 0; i < 160; ++i){
+                pcm[i] = (m_roger_tail_pos < m_roger_tail.size()) ? m_roger_tail[m_roger_tail_pos++] : 0;
+            }
+            int16_t drop[160];
+            m_audio->read(drop, 160);                     // keep the mic queue from piling up
+            synth = true;
+        }
+        else{
+            m_tx = false;                                 // tail done: next code path sends the EOT
+        }
+    }
+    if(m_ttsid == 0 && !synth){
         if(m_audio->read(pcm, 160)){
             if(m_audio->level() > m_tx_peak) m_tx_peak = m_audio->level();
             tx_shape(pcm, 160);
             apply_tx_gain(pcm, 160);
+            // Start chirp replaces the first ~70 ms of mic audio (usually silence after the press).
+            for(int i = 0; i < 160 && m_roger_head_pos < m_roger_head.size(); ++i){
+                pcm[i] = m_roger_head[m_roger_head_pos++];
+            }
         }
         else if(!m_tx){
             // Released while the mic had nothing buffered: still close the stream with an EOT.
@@ -775,6 +821,7 @@ void DMR::send_frame()
         qDebug() << "DMR TX end: voice frames" << m_tx_frames << "mic starved ticks" << m_tx_starved
                  << "mic bytes" << m_audio->captured_bytes() << "peak level" << m_tx_peak;
         m_tx_logged = false;
+        m_roger_tail_started = false;
         save_tx_debug_audio();
         get_eot();
         build_frame();

@@ -59,6 +59,9 @@ public:
     // Headphone / lock-screen play-pause keys TX. Off by default: a tap on AirPods must not key up.
     Q_INVOKABLE bool get_headphone_ptt() const { return m_headphonePtt; }
     Q_INVOKABLE void set_headphone_ptt(bool on);
+    // Roger beep over the air: 0 off, 1 end only, 2 start and end
+    Q_INVOKABLE int get_roger_beep() const { return m_rogerBeep; }
+    Q_INVOKABLE void set_roger_beep(int mode);
     Q_INVOKABLE void updateNowPlayingRX(const QString& callsign, const QString& name, const QString& country);
     void setup_state_change_listeners();
     
@@ -66,6 +69,7 @@ public:
 signals:
     void recordings_changed();
     void restart_capture_requested();
+    void roger_beep_changed(int mode);
     // TX started/stopped outside the app UI (system PTT button, handsfree accessory).
     void system_tx_changed(bool on);
     void playbackDevicesChanged();
@@ -447,6 +451,7 @@ private:
     void connect_failed(const QString &reason);
     bool m_pttFramework = false;
     bool m_headphonePtt = false;
+    int m_rogerBeep = 2;
     bool m_keepPttChannel = false;   // teardown for an automatic reconnect keeps the PTT channel
     QString m_pttTalker;
     QString ptt_channel_name() const;

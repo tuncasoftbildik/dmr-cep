@@ -131,6 +131,8 @@ public:
         TRANSMITTING_MODEM,
         STREAM_UNKNOWN
     };
+protected:
+    int m_roger_beep = 2;
 signals:
     void update(Mode::MODEINFO);
     void update_log(QString);
@@ -153,6 +155,8 @@ protected slots:
     void stop_tx();
     // Reopen the microphone during TX (e.g. after iOS PushToTalk activated the audio session).
     void restart_capture();
+    // 0 = off, 1 = end of transmission only, 2 = start and end
+    void set_roger_beep(int mode) { m_roger_beep = mode; }
     void toggle_tx(bool);
     void deleteLater();
     void in_audio_vol_changed(qreal);

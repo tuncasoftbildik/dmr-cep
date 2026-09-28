@@ -781,172 +781,197 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <translation>Basılı tutmak yerine dokunarak aç/kapat</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="857" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="854" />
+        <source>Roger beep</source>
+        <translation>Roger bip</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="856" />
+        <source>Short tone sent to the other side when you start and stop talking</source>
+        <translation>Konuşmaya başlarken ve bitirirken karşı tarafa giden kısa ton</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="864" />
+        <source>Off</source>
+        <translation>Kapalı</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="864" />
+        <source>End only</source>
+        <translation>Yalnız sonda</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="864" />
+        <source>Start and end</source>
+        <translation>Başta ve sonda</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="889" />
         <source>System Push-to-Talk</source>
         <translation>Sistem Bas-Konuş (PTT)</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="859" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="891" />
         <source>PTT button on lock screen &amp; Dynamic Island, Bluetooth PTT accessories, shows who is talking</source>
         <translation>Kilit ekranı ve Dinamik Ada'da bas-konuş düğmesi, Bluetooth PTT aksesuarları, konuşanı gösterir</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="891" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="923" />
         <source>Headphone button keys TX</source>
         <translation>Kulaklık tuşu TX yapsın</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="893" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="925" />
         <source>Play/pause on headphones or lock screen toggles TX. Off = a tap on AirPods can't put you on air</source>
         <translation>Kulaklık ya da kilit ekranındaki oynat/duraklat TX'i açar-kapar. Kapalıyken AirPods'a dokunmak seni yayına sokmaz</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="915" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="947" />
         <source>Modem Tuning (Advanced)</source>
         <translation>Modem Ayarı (Gelişmiş)</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="928" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="960" />
         <source>RX Freq</source>
         <translation>RX Frekansı</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="931" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="963" />
         <source>TX Freq</source>
         <translation>TX Frekansı</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="934" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="966" />
         <source>RX Offset</source>
         <translation>RX Ofseti</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="937" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="969" />
         <source>TX Offset</source>
         <translation>TX Ofseti</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="940" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="972" />
         <source>RX DC Offset</source>
         <translation>RX DC Ofseti</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="943" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="975" />
         <source>TX DC Offset</source>
         <translation>TX DC Ofseti</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="946" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="978" />
         <source>RX Level</source>
         <translation>RX Seviyesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="949" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="981" />
         <source>TX Level</source>
         <translation>TX Seviyesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="952" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="984" />
         <source>RF Level</source>
         <translation>RF Seviyesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="955" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="987" />
         <source>TX Delay</source>
         <translation>TX Gecikmesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="958" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="990" />
         <source>CWID TX Level</source>
         <translation>CWID TX Seviyesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="961" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="993" />
         <source>D-STAR TX Level</source>
         <translation>D-STAR TX Seviyesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="964" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="996" />
         <source>DMR TX Level</source>
         <translation>DMR TX Seviyesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="967" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="999" />
         <source>YSF TX Level</source>
         <translation>YSF TX Seviyesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="970" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1002" />
         <source>P25 TX Level</source>
         <translation>P25 TX Seviyesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="973" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1005" />
         <source>NXDN TX Level</source>
         <translation>NXDN TX Seviyesi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="976" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1008" />
         <source>Baud</source>
         <translation>Baud</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="986" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1018" />
         <source>Maintenance</source>
         <translation>Bakım</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="999" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1031" />
         <source>Update Hosts</source>
         <translation>Sunucu Listesini Güncelle</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1004" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1036" />
         <source>Update ID Files</source>
         <translation>ID Dosyalarını Güncelle</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1012" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1044" />
         <source>Download File</source>
         <translation>Dosyayı İndir</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1019" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1051" />
         <source>URL (vocoder/hosts/etc)</source>
         <translation>URL (vocoder/sunucular vb.)</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1023" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1055" />
         <source>Download</source>
         <translation>İndir</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1035" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1067" />
         <source>Text-to-Speech</source>
         <translation>Metin Seslendirme</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1049" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1081" />
         <source>None</source>
         <translation>Yok</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1049" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1081" />
         <source>Voice 1</source>
         <translation>Ses 1</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1049" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1081" />
         <source>Voice 2</source>
         <translation>Ses 2</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1073" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1105" />
         <source>TTS Text</source>
         <translation>TTS Metni</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/SettingsPage.qml" line="1076" />
+        <location filename="../ui2026/pages/SettingsPage.qml" line="1108" />
         <source>Text to speak</source>
         <translation>Seslendirilecek metin</translation>
     </message>
