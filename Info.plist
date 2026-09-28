@@ -74,6 +74,7 @@
 		<string>processing</string>
 		<string>voip</string>
 		<string>bluetooth-central</string>
+		<string>push-to-talk</string>
 	</array>
 	<key>UIFileSharingEnabled</key>
 	<true/>

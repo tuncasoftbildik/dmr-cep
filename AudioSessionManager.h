@@ -43,6 +43,8 @@ void updateNowPlayingInfo(void);
 // Remote command callbacks (for PTT from headphones/Control Center)
 typedef void (*PTTCallback)(void);
 void setPTTCallbacks(PTTCallback pressCallback, PTTCallback releaseCallback);
+// When false (default) headphone / lock-screen play-pause does not key TX.
+void setRemotePTTEnabled(bool enabled);
 
 #ifdef __cplusplus
 }

@@ -52,12 +52,21 @@ public:
     // {url, file, src, dst, callsign, time (ms), seconds}
     Q_INVOKABLE QVariantList loadRecordings() const;
     Q_INVOKABLE void deleteRecording(const QString &file);
+    // Apple PushToTalk (iOS 16+): system PTT button on lock screen / Dynamic Island.
+    Q_INVOKABLE bool ptt_framework_available() const;
+    Q_INVOKABLE bool get_ptt_framework() const { return m_pttFramework; }
+    Q_INVOKABLE void set_ptt_framework(bool on);
+    // Headphone / lock-screen play-pause keys TX. Off by default: a tap on AirPods must not key up.
+    Q_INVOKABLE bool get_headphone_ptt() const { return m_headphonePtt; }
+    Q_INVOKABLE void set_headphone_ptt(bool on);
     Q_INVOKABLE void updateNowPlayingRX(const QString& callsign, const QString& name, const QString& country);
     void setup_state_change_listeners();
     
 
 signals:
     void recordings_changed();
+    // TX started/stopped outside the app UI (system PTT button, handsfree accessory).
+    void system_tx_changed(bool on);
     void playbackDevicesChanged();
         void captureDevicesChanged();
 
@@ -103,7 +112,7 @@ public slots:
     
 
     void set_callsign(const QString &callsign) {  m_callsign = callsign.simplified(); save_settings(); }
-    void set_dmrtgid(const QString &dmrtgid) { m_dmr_destid = dmrtgid.simplified().toUInt(); save_settings(); }
+    void set_dmrtgid(const QString &dmrtgid) { m_dmr_destid = dmrtgid.simplified().toUInt(); save_settings(); ptt_sync_channel(); }
     void set_slot(const int slot) {emit slot_changed(slot); }
     void set_cc(const int cc) {emit cc_changed(cc); }
     void tgid_text_changed(QString s){emit dmr_tgid_changed(s.toUInt());}
@@ -307,6 +316,8 @@ public slots:
     void handle_connection_lost(QString reason);
     void on_connect_timeout();
     void on_transport_medium_changed(QNetworkInformation::TransportMedium medium);
+    void ptt_system_begin_tx();
+    void ptt_system_end_tx();
     
 private:
     AudioEngine *m_audioEngine;
@@ -431,6 +442,12 @@ private:
     int m_reconnectAttempt = 0;
     void schedule_reconnect(const QString &reason, int delayMs = -1);
     void connect_failed(const QString &reason);
+    bool m_pttFramework = false;
+    bool m_headphonePtt = false;
+    bool m_keepPttChannel = false;   // teardown for an automatic reconnect keeps the PTT channel
+    QString m_pttTalker;
+    QString ptt_channel_name() const;
+    void ptt_sync_channel();
  
 #ifdef Q_OS_ANDROID
     AndroidSerialPort *m_USBmonitor;

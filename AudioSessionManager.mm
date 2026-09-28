@@ -26,6 +26,7 @@ extern "C" void clearAudioBuffer();
 
 // Callback function pointers for PTT control from remote commands
 static void (*g_pttPressCallback)(void) = NULL;
+static bool g_remotePttEnabled = false;
 static void (*g_pttReleaseCallback)(void) = NULL;
 
 #pragma mark - AudioSessionManager Interface
@@ -468,8 +469,8 @@ static void (*g_pttReleaseCallback)(void) = NULL;
     commandCenter.togglePlayPauseCommand.enabled = YES;
     [commandCenter.togglePlayPauseCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent *event) {
         NSLog(@"[AudioSessionManager] Remote toggle play/pause received - PTT toggle");
-        // Toggle PTT
-        if (g_pttPressCallback && g_pttReleaseCallback) {
+        // Toggle PTT (opt-in, see setRemotePTTEnabled)
+        if (g_remotePttEnabled && g_pttPressCallback && g_pttReleaseCallback) {
             if (self->_isTransmitting) {
                 g_pttReleaseCallback();
             } else {
@@ -876,6 +877,10 @@ extern "C" void clearAudioRXState() {
 
 extern "C" void updateNowPlayingInfo() {
     [[AudioSessionManager sharedManager] updateNowPlayingInfo];
+}
+
+extern "C" void setRemotePTTEnabled(bool enabled) {
+    g_remotePttEnabled = enabled;
 }
 
 extern "C" void setPTTCallbacks(void (*pressCallback)(void), void (*releaseCallback)(void)) {

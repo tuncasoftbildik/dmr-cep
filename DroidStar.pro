@@ -94,12 +94,20 @@ android:SOURCES += androidserialport.cpp
 macx:OBJECTIVE_SOURCES += micpermission.mm
 ios:OBJECTIVE_SOURCES += micpermission.mm AudioSessionManager.mm
 ios:OBJECTIVE_SOURCES += ios_live_activity.mm
+ios:OBJECTIVE_SOURCES += PushToTalkManager.mm
+ios:HEADERS += PushToTalkManager.h
+# PushToTalk is iOS 16+; weak link so the app still starts on iOS 14/15 (feature hidden there).
+ios:LIBS += -weak_framework PushToTalk
+ios:PTT_ENTITLEMENTS.name = CODE_SIGN_ENTITLEMENTS
+ios:PTT_ENTITLEMENTS.value = $$PWD/DroidStar.entitlements
+ios:QMAKE_MAC_XCODE_SETTINGS += PTT_ENTITLEMENTS
 
 # Enable background audio mode for iOS
 ios:QMAKE_MAC_XCODE_SETTINGS += QMAKE_IOS_BACKGROUND_MODES = YES
 ios:QMAKE_INFO_PLIST_EXTRA += "<key>UIBackgroundModes</key>"
 ios:QMAKE_INFO_PLIST_EXTRA += "<array>"
 ios:QMAKE_INFO_PLIST_EXTRA += "    <string>audio</string>"
+ios:QMAKE_INFO_PLIST_EXTRA += "    <string>push-to-talk</string>"
 ios:QMAKE_INFO_PLIST_EXTRA += "</array>"
 ios:QMAKE_CXXFLAGS += -fobjc-arc
 

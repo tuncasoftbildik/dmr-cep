@@ -700,6 +700,8 @@ ApplicationWindow {
         }
 
         function onUpdate_log(s) { appendLog(s) }
+        // TX keyed from the iOS PushToTalk UI / handsfree button: mirror it on the TX button.
+        function onSystem_tx_changed(on) { appState.txActive = on }
 
         function onUpdate_settings() {
             window.syncSettingsFromBackend()

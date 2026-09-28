@@ -811,6 +811,76 @@ Page {
                             }
                         }
                     }
+
+                    // Apple PushToTalk (iOS 16+)
+                    Rectangle {
+                        id: pttRow
+                        property bool on: page.droidstarRef ? page.droidstarRef.get_ptt_framework() : false
+                        visible: !!(page.droidstarRef && page.droidstarRef.ptt_framework_available())
+                        Layout.fillWidth: true
+                        height: 52
+                        radius: 10
+                        color: on ? Qt.rgba(t.accent.r, t.accent.g, t.accent.b, 0.2) : t.surface2
+                        border.color: on ? t.accent : t.stroke
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Label { text: qsTr("System Push-to-Talk") }
+                                Label {
+                                    text: qsTr("PTT button on lock screen & Dynamic Island, Bluetooth PTT accessories, shows who is talking")
+                                    font.pixelSize: 10; opacity: 0.5
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+                            Switch {
+                                checked: pttRow.on
+                                onToggled: {
+                                    page.droidstarRef.set_ptt_framework(checked)
+                                    pttRow.on = checked
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        id: headphoneRow
+                        property bool on: page.droidstarRef ? page.droidstarRef.get_headphone_ptt() : false
+                        Layout.fillWidth: true
+                        height: 52
+                        radius: 10
+                        color: on ? Qt.rgba(t.warning.r, t.warning.g, t.warning.b, 0.2) : t.surface2
+                        border.color: on ? t.warning : t.stroke
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Label { text: qsTr("Headphone button keys TX") }
+                                Label {
+                                    text: qsTr("Play/pause on headphones or lock screen toggles TX. Off = a tap on AirPods can't put you on air")
+                                    font.pixelSize: 10; opacity: 0.5
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+                            Switch {
+                                checked: headphoneRow.on
+                                onToggled: {
+                                    page.droidstarRef.set_headphone_ptt(checked)
+                                    headphoneRow.on = checked
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

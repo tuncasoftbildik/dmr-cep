@@ -30,6 +30,7 @@
 #ifdef Q_OS_IOS
 #include "micpermission.h"
 #include "AudioSessionManager.h"
+#include "PushToTalkManager.h"
 #endif
 #include <QStandardPaths>
 #include <QFile>
@@ -55,6 +56,28 @@ static void pttPressCallback() {
 static void pttReleaseCallback() {
     if (s_droidStarInstance) {
         QMetaObject::invokeMethod(s_droidStarInstance, "release_tx", Qt::QueuedConnection);
+    }
+}
+
+// PushToTalk framework callbacks arrive on the iOS main queue; hop onto the Qt thread.
+static void pttSystemBeginCallback() {
+    if (s_droidStarInstance) {
+        QMetaObject::invokeMethod(s_droidStarInstance, "ptt_system_begin_tx", Qt::QueuedConnection);
+    }
+}
+
+static void pttSystemEndCallback() {
+    if (s_droidStarInstance) {
+        QMetaObject::invokeMethod(s_droidStarInstance, "ptt_system_end_tx", Qt::QueuedConnection);
+    }
+}
+
+static void pttStatusCallback(const char *message) {
+    if (s_droidStarInstance) {
+        const QString m = QString::fromUtf8(message);
+        QMetaObject::invokeMethod(s_droidStarInstance, [m]() {
+            if (s_droidStarInstance) emit s_droidStarInstance->update_log(m);
+        }, Qt::QueuedConnection);
     }
 }
 #endif
@@ -142,6 +165,8 @@ DroidStar::DroidStar(QObject *parent) :
     // Register this instance for PTT callbacks from remote commands (headphones, Control Center)
     s_droidStarInstance = this;
     setPTTCallbacks(pttPressCallback, pttReleaseCallback);
+    setRemotePTTEnabled(m_headphonePtt);
+    ptt_set_callbacks(pttSystemBeginCallback, pttSystemEndCallback, pttStatusCallback);
 #endif
 }
 
@@ -341,6 +366,12 @@ void DroidStar::process_connect()
              << "saved_dmrhost=" << m_saved_dmrhost;
 
     if(connect_status != Mode::DISCONNECTED){
+#ifdef Q_OS_IOS
+        if (!m_keepPttChannel) {
+            ptt_leave();
+            m_pttTalker.clear();
+        }
+#endif
         m_autoReconnect = false;
         m_reconnectAttempt = 0;
         m_reconnectTimer->stop();
@@ -574,7 +605,9 @@ void DroidStar::handle_connection_lost(QString reason)
 {
     if(connect_status != Mode::CONNECTED_RW) return;
     qDebug() << "Connection lost:" << reason;
+    m_keepPttChannel = true;
     process_connect();
+    m_keepPttChannel = false;
     m_autoReconnect = true;
     schedule_reconnect("Connection lost (" + reason + ")");
 }
@@ -814,6 +847,8 @@ void DroidStar::save_settings()
     m_settings->setValue("RPTR2", m_rptr2);
     m_settings->setValue("TXTIMEOUT", m_txtimeout);
     m_settings->setValue("TXTOGGLE", m_toggletx ? "true" : "false");
+    m_settings->setValue("PTTFRAMEWORK", m_pttFramework ? "true" : "false");
+    m_settings->setValue("HEADPHONEPTT", m_headphonePtt ? "true" : "false");
     m_settings->setValue("XRF2REF", m_xrf2ref ? "true" : "false");
     m_settings->setValue("USRTXT", m_dstarusertxt);
 
@@ -890,6 +925,8 @@ void DroidStar::process_settings()
     m_txtimeout = m_settings->value("TXTIMEOUT", "300").toString().simplified().toUInt();
     // IMPORTANT: On a fresh install (no settings yet), default to TX toggle mode enabled.
     m_toggletx = (m_settings->value("TXTOGGLE", "true").toString().simplified() == "true") ? true : false;
+    m_pttFramework = (m_settings->value("PTTFRAMEWORK", "false").toString().simplified() == "true");
+    m_headphonePtt = (m_settings->value("HEADPHONEPTT", "false").toString().simplified() == "true");
     m_dstarusertxt = m_settings->value("USRTXT").toString().simplified();
     m_xrf2ref = (m_settings->value("XRF2REF").toString().simplified() == "true") ? true : false;
     m_localhosts = m_settings->value("LOCALHOSTS").toString();
@@ -1483,6 +1520,7 @@ void DroidStar::update_data(Mode::MODEINFO info)
         connect_status = Mode::CONNECTED_RW;
         m_connectTimeoutTimer->stop();
         m_reconnectAttempt = 0;
+        ptt_sync_channel();
         emit connect_status_changed(2);
         emit in_audio_vol_changed(0.5);
         emit swtx_state(!m_mode->get_hwtx());
@@ -1657,6 +1695,16 @@ void DroidStar::update_data(Mode::MODEINFO info)
     
 #ifdef Q_OS_IOS
     // Update Now Playing / Lock Screen with current RX info
+    if (m_pttFramework && ptt_is_joined()) {
+        QString talker;
+        if ((info.stream_state == Mode::STREAM_NEW) || (info.stream_state == Mode::STREAMING)) {
+            talker = m_data1.isEmpty() ? QString::number(info.srcid) : m_data1;
+        }
+        if (talker != m_pttTalker) {
+            m_pttTalker = talker;
+            ptt_set_remote_talker(talker.toUtf8().constData());
+        }
+    }
     if (info.stream_state == Mode::STREAM_IDLE) {
         clearAudioRXState();
     } else if (!m_data1.isEmpty()) {
@@ -1684,6 +1732,7 @@ void DroidStar::press_tx()
 {
 #ifdef Q_OS_IOS
     setAudioTXState(true);
+    if (m_pttFramework) ptt_app_tx(true);
 #endif
     emit tx_pressed();
 }
@@ -1692,13 +1741,84 @@ void DroidStar::release_tx()
 {
 #ifdef Q_OS_IOS
     setAudioTXState(false);
+    if (m_pttFramework) ptt_app_tx(false);
 #endif
     emit tx_released();
 }
 
 void DroidStar::click_tx(bool tx)
 {
+#ifdef Q_OS_IOS
+    if (m_pttFramework) ptt_app_tx(tx);
+#endif
     emit tx_clicked(tx);
+}
+
+// TX requested by the system PTT UI or a handsfree button: do the TX without echoing it back.
+void DroidStar::ptt_system_begin_tx()
+{
+    if (connect_status != Mode::CONNECTED_RW) return;
+#ifdef Q_OS_IOS
+    setAudioTXState(true);
+#endif
+    emit tx_pressed();
+    emit system_tx_changed(true);
+}
+
+void DroidStar::ptt_system_end_tx()
+{
+#ifdef Q_OS_IOS
+    setAudioTXState(false);
+#endif
+    emit tx_released();
+    emit system_tx_changed(false);
+}
+
+bool DroidStar::ptt_framework_available() const
+{
+#ifdef Q_OS_IOS
+    return ptt_is_available();
+#else
+    return false;
+#endif
+}
+
+QString DroidStar::ptt_channel_name() const
+{
+    QString name = "DroidStar \u00b7 " + m_refname;
+    if ((m_protocol == "DMR") && m_dmr_destid) {
+        name += " \u00b7 TG " + QString::number(m_dmr_destid);
+    }
+    return name;
+}
+
+// Join / rename / leave the PushToTalk channel to match settings and connection state.
+void DroidStar::ptt_sync_channel()
+{
+#ifdef Q_OS_IOS
+    if (m_pttFramework && (connect_status == Mode::CONNECTED_RW)) {
+        ptt_join(ptt_channel_name().toUtf8().constData());
+    } else if (!m_pttFramework) {
+        ptt_leave();
+        m_pttTalker.clear();
+    }
+#endif
+}
+
+void DroidStar::set_ptt_framework(bool on)
+{
+    m_pttFramework = on;
+    save_settings();
+    ptt_sync_channel();
+}
+
+void DroidStar::set_headphone_ptt(bool on)
+{
+    m_headphonePtt = on;
+    save_settings();
+#ifdef Q_OS_IOS
+    setRemotePTTEnabled(on);
+#endif
 }
 
 void DroidStar::addRecentTGID(const QString& tgid) {
@@ -1861,7 +1981,9 @@ void DroidStar::on_network_state_changed(QNetworkInformation::Reachability reach
 void DroidStar::on_transport_medium_changed(QNetworkInformation::TransportMedium medium) {
     qDebug() << "Network transport medium changed:" << medium;
     if (connect_status == Mode::CONNECTED_RW) {
+        m_keepPttChannel = true;
         process_connect();
+        m_keepPttChannel = false;
         m_autoReconnect = true;
         schedule_reconnect("Network changed", 1000);
     }
