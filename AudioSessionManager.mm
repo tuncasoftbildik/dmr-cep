@@ -879,6 +879,10 @@ extern "C" void updateNowPlayingInfo() {
     [[AudioSessionManager sharedManager] updateNowPlayingInfo];
 }
 
+extern "C" double audioSessionSampleRate(void) {
+    return [AVAudioSession sharedInstance].sampleRate;
+}
+
 extern "C" void setRemotePTTEnabled(bool enabled) {
     g_remotePttEnabled = enabled;
 }

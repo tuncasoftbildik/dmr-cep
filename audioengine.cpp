@@ -249,10 +249,22 @@ void AudioEngine::init()
 
 
 
+void AudioEngine::set_capture_rate(int rate, const char *why)
+{
+    if (rate <= 0 || rate == m_captureDeviceRate) return;
+    qDebug() << "Capture rate" << m_captureDeviceRate << "->" << rate << "(" << why << ")";
+    m_captureDeviceRate = rate;
+    m_srm = static_cast<float>(rate) / 8000.0f;
+    m_capLowpass = makeLowpassBiquad(static_cast<float>(rate), 3400.0f, 0.707f);
+}
+
 void AudioEngine::start_capture()
 {
     m_audioinq.clear();
     m_captured_bytes = 0;
+    m_cap_clock.invalidate();
+    m_cap_measure_bytes = 0;
+    m_cap_checks = 0;
    // setupAVAudioSession();
     //setPreferredInputDevice();
     if(m_in != nullptr){
@@ -261,6 +273,9 @@ void AudioEngine::start_capture()
             m_captureDeviceRate = m_in->format().sampleRate();
             m_srm = (m_captureDeviceRate > 0) ? (static_cast<float>(m_captureDeviceRate) / 8000.0f) : 1.0f;
             m_capLowpass = makeLowpassBiquad(static_cast<float>(m_captureDeviceRate), 3400.0f, 0.707f);
+#ifdef Q_OS_IOS
+            set_capture_rate(static_cast<int>(audioSessionSampleRate() + 0.5), "audio session");
+#endif
         }
         connect(m_indev, SIGNAL(readyRead()), SLOT(input_data_received()));
     }
@@ -296,6 +311,27 @@ void AudioEngine::input_data_received()
 {
     QByteArray data = m_indev->readAll();
     m_captured_bytes += data.size();
+
+    // Measure the real input rate at 0.5 s and 2 s (the first chunk may be pre-buffered, skip it).
+    if (MACHAK && data.size() > 0) {
+        if (!m_cap_clock.isValid()) {
+            m_cap_clock.start();
+        } else {
+            m_cap_measure_bytes += data.size();
+            const qint64 ms = m_cap_clock.elapsed();
+            if (m_cap_checks < 2 && ms >= (m_cap_checks == 0 ? 500 : 2000)) {
+                m_cap_checks++;
+                const int channels = (m_in && m_in->format().channelCount() > 0) ? m_in->format().channelCount() : 1;
+                const double measured = (m_cap_measure_bytes / 2.0 / channels) * 1000.0 / ms;
+                static const int rates[] = {8000, 16000, 22050, 24000, 32000, 44100, 48000};
+                int best = rates[0];
+                for (int r : rates) if (qAbs(r - measured) < qAbs(best - measured)) best = r;
+                if (qAbs(best - m_captureDeviceRate) > 0.08 * best) {
+                    set_capture_rate(best, "measured");
+                }
+            }
+        }
+    }
 
     if (data.size() > 0){
 /*

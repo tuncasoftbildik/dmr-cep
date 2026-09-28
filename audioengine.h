@@ -19,6 +19,7 @@
 #define AUDIOENGINE_H
 
 #include <QObject>
+#include <QElapsedTimer>
 #if QT_VERSION < QT_VERSION_CHECK(6, 3, 0)
 #include <QAudio>
 #include <QAudioFormat>
@@ -76,6 +77,12 @@ signals:
 
 private:
     qint64 m_captured_bytes = 0;
+    // The device may deliver a different rate than QAudioSource::format() says (iOS switches to
+    // 16 kHz for PushToTalk). Measure the real rate from the data and fix the resampler.
+    void set_capture_rate(int rate, const char *why);
+    QElapsedTimer m_cap_clock;
+    qint64 m_cap_measure_bytes = 0;
+    int m_cap_checks = 0;
     QString m_outputdevice;
     QString m_inputdevice;
 #if QT_VERSION < QT_VERSION_CHECK(6, 3, 0)

@@ -32,6 +32,8 @@ void deactivateBackgroundAudio(void);
 void renewBackgroundTask(void);
 void setPreferredInputDevice(void);
 bool isAppInBackground(void);
+// Current hardware sample rate of the shared audio session (0 if unknown).
+double audioSessionSampleRate(void);
 
 // Now Playing / Lock Screen / Control Center state updates
 void setAudioConnectionState(bool connected, const char *host, const char *mode);
