@@ -53,6 +53,13 @@ Page {
     readonly property bool showLinkQuality: connected && !!(appState && appState.mode === "DMR")
 
     function lqValue(v, unit) { return (v === undefined || v < 0) ? "–" : (v + " " + unit) }
+    // Loss shown next to the bars: last received transmission if measured, else ping loss.
+    readonly property int lossPct: {
+        var q = linkQuality
+        if (!q) return -1
+        if (q.rxLoss !== undefined && q.rxLoss >= 0) return Math.max(q.rxLoss, q.pingLoss >= 0 ? q.pingLoss : 0)
+        return (q.pingLoss !== undefined) ? q.pingLoss : -1
+    }
 
     Connections {
         target: page.appState
@@ -536,6 +543,16 @@ Page {
                             onClicked: lqPopup.open()
                             onPressAndHold: lqPopup.open()
                         }
+                    }
+                    Label {
+                        visible: page.showLinkQuality && page.lossPct >= 0
+                        text: qsTr("Loss %1%").arg(page.lossPct)
+                        color: page.lossPct >= 5 ? "#8A1208" : t.lcdInk
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        opacity: 0.85
+                        Layout.alignment: Qt.AlignVCenter
+                        MouseArea { anchors.fill: parent; anchors.margins: -8; onClicked: lqPopup.open() }
                     }
                     Label {
                         text: page.isTgMode ? ((appState && appState.privateCall) ? qsTr("Private call") : qsTr("Talkgroup"))

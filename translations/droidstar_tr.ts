@@ -201,6 +201,10 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
     </message>
     <message>
         <location filename="../ui2026/pages/MainPage.qml" line="582" />
+        <source>Loss %1%</source>
+        <translation>Kayıp %%1</translation>
+    </message>
+    <message>
         <source>Link quality: %1</source>
         <translation>Bağlantı kalitesi: %1</translation>
     </message>
