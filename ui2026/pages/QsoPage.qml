@@ -19,8 +19,10 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import QtMultimedia
 
 import "../components"
+import "../theme"
 
 Page {
     id: page
@@ -34,6 +36,39 @@ Page {
     required property var droidstarRef
 
     property string logFileName: "logs.json"
+
+    // ---- Replay: match QSO rows to saved recordings (same DMR ID, started within 20 s) ----
+    property var recs: []
+    property string playingUrl: ""
+    function refreshRecs() { if (droidstarRef) recs = droidstarRef.loadRecordings() }
+    function recFor(dmrId, timeStr) {
+        if (!timeStr || !recs || recs.length === 0) return ""
+        var p = ("" + timeStr).split(/[- :]/)
+        if (p.length < 6) return ""
+        var t = new Date(+p[0], +p[1] - 1, +p[2], +p[3], +p[4], +p[5]).getTime()
+        var best = "", bestDt = 20001
+        for (var i = 0; i < recs.length; ++i) {
+            if (recs[i].src !== +dmrId) continue
+            var dt = Math.abs(recs[i].time - t)
+            if (dt < bestDt) { bestDt = dt; best = recs[i].url }
+        }
+        return best
+    }
+    function togglePlay(url) {
+        if (playingUrl === url && qsoPlayer.playbackState === MediaPlayer.PlayingState) { qsoPlayer.stop(); return }
+        qsoPlayer.stop(); playingUrl = url; qsoPlayer.source = url; qsoPlayer.play()
+    }
+    MediaPlayer {
+        id: qsoPlayer
+        audioOutput: AudioOutput {}
+        onPlaybackStateChanged: if (playbackState === MediaPlayer.StoppedState) page.playingUrl = ""
+    }
+    Connections {
+        target: page.droidstarRef
+        function onRecordings_changed() { page.refreshRecs() }
+    }
+    onVisibleChanged: if (visible) refreshRecs()
+    Tokens { id: t }
     property string savedFilePath: ""
     property int latestSerialNumber: 0
 
@@ -175,6 +210,7 @@ Page {
     }
 
     Component.onCompleted: {
+        refreshRecs()
         loadLog()
     }
 
@@ -418,7 +454,7 @@ Page {
 
         CollapsibleSection {
             title: qsTr("Recordings")
-            expanded: false
+            expanded: true
             Layout.fillWidth: true
 
             content: ReplayList {
@@ -539,8 +575,8 @@ Page {
             delegate: Rectangle {
                 width: ListView.view.width
                 radius: 14
-                color: "#111827"
-                border.color: "#233044"
+                color: t.surface
+                border.color: t.stroke
                 border.width: 1
                 height: col.implicitHeight + 16
 
@@ -562,6 +598,25 @@ Page {
                             text: (callsign || "") + "  •  TG " + (tgid || 0)
                             font.bold: true
                             Layout.fillWidth: true
+                        }
+                        RoundButton {
+                            readonly property string recUrl: page.recFor(dmrID, currentTime)
+                            readonly property bool playing: recUrl !== "" && page.playingUrl === recUrl
+                            visible: recUrl !== ""
+                            Layout.preferredWidth: 40
+                            Layout.preferredHeight: 40
+                            onClicked: page.togglePlay(recUrl)
+                            contentItem: Label {
+                                text: parent.playing ? "\u25A0" : "\u25B6"
+                                color: t.text; font.pixelSize: 16
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle {
+                                radius: width / 2
+                                color: parent.playing ? Qt.rgba(t.success.r, t.success.g, t.success.b, 0.25) : t.surface2
+                                border.color: parent.playing ? t.success : t.stroke
+                                border.width: 1
+                            }
                         }
                         ToolButton {
                             id: optionsButton
