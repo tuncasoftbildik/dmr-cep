@@ -407,13 +407,23 @@ void DMR::apply_tx_gain(int16_t *pcm, int n)
     last_g = g;
 }
 
-// Fixed boost with a tanh soft limiter so loud stations do not crackle.
+// RX AGC towards ~-14 dBFS (2x..32x), ramped per block, then a tanh soft limiter so loud
+// stations do not crackle. Quiet blocks (pauses) keep the current gain.
 void DMR::apply_rx_gain(int16_t *pcm, int n)
 {
-    for(int i = 0; i < n; ++i){
-        const float x = pcm[i] * m_rx_gain / 32768.0f;
-        pcm[i] = int16_t(std::tanh(x) * 30000.0f);
+    double acc = 0;
+    for(int i = 0; i < n; ++i) acc += double(pcm[i]) * pcm[i];
+    const double rms = std::sqrt(acc / n);
+    if(rms > 60.0){
+        const float target = qBound(2.0f, float(6540.0 / rms), 32.0f);   // -14 dBFS
+        m_rx_gain += (target - m_rx_gain) * (target < m_rx_gain ? 0.3f : 0.08f);
     }
+    for(int i = 0; i < n; ++i){
+        const float gi = m_rx_last_gain + (m_rx_gain - m_rx_last_gain) * float(i + 1) / float(n);
+        const float x = pcm[i] * gi / 32768.0f;
+        pcm[i] = int16_t(std::tanh(x) * 31000.0f);
+    }
+    m_rx_last_gain = m_rx_gain;
 }
 
 static DMR::Bq make_bq(double b0, double b1, double b2, double a0, double a1, double a2)

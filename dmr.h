@@ -82,8 +82,9 @@ private:
     Bq m_tx_hpf{}, m_tx_peq{};
     bool m_tx_filters_ready = false;
     void tx_shape(int16_t *pcm, int n);
-    // RX output gain with a soft limiter (decoded AMBE is quiet on the iPhone speaker).
-    float m_rx_gain = 6.0f;
+    // RX output AGC (decoded AMBE arrives around -36 dBFS, too quiet for the iPhone speaker).
+    float m_rx_gain = 8.0f;
+    float m_rx_last_gain = 8.0f;
     void apply_rx_gain(int16_t *pcm, int n);
     static const qint64 RX_WATCHDOG_MS = 20000;
     void report_connection_lost(const QString &reason);
