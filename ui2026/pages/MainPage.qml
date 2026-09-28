@@ -136,20 +136,82 @@ Page {
         return tgNames[tg] || ""
     }
 
+    // Lookup status per TG: "loading" | "ok" | "missing" (BM 404 / no name) | "error" (network)
+    property var tgLookupState: ({})
+
+    function _setTgState(tg, st) { var s = tgLookupState; s[tg] = st; tgLookupState = s }
+
     function lookupTgName(tg) {
         tg = ("" + tg).trim()
-        if (!/^[0-9]+$/.test(tg) || tgNames[tg] !== undefined || !appState || appState.mode !== "DMR") return
+        if (!/^[0-9]+$/.test(tg) || !appState || appState.mode !== "DMR") return
+        // Retry after a network error; otherwise one request per TG.
+        if (tgNames[tg] !== undefined && tgLookupState[tg] !== "error") return
         var cache = tgNames; cache[tg] = ""; tgNames = cache
+        _setTgState(tg, "loading")
         var xhr = new XMLHttpRequest()
         xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || xhr.status !== 200) return
-            try {
-                var r = JSON.parse(xhr.responseText)
-                if (r && r.Name) { var c = page.tgNames; c[tg] = r.Name; page.tgNames = c }
-            } catch (e) {}
+            if (xhr.readyState !== XMLHttpRequest.DONE) return
+            if (xhr.status === 200) {
+                try {
+                    var r = JSON.parse(xhr.responseText)
+                    if (r && r.Name) {
+                        var c = page.tgNames; c[tg] = r.Name; page.tgNames = c
+                        page._setTgState(tg, "ok")
+                        return
+                    }
+                } catch (e) {}
+                page._setTgState(tg, "missing")
+            } else if (xhr.status === 404) {
+                page._setTgState(tg, "missing")
+            } else {
+                page._setTgState(tg, "error")
+            }
         }
         xhr.open("GET", "https://api.brandmeister.network/v2/talkgroup/" + tg, true)
         xhr.send()
+    }
+
+    // ---- DMR user IDs (local DMRIDs.dat first, then radioid.net, cached) ----
+    // id -> "CALL - Name"; "" = not found; key absent = not looked up yet.
+    property var dmrIdNames: ({})
+    property var dmrIdLookupState: ({})
+
+    function _setDmrIdState(id, st) { var s = dmrIdLookupState; s[id] = st; dmrIdLookupState = s }
+    function _setDmrIdName(id, nm) { var c = dmrIdNames; c[id] = nm; dmrIdNames = c }
+
+    function lookupDmrUser(id) {
+        id = ("" + id).trim()
+        if (!/^[0-9]+$/.test(id)) return
+        if (dmrIdNames[id] !== undefined && dmrIdLookupState[id] !== "error") return
+        var local = droidstarRef && droidstarRef.lookupDmrId ? droidstarRef.lookupDmrId(parseInt(id)) : ""
+        if (local) { _setDmrIdName(id, local); _setDmrIdState(id, "ok"); return }
+        _setDmrIdName(id, "")
+        _setDmrIdState(id, "loading")
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE) return
+            if (xhr.status !== 200) { page._setDmrIdState(id, xhr.status === 404 ? "missing" : "error"); return }
+            try {
+                var r = JSON.parse(xhr.responseText)
+                if (r && r.results && r.results.length > 0) {
+                    var u = r.results[0]
+                    var nm = (u.fname || u.name || "").trim()
+                    page._setDmrIdName(id, (u.callsign || "") + (nm ? " - " + nm : ""))
+                    page._setDmrIdState(id, "ok")
+                    return
+                }
+            } catch (e) {}
+            page._setDmrIdState(id, "missing")
+        }
+        xhr.open("GET", "https://radioid.net/api/users?id=" + id, true)
+        xhr.send()
+    }
+
+    // Callsign part of a "CALL - Name" entry.
+    function dmrIdCallsign(id) {
+        var v = dmrIdNames["" + id] || ""
+        var i = v.indexOf(" - ")
+        return i >= 0 ? v.substring(0, i) : v
     }
 
     // ---- Favorite talkgroups ----
@@ -706,6 +768,62 @@ Page {
         standardButtons: Dialog.Cancel | Dialog.Ok
         onAccepted: page.selectTg(tgField.text)
 
+        readonly property bool isDmr: !!(appState && appState.mode === "DMR")
+        readonly property bool pcMode: isDmr && pcSwitch.checked
+        // Debounced copy of tgField.text; the preview only resolves this value.
+        property string previewId: ""
+        readonly property string typedId: tgField.text.trim()
+        readonly property bool previewPending: typedId !== previewId
+
+        function refreshPreview() {
+            previewId = typedId
+            if (!/^[0-9]+$/.test(previewId)) return
+            if (pcMode) {
+                page.lookupDmrUser(previewId)
+            } else {
+                page.lookupTgName(previewId)
+                // 7 digits in group mode: probably a DMR user ID typed by mistake.
+                if (isDmr && previewId.length === 7) page.lookupDmrUser(previewId)
+            }
+        }
+
+        // Preview line: { kind: "" | "loading" | "ok" | "unknown" | "error", text }
+        readonly property var preview: {
+            var id = previewId
+            // Touch the caches so the binding re-evaluates when lookups finish.
+            var tn = page.tgNames, ts = page.tgLookupState, dn = page.dmrIdNames, ds = page.dmrIdLookupState
+            if (id === "" || previewPending || !/^[0-9]+$/.test(id)) return { kind: "", text: "" }
+            if (pcMode) {
+                var st = ds[id]
+                if (st === "ok") return { kind: "ok", text: dn[id] }
+                if (st === "loading") return { kind: "loading", text: qsTr("Looking up…") }
+                if (st === "missing") return { kind: "unknown", text: qsTr("Unknown DMR ID") }
+                if (st === "error") return { kind: "error", text: qsTr("Could not check DMR ID (offline?)") }
+                return { kind: "", text: "" }
+            }
+            var fav = page.tgName(id)
+            if (fav !== "") return { kind: "ok", text: fav }
+            if (!isDmr) return { kind: "", text: "" }
+            var s2 = ts[id]
+            if (s2 === "loading") return { kind: "loading", text: qsTr("Looking up…") }
+            if (s2 === "missing") return { kind: "unknown", text: qsTr("Unknown talkgroup") }
+            if (s2 === "error") return { kind: "error", text: qsTr("Could not check talkgroup (offline?)") }
+            return { kind: "", text: "" }
+        }
+
+        // Callsign when a 7-digit group-call number resolves as a DMR user ID.
+        readonly property string dmrIdHintCall: {
+            var ds = page.dmrIdLookupState, dn = page.dmrIdNames
+            if (!isDmr || pcMode || previewPending || previewId.length !== 7) return ""
+            return ds[previewId] === "ok" ? page.dmrIdCallsign(previewId) : ""
+        }
+
+        Timer {
+            id: tgPreviewTimer
+            interval: 400
+            onTriggered: tgDialog.refreshPreview()
+        }
+
         ColumnLayout {
             anchors.fill: parent
             spacing: 12
@@ -713,18 +831,72 @@ Page {
                 id: tgField
                 Layout.fillWidth: true
                 inputMethodHints: Qt.ImhDigitsOnly
-                placeholderText: qsTr("Talkgroup ID")
+                placeholderText: tgDialog.pcMode ? qsTr("DMR ID") : qsTr("Talkgroup ID")
                 font.family: segFont.name
                 font.pixelSize: 30
                 horizontalAlignment: Text.AlignRight
                 onAccepted: tgDialog.accept()
+                onTextChanged: tgPreviewTimer.restart()
             }
-            Label {
+            // Live name preview; reserves its height so the dialog does not jump while typing.
+            Rectangle {
                 Layout.fillWidth: true
-                text: page.tgName(tgField.text)
-                visible: text !== ""
-                color: t.textMuted
-                font.pixelSize: 14
+                Layout.preferredHeight: Math.max(36, previewLabel.implicitHeight + 16)
+                radius: t.rSm
+                color: tgDialog.preview.kind === "unknown" ? Qt.rgba(t.warning.r, t.warning.g, t.warning.b, 0.14) : t.surface2
+                border.width: tgDialog.preview.kind === "unknown" ? 1 : 0
+                border.color: t.warning
+                opacity: tgDialog.preview.kind === "" ? 0 : 1
+                Behavior on opacity { NumberAnimation { duration: 120 } }
+                Label {
+                    id: previewLabel
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.Wrap
+                    text: (tgDialog.preview.kind === "unknown" ? "⚠ " : "") + tgDialog.preview.text
+                    color: tgDialog.preview.kind === "ok" ? t.lcd
+                         : tgDialog.preview.kind === "unknown" ? t.warning
+                         : t.textMuted
+                    font.pixelSize: tgDialog.preview.kind === "ok" || tgDialog.preview.kind === "unknown" ? 16 : 13
+                    font.bold: tgDialog.preview.kind === "ok" || tgDialog.preview.kind === "unknown"
+                    font.italic: tgDialog.preview.kind === "loading"
+                }
+            }
+            // "Looks like a DMR ID" hint with a one-tap switch to private call.
+            Rectangle {
+                Layout.fillWidth: true
+                visible: tgDialog.dmrIdHintCall !== ""
+                implicitHeight: hintRow.implicitHeight + 16
+                radius: t.rSm
+                color: Qt.rgba(t.warning.r, t.warning.g, t.warning.b, 0.14)
+                border.width: 1
+                border.color: t.warning
+                RowLayout {
+                    id: hintRow
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    anchors.leftMargin: 12
+                    spacing: 8
+                    Label {
+                        Layout.fillWidth: true
+                        text: qsTr("This looks like a DMR ID (%1). Private call?").arg(tgDialog.dmrIdHintCall)
+                        color: t.warning
+                        wrapMode: Text.Wrap
+                        font.pixelSize: 13
+                    }
+                    Button {
+                        text: qsTr("Private call")
+                        highlighted: true
+                        onClicked: {
+                            pcSwitch.checked = true
+                            if (appState) appState.privateCall = true
+                            droidstarRef.set_dmr_pc(true)
+                            tgDialog.refreshPreview()
+                        }
+                    }
+                }
             }
             Label {
                 visible: !!(appState && appState.recentTgids && appState.recentTgids.length > 0)
@@ -738,23 +910,64 @@ Page {
                 Repeater {
                     model: appState ? appState.recentTgids : []
                     delegate: Button {
+                        id: recentBtn
                         required property var modelData
-                        text: modelData
+                        readonly property string nm: {
+                            var tn = page.tgNames, dn = page.dmrIdNames
+                            return page.tgName(modelData) || dn["" + modelData] || ""
+                        }
                         flat: true
-                        onClicked: { tgField.text = modelData; page.lookupTgName(modelData) }
+                        contentItem: Column {
+                            spacing: 0
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: recentBtn.modelData
+                                font.family: segFont.name
+                                font.pixelSize: 15
+                                color: t.text
+                            }
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                visible: recentBtn.nm !== ""
+                                text: recentBtn.nm
+                                width: Math.min(implicitWidth, 120)
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.AlignHCenter
+                                font.pixelSize: 10
+                                color: t.textMuted
+                            }
+                        }
+                        onClicked: { tgField.text = modelData; tgDialog.refreshPreview() }
                     }
                 }
             }
             RowLayout {
-                visible: !!(appState && appState.mode === "DMR")
+                visible: tgDialog.isDmr
                 Label { text: qsTr("Private call"); color: t.text; Layout.fillWidth: true }
                 Switch {
+                    id: pcSwitch
                     checked: appState ? appState.privateCall : false
-                    onToggled: { if (appState) appState.privateCall = checked; droidstarRef.set_dmr_pc(checked) }
+                    onToggled: {
+                        if (appState) appState.privateCall = checked
+                        droidstarRef.set_dmr_pc(checked)
+                        tgDialog.refreshPreview()
+                    }
                 }
             }
         }
-        onOpened: { tgField.forceActiveFocus(); tgField.selectAll() }
+        onOpened: {
+            pcSwitch.checked = appState ? appState.privateCall : false
+            tgField.forceActiveFocus()
+            tgField.selectAll()
+            tgPreviewTimer.stop()
+            refreshPreview()
+            // Resolve names for the recent buttons.
+            var rec = appState && appState.recentTgids ? appState.recentTgids : []
+            for (var i = 0; i < rec.length; ++i) {
+                page.lookupTgName(rec[i])
+                if (isDmr && ("" + rec[i]).length === 7) page.lookupDmrUser(rec[i])
+            }
+        }
     }
 
     // ── Connection & audio sheet ──

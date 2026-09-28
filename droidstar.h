@@ -48,6 +48,8 @@ public:
     Q_INVOKABLE void removeFavoriteTG(const QString &tg);
     Q_INVOKABLE void moveFavoriteTG(int from, int to);
     Q_INVOKABLE bool isFavoriteTG(const QString &tg) const;
+    // Local DMR ID database lookup: "CALL - Name" (or "CALL"), empty when unknown/not loaded.
+    Q_INVOKABLE QString lookupDmrId(uint id) const;
     // Received transmissions saved for replay, newest first:
     // {url, file, src, dst, callsign, time (ms), seconds}
     Q_INVOKABLE QVariantList loadRecordings() const;

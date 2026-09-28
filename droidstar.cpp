@@ -2015,6 +2015,10 @@ void DroidStar::deleteRecording(const QString &file) {
     if (QDir(RxRecorder::recordingsDir()).remove(file)) emit recordings_changed();
 }
 
+QString DroidStar::lookupDmrId(uint id) const {
+    return m_dmrids.value(id);
+}
+
 QStringList DroidStar::loadRecentTGIDs() const {
     QSettings settings;
     settings.beginGroup("RecentTGIDs");
