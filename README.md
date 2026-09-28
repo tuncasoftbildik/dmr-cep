@@ -1,126 +1,52 @@
-# Modified DROIDSTAR DMR App for iOS & Android
+# DMR Cep
 
-## 📢 Important Announcement
+**DMR Cep**, iPhone'u bir DMR el telsizine çeviren, BrandMeister ve diğer DMR ağlarına bağlanan bir amatör telsiz uygulaması. [DroidStar](https://github.com/nostar/DroidStar) (Doug McLain, AD8DP) ve onun iOS sürümü [Droidstar-DMR](https://github.com/rohithzmoi/Droidstar-DMR) (Rohith Namboothiri, VU3LVO) üzerine kurulu; TB1BDL tarafından geliştiriliyor.
 
-**Please note:** I will no longer be maintaining the Android version, at least for the near future. Due to the complexity of maintaining both iOS and Android versions simultaneously, I've made the decision to focus exclusively on iOS development. 
+> *English:* DMR Cep is an iOS amateur-radio client for BrandMeister/DMR networks, based on DroidStar and the Droidstar-DMR iOS fork. It adds reliable auto-reconnect, Apple Push-to-Talk, roger beeps and ZVEI-1 five-tone ANI sent as AMBE+2 tone frames, replay of received and own transmissions, a Turkish UI, a redesigned "handheld radio" interface and many iOS audio fixes. GPL-3.0.
 
-**Special Contributor** A huge thanks and shout-out to VU2TBR (T. Bala) for his valuable feedback and idea contributions. His inputs played a major role in helping me design and refine these features.
+## Özellikler
 
----
+- **El telsizi arayüzü:** kehribar LCD'de 7 segmentli TG numarası, kanal şeridi gibi favori TG'ler, o an konuşanın çağrı işareti, büyük yuvarlak Bağlan/PTT tuşu.
+- **Güvenilir bağlantı:** sunucu kapanması (MSTCL/MSTNAK) ve 20 sn sessizlikte otomatik yeniden bağlanma, Wi-Fi ↔ mobil geçişinde hemen yeniden kayıt, el sıkışma paketlerinde tekrar gönderme, çift dokunma koruması, bağlanınca çan sesi.
+- **Apple Push-to-Talk (iOS 16+):** kilit ekranı ve Dinamik Ada'da bas-konuş, Bluetooth PTT aksesuarları, konuşanın adı.
+- **Roger ve 5 ton:** girişte ve çıkışta farklı roger bipleri, ZVEI-1 5 ton ANI (DMR ID'nin son 5 hanesi). Tonlar AMBE+2 **ton çerçevesi** olarak gönderilir; DVSI vocoder'lı telsizlerde temiz çıkar. Gelen ton çerçeveleri de çalınır.
+- **Tekrar dinle:** gelen yayınlar ve kendi yayınların (karşının duyduğu hâliyle) kaydedilir; QSO listesinde her satırda ▶.
+- **Ses:** TX için gürültü kapısı + otomatik kazanç + ses tonu (Doğal / İnce 300 Hz / Çok ince 500 Hz), RX için otomatik kazanç.
+- **Konuşma grubu:** favoriler (ad BrandMeister'dan), yazarken ad önizleme, 7 haneli numarada "DMR ID gibi görünüyor, özel arama mı?" uyarısı.
+- **Konum:** isteğe bağlı telefon GPS'i ile BrandMeister'a istasyon konumu (varsayılan kapalı).
+- **Türkçe arayüz** (Ayarlar'dan English seçilebilir).
 
-This project is a modified version of the [original Droidstar App](https://github.com/nostar/DroidStar) by Doug McLain. The modifications introduce new features and enhancements to improve user experience and functionality.
+## Derleme (iOS)
 
-This project uses QT 6.7.2
+Gerekenler: Xcode 27, Qt **6.11.3** for iOS (6.7.x, Xcode 27 SDK ile derlenmiyor).
 
-## What's New in the Latest Update
+```sh
+# Qt (aqtinstall ile; yarım kalırsa ios/bin/qmake ve target_qt.conf içindeki host yollarını macos kurulumuna yönlendirin)
+aqt install-qt mac desktop 6.11.3 clang_64 -m qtmultimedia
+aqt install-qt mac ios 6.11.3 ios -m qtmultimedia --autodesktop
 
-I'm thrilled to announce a major update with significant improvements and highly requested features:
+mkdir build-ios && cd build-ios
+~/Qt/6.11.3/ios/bin/qmake ../DroidStar.pro CONFIG+=sdk_no_version_check
+make -f DroidStar.xcodeproj/qt_preprocess.mak     # Xcode'un yeni derleme sistemi önişlemeyi sıraya koymuyor
+xcodebuild -project DroidStar.xcodeproj -scheme DroidStar -configuration Release \
+  -destination 'generic/platform=iOS' \
+  DEVELOPMENT_TEAM=<takım> PRODUCT_BUNDLE_IDENTIFIER=<paket kimliği> \
+  ASSETCATALOG_COMPILER_APPICON_NAME=AppIconDMRCep build
+```
 
-- **Complete Major Design Overhaul**: Fresh UI, smoother navigation, and a much cleaner overall experience that modernizes the entire app.
+Notlar:
+- PushToTalk için App ID'de **Push to Talk** ve **Push Notifications** yetenekleri açık olmalı (`DroidStar.entitlements`).
+- iOS'ta çoklu ortam arka ucu olarak FFmpeg değil Darwin eklentisi kullanılır (`QTPLUGIN.multimedia = darwinmediaplugin`).
+- Uygulama cihazda `Library/Application Support/DroidStar/debug.log` tutar; ses teşhisi için son TX `tx_last_mic.wav` / `tx_last_decoded.wav` olarak yazılır.
 
-- **Dynamic Island Support for iOS**: One of the most requested features! You can now monitor activity and status right from the Dynamic Island, providing at-a-glance information without opening the app.
+## Emeği geçenler
 
-- **iPhone Notification Center Display**: Real-time TX/RX status updates are now visible in the notification center, keeping you informed even when multitasking.
+- **Doug McLain, AD8DP** — DroidStar
+- **Rohith Namboothiri, VU3LVO** — Droidstar-DMR iOS sürümü ve 2026 arayüzü
+- **TB1BDL** — DMR Cep
+- 7 segment yazı tipi: [DSEG](https://github.com/keshikan/DSEG) (keshikan, SIL OFL 1.1)
+- AMBE+2 ton çerçevesi düzeni için referans: [mbelib-neo](https://github.com/arancormonk/mbelib-neo)
 
-- **Lock Screen TX/RX Display**: Monitor transmission and reception activity directly from your iPhone's lock screen for ultimate convenience.
+## Lisans
 
-- **Control QSO Log Length**: Adjust how many entries you want to keep directly from the QSO page without digging into settings. Customize your log management with ease.
-
-- **Toggle Self-TX Logging**: A small but powerful quality-of-life improvement for those who prefer cleaner logs. Turn self-transmission logging on or off based on your preference.
-
-And this is just the beginning. More updates are coming soon, including a few surprises I think you'll really enjoy!
-
-## Previous Features
-
-I am excited to share several features and improvements that have been previously released:
-
-- **Automatic Operator Information Display**: The app now automatically fetches the operator's first name (referred to as the "Handle") based on their DMR ID and displays it below the "Call Sign." The operator's "Country" is also displayed next to the "Handle."
-
-- **New QSO Tab**: A new QSO Tab has been introduced, which logs the 250 most recent calls (Last Heard). This tab displays the Call Sign, DMR ID, TGID, Handle, Country, and logged time in local time. The logs are now persistently stored, remaining intact even after restarting the app.
-
-- **TX Button and Net Status Integration**: The QSO Tab now includes a TX button with integrated Net Status, providing real-time feedback on the connection status (Host Connected or Not Connected).
-
-- **Enhanced Export Options**: You can now export QSO logs in CSV or ADIF formats. Additionally, you can selectively choose specific log entries for inclusion in the exported file. You can also share the exported file directly from the app via WhatsApp, email, or any other app on your device.
-
-- **"Last Heard" on Home Page**: The app now features "Last Heard" as two rows on the home page, providing quick access to recent transmissions. The AMBES notification has been moved to the Settings for better organization.
-
-- **Quick Access Buttons**: Added a button in the QSO entries that opens a menu to visit the station's QRZ, BM, and APRS pages directly from the app.
-
-- **Background Functionality for Android & iOS Users**: The app now supports background operation for Android & iOS users, allowing it to continue running while switching between applications. This feature is particularly useful for tasks like checking a station's QRZ page while maintaining uninterrupted RX. iOS users will now be able to connect to Bluetooth devices as well.
-
-- **Simplified User Interface**: The user interface has been simplified by replacing the text "Main" with a "Home" icon for a more intuitive experience.
-
-- **Recent TG-ID Dropdown**: The dropdown records all the recently dialed Talk Group ids and lets you choose from the list. You no longer have to memorize the TG ID.
-
-  
-## Downloads
-
-- ~~For Android users, you can download the app via [this link](https://inz.to/droidstar-vu3lvo).~~
-- ~~For older Android versions (Armabi_v7a), please use [this link](https://inz.to/droidstar-vu3lvo).~~
-
-- For iOS users, the iOS version is now available! Due to the 10k limit on TestFlight, I won't be posting the invitation link publicly. If you're interested in testing the iOS version, please mail me at vu3lvo@proton.me.
-
-## Feedback and Support
-
-Please let me know if these features are working correctly on your device. If you have any ideas or feedback, feel free to reach out. Your input is invaluable in making this app better!
-
-## Stay Updated
-Join my WhatsApp channel to stay updated on the progress, new features and to participate in polls to get your dream features / ideas implemented in DroidStar. [**Join Now**](https://inz.to/BVmSa)
-
-## Acknowledgments
-
-This project is based on the original work by [Doug McLain](https://github.com/nostar/). Many thanks to Doug for his excellent foundation and contributions to the digital radio community.
-
-## License
-
-This project, including modifications, is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
-
-## Support
-
-If you would like to support the development of the Droidstar DMR iOS TestFlight or public release, you can **[buy me a coffee](https://buymeacoffee.com/rohithz)**.
-
----
-
-**73 VU3LVO - Rohith**
-
----
-
-## 🌟 Contributors
-
-I deeply appreciate the incredible contributions by our patrons/contributors who have played a vital role in supporting me in keeping this project running. Your passion and commitment drive me forward, and I am honored to have you as a part of our journey. Thank you for being an essential part of this project! 🚀
-
-### Special Thanks To:
-
-- **@TXDMR** • [Reddit](https://www.reddit.com/user/TXDMR)
-- **@Impossible_Duty_8935** • [Reddit](https://www.reddit.com/user/Impossible_Duty_8935)
-- **houjoe318**
-- **beny6258**
-- **Tim GW4VXE**
-- **Ian R**
-- **N2HT**
-- **steff6272**
-- **Mark Flett**
-- **Marco KC2ZMA**
-- **Ray**
-- **K7RAN**
-- **ZL2BEZ**
-- **Vk4sm**
-- **WA3ADI**
-- **Ve2kjf**
-- **DG9MAQ**
-- **Stefan Kowal**
-- **AC1SM**
-- **Mal - VK3TV**
-- **Dennis@w2kdc**
-- **William Golden**
-- **Michael Kilsby**
-- **Esteban Mackay Quiel**
-- **KQ4HJH**
-- **Mattias**
-- **Luis Valencia castaño**
-- **Marco Iapicca**
-
-
----
-
-Want to see your name here? Contribute today (**[buy me a coffee](https://buymeacoffee.com/rohithz)**./**[Contribute Via PayPal](https://www.paypal.com/ncp/payment/NU89529268M2W)**) and join me in building the most advanced, modern, robust Digital Radio Mobile App that would help thousands of Amateur Radio Operators around the world who cannot affort expensive gears!
+GNU General Public License v3.0 — bkz. [LICENSE](LICENSE). DSEG yazı tipi kendi lisansıyla (`fonts/DSEG-LICENSE.txt`).
