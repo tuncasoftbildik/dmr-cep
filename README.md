@@ -55,6 +55,11 @@ Apple **Push-to-Talk** ile kilit ekranından ve Dinamik Ada'dan bas-konuş; Blue
   - Başta ve sonda kısa bip, yalnız sonda bip ya da kapalı.
 - İsteğe bağlı **telefon GPS'i** ile BrandMeister'a istasyon konumu (varsayılan kapalı).
 
+**Altyazı**
+- **Canlı altyazı ve Türkçe çeviri**: seçili konuşma gruplarında (varsayılan TG 91) gelen İngilizce konuşma, istasyon konuşurken yazıya dökülür ve Türkçeye çevrilir. Tanıma ve çeviri tamamen telefonda yapılır (Apple SpeechAnalyzer + Translation), ses hiçbir yere gönderilmez.
+- **Telsiz sözlüğü**: NATO alfabesiyle söylenen çağrı işaretleri birleştirilir ("Kilo Juliet Four Charlie Papa Alpha" → KJ4CPA); çağrı işaretleri ve Q kodları çeviriden korunur; "copy" → "duyuyorum", "over" → "tamam", "73" olduğu gibi kalır.
+- Altyazılar kayıtla birlikte saklanır; QSO listesinde yayını dinlerken metnini de okursun.
+
 **Ses**
 - TX: gürültü kapısı, otomatik kazanç ve ses tonu seçimi (Doğal / İnce 300 Hz / Çok ince 500 Hz).
 - RX: otomatik kazanç ve yumuşak sınırlayıcı; kısık gelen istasyonlar da duyulur.
@@ -99,6 +104,9 @@ DroidStar'ın iOS sürümüne göre DMR Cep'te eklenen ve düzeltilenler:
 | Tonlar | Roger bipleri ve 5 ton, AMBE+2 ton çerçevesi olarak; polis telsizi (CCIR) ve ZVEI-1 kipleri; gelen ton çerçeveleri de çalınır |
 | Kimlik | Talker Alias gönderme ve alma, telefon GPS'iyle konum |
 | Kayıt | Gelen ve kendi yayınlarını tekrar dinleme (son 30) |
+| Altyazı | Canlı İngilizce altyazı + Türkçe çeviri, telsiz sözlüğü, kayıtla saklama |
+| Kanallar | İsimli kayıtlı TG ve özel arama listeleri; LCD alırken yeşil, yayında kırmızı |
+| Tuşlar | Eylem Tuşu ile bas-konuş (App Intent), isteğe bağlı ses tuşları |
 | Arayüz | Kehribar LCD'li el telsizi tasarımı, favori TG'ler, TG adı önizleme, yeni menü ve ayarlar, Türkçe, yeni ad, simge ve açılış ekranı, bağlanma çanı |
 
 ## Derleme
@@ -146,7 +154,7 @@ GNU General Public License v3.0, bkz. [LICENSE](LICENSE). DSEG yazı tipi kendi 
 <details>
 <summary>English</summary>
 
-DMR Cep turns an iPhone into a DMR handheld for BrandMeister and other HomeBrew/MMDVM networks, no hotspot needed. Built on DroidStar (AD8DP) and the Droidstar-DMR iOS fork (VU3LVO), reworked by TB1BDL for daily use: auto-connect on launch and reliable auto-reconnect (also while locked), a link-quality meter, Apple Push-to-Talk with lock-screen / Dynamic Island control and a Live Activity card, DMR Talker Alias (TX and RX), roger beeps, a CCIR police-radio five-tone call-up (2-1-2-6-5 in, 1-8-2-7-5 out) and ZVEI-1 five-tone ANI, all sent as AMBE+2 tone frames, TX noise gate / AGC / voice-tone shaping, RX AGC, replay of received and own transmissions, favorite talk groups with live name lookup, optional phone GPS position, and a Turkish/English UI styled like an amber-LCD handheld. GPL-3.0.
+DMR Cep turns an iPhone into a DMR handheld for BrandMeister and other HomeBrew/MMDVM networks, no hotspot needed. Built on DroidStar (AD8DP) and the Droidstar-DMR iOS fork (VU3LVO), reworked by TB1BDL for daily use: auto-connect on launch and reliable auto-reconnect (also while locked), a link-quality meter, Apple Push-to-Talk with lock-screen / Dynamic Island control and a Live Activity card, DMR Talker Alias (TX and RX), roger beeps, a CCIR police-radio five-tone call-up (2-1-2-6-5 in, 1-8-2-7-5 out) and ZVEI-1 five-tone ANI, all sent as AMBE+2 tone frames, TX noise gate / AGC / voice-tone shaping, RX AGC, replay of received and own transmissions, favorite talk groups with live name lookup, optional phone GPS position, on-device live English subtitles with Turkish translation (Apple SpeechAnalyzer + Translation) and a ham-radio glossary, named saved talk groups and private-call contacts, Action Button PTT, and a Turkish/English UI styled like an amber-LCD handheld. GPL-3.0.
 
 </details>
 
