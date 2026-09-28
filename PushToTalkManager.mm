@@ -40,6 +40,7 @@ API_AVAILABLE(ios(16.0))
 @property (nonatomic) BOOL joinPending;
 // Join requested while in the background; requestJoinChannel needs the foreground.
 @property (nonatomic) BOOL joinWhenActive;
+@property (nonatomic) BOOL joinRetried;
 // YES while the app itself owns TX (in-app button). System begin/end echoes are ignored then.
 @property (nonatomic) BOOL appTransmitting;
 // YES while TX was started by the system (lock screen / handsfree) and handed to the app.
@@ -127,6 +128,7 @@ API_AVAILABLE(ios(16.0))
 {
     self.joinPending = NO;
     self.joinWhenActive = NO;
+    self.joinRetried = NO;
     if (self.manager && self.joined) {
         [self.manager leaveChannelWithUUID:self.channelUUID];
     }
@@ -144,6 +146,7 @@ API_AVAILABLE(ios(16.0))
             return;
         }
         self.joined = YES;
+        self.joinRetried = NO;
         [channelManager setTransmissionMode:PTTransmissionModeHalfDuplex forChannelUUID:channelUUID completionHandler:nil];
         if (@available(iOS 17.0, *)) {
             [channelManager setAccessoryButtonEventsEnabled:YES forChannelUUID:channelUUID completionHandler:nil];
@@ -213,6 +216,16 @@ API_AVAILABLE(ios(16.0))
 {
     // PushToTalk may call delegates on its own queue; keep all state on the main queue.
     dispatch_async(dispatch_get_main_queue(), ^{
+        // Right after a relaunch iOS may still be restoring the previous run's channel
+        // (PTChannelErrorChannelLimitReached). Retry once shortly after instead of giving up.
+        if (error.code == PTChannelErrorChannelLimitReached && self.joinPending && !self.joinRetried) {
+            self.joinRetried = YES;
+            NSLog(@"[PTT] join hit channel limit, retrying in 1 s");
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                if (self.joinPending && !self.joined) [self join];
+            });
+            return;
+        }
         self.joinPending = NO;
         ptt_status([NSString stringWithFormat:@"Push-to-Talk join failed: %@", error.localizedDescription]);
     });

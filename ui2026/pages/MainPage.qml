@@ -185,8 +185,19 @@ Page {
         xhr.send()
     }
 
+    // The button flips to Cancel/Disconnect immediately, so a double tap used to cancel the
+    // connection it had just started. Ignore a second tap within 1.5 s.
+    property double _lastConnectTapMs: 0
+
     function connectOrDisconnect() {
         if (!appState || !droidstarRef) return
+        var now = Date.now()
+        if (now - _lastConnectTapMs < 1500) {
+            console.log("Connect button: ignored double tap (" + (now - _lastConnectTapMs) + " ms)")
+            return
+        }
+        _lastConnectTapMs = now
+        console.log("Connect button tapped: connecting=" + appState.connecting + " connected=" + appState.connected)
 
         // If we're currently connecting, a click should cancel the attempt.
         // Backend `process_connect()` toggles to DISCONNECTED for any non-DISCONNECTED state.

@@ -276,6 +276,7 @@ Page {
                 
                 onClicked: {
                     if (!appState || !droidstarRef) return
+                    console.log("QSO page connect button tapped: connected=" + appState.connected)
                     if (appState.connected) {
                         droidstarRef.process_connect() // Disconnect
                     } else {
