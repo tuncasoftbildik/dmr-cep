@@ -836,6 +836,38 @@ Page {
                         }
                     }
 
+                    // TX voice tone (high-pass corner before the vocoder)
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 56
+                        radius: 10
+                        color: t.surface2
+                        border.color: t.stroke
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Label { text: qsTr("Voice tone") }
+                                Label {
+                                    text: qsTr("Cuts the low end of your voice before it is sent. Thinner sounds clearer on radios")
+                                    font.pixelSize: 10; opacity: 0.5
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+                            ComboBox {
+                                Layout.preferredWidth: 150
+                                model: [qsTr("Natural"), qsTr("Thin (300 Hz)"), qsTr("Very thin (500 Hz)")]
+                                currentIndex: page.droidstarRef ? page.droidstarRef.get_tx_tone() : 1
+                                onActivated: function(index) { page.droidstarRef.set_tx_tone(index) }
+                            }
+                        }
+                    }
+
                     // Roger beep sent over the air
                     Rectangle {
                         Layout.fillWidth: true

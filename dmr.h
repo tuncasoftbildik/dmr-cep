@@ -83,11 +83,11 @@ private:
     float m_tx_noise_floor = 300.0f;   // tracked RMS of the room between words
     float m_tx_gate = 1.0f;            // 1 = open, 0.25 = closed (-12 dB)
     void apply_tx_gain(int16_t *pcm, int n);
-    // TX voice shaping at 8 kHz before the vocoder: 120 Hz high-pass + mild presence peak at 2.2 kHz.
+    // TX voice shaping at 8 kHz before the vocoder: 4th-order high-pass (tone setting) + mild presence peak.
 public:
     struct Bq { float b0, b1, b2, a1, a2, z1 = 0, z2 = 0; };
 private:
-    Bq m_tx_hpf{}, m_tx_peq{};
+    Bq m_tx_hpf{}, m_tx_hpf2{}, m_tx_peq{};
     bool m_tx_filters_ready = false;
     void tx_shape(int16_t *pcm, int n);
     // RX output AGC (decoded AMBE arrives around -36 dBFS, too quiet for the iPhone speaker).

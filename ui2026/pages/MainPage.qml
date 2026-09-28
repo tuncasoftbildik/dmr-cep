@@ -902,6 +902,18 @@ Page {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
+                    Label { text: qsTr("Voice tone"); color: t.textMuted; font.pixelSize: 13; Layout.fillWidth: true }
+                    ComboBox {
+                        Layout.preferredWidth: 190
+                        model: [qsTr("Natural"), qsTr("Thin (300 Hz)"), qsTr("Very thin (500 Hz)")]
+                        currentIndex: droidstarRef ? droidstarRef.get_tx_tone() : 1
+                        onActivated: function(index) { droidstarRef.set_tx_tone(index) }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
                     Label { text: qsTr("Mic"); color: t.textMuted; font.pixelSize: 13 }
                     Slider {
                         Layout.fillWidth: true

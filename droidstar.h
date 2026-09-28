@@ -62,6 +62,9 @@ public:
     // Roger beep over the air: 0 off, 1 end only, 2 start and end
     Q_INVOKABLE int get_roger_beep() const { return m_rogerBeep; }
     Q_INVOKABLE void set_roger_beep(int mode);
+    // TX voice tone: 0 natural, 1 thin (300 Hz high-pass), 2 very thin (500 Hz)
+    Q_INVOKABLE int get_tx_tone() const { return m_txTone; }
+    Q_INVOKABLE void set_tx_tone(int tone);
     Q_INVOKABLE void updateNowPlayingRX(const QString& callsign, const QString& name, const QString& country);
     void setup_state_change_listeners();
     
@@ -70,6 +73,7 @@ signals:
     void recordings_changed();
     void restart_capture_requested();
     void roger_beep_changed(int mode);
+    void tx_tone_changed(int tone);
     // TX started/stopped outside the app UI (system PTT button, handsfree accessory).
     void system_tx_changed(bool on);
     void playbackDevicesChanged();
@@ -452,6 +456,7 @@ private:
     bool m_pttFramework = false;
     bool m_headphonePtt = false;
     int m_rogerBeep = 2;
+    int m_txTone = 1;
     bool m_keepPttChannel = false;   // teardown for an automatic reconnect keeps the PTT channel
     QString m_pttTalker;
     QString ptt_channel_name() const;

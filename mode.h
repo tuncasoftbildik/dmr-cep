@@ -133,6 +133,8 @@ public:
     };
 protected:
     int m_roger_beep = 2;
+    int m_tx_tone = 1;
+    bool m_tx_tone_changed = true;
 signals:
     void update(Mode::MODEINFO);
     void update_log(QString);
@@ -157,6 +159,8 @@ protected slots:
     void restart_capture();
     // 0 = off, 1 = end of transmission only, 2 = start and end
     void set_roger_beep(int mode) { m_roger_beep = mode; }
+    // TX voice tone: 0 natural (120 Hz high-pass), 1 thin (300 Hz), 2 very thin (500 Hz)
+    void set_tx_tone(int tone) { m_tx_tone = tone; m_tx_tone_changed = true; }
     void toggle_tx(bool);
     void deleteLater();
     void in_audio_vol_changed(qreal);

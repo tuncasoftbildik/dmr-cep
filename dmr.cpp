@@ -448,20 +448,28 @@ static DMR::Bq make_bq(double b0, double b1, double b2, double a0, double a1, do
 
 void DMR::tx_shape(int16_t *pcm, int n)
 {
-    if(!m_tx_filters_ready){
+    if(!m_tx_filters_ready || m_tx_tone_changed){
         const double fs = 8000.0;
-        // RBJ high-pass, 120 Hz, Q 0.707 (keeps the male pitch fundamental for the encoder)
-        double w = 2 * M_PI * 120.0 / fs, al = std::sin(w) / (2 * 0.707), c = std::cos(w);
-        m_tx_hpf = make_bq((1 + c) / 2, -(1 + c), (1 + c) / 2, 1 + al, -2 * c, 1 - al);
-        // RBJ peaking EQ, 2200 Hz, Q 0.9, +3 dB
+        // 4th-order high-pass (two RBJ biquads, Butterworth Q values). Corner from the tone setting:
+        // natural 120 Hz keeps the chest of the voice, thin 300 Hz is telephone-like, 500 Hz very thin.
+        const double fc = (m_tx_tone == 0) ? 120.0 : (m_tx_tone == 2 ? 500.0 : 300.0);
+        const double qs[2] = {0.5412, 1.3066};
+        Bq *hp[2] = {&m_tx_hpf, &m_tx_hpf2};
+        for(int k = 0; k < 2; ++k){
+            const double w = 2 * M_PI * fc / fs, al = std::sin(w) / (2 * qs[k]), c = std::cos(w);
+            *hp[k] = make_bq((1 + c) / 2, -(1 + c), (1 + c) / 2, 1 + al, -2 * c, 1 - al);
+        }
+        // RBJ peaking EQ, 2200 Hz, Q 0.9, +3 dB presence
         const double A = std::pow(10.0, 3.0 / 40.0);
-        w = 2 * M_PI * 2200.0 / fs; al = std::sin(w) / (2 * 0.9); c = std::cos(w);
+        const double w = 2 * M_PI * 2200.0 / fs, al = std::sin(w) / (2 * 0.9), c = std::cos(w);
         m_tx_peq = make_bq(1 + al * A, -2 * c, 1 - al * A, 1 + al / A, -2 * c, 1 - al / A);
         m_tx_filters_ready = true;
+        m_tx_tone_changed = false;
+        qDebug() << "TX tone filter:" << fc << "Hz high-pass";
     }
     for(int i = 0; i < n; ++i){
         float x = pcm[i];
-        for(Bq *q : {&m_tx_hpf, &m_tx_peq}){
+        for(Bq *q : {&m_tx_hpf, &m_tx_hpf2, &m_tx_peq}){
             const float y = q->b0 * x + q->z1;
             q->z1 = q->b1 * x - q->a1 * y + q->z2;
             q->z2 = q->b2 * x - q->a2 * y;
