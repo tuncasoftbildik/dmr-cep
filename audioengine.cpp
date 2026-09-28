@@ -306,12 +306,23 @@ void AudioEngine::stop_capture()
         m_indev->disconnect();
         m_in->stop();
     }
+#ifdef Q_OS_IOS
+    ensureAudioSessionActive();
+#endif
 }
 
 extern "C" void setupAVAudioSession();
 //extern "C" void setupPushKit();
 
 void AudioEngine::start_playback() {
+#ifdef Q_OS_IOS
+    ensureAudioSessionActive();
+#endif
+    // A DMR stream start arrives as 3 header packets; restarting a running sink can leave
+    // m_outdev pointing at a dead device (silent RX). Only start when not already running.
+    if (m_outdev != nullptr && (m_out->state() == QAudio::ActiveState || m_out->state() == QAudio::IdleState)) {
+        return;
+    }
     m_outdev = m_out->start();
     qDebug() << "Playback started";
 }
@@ -319,6 +330,8 @@ void AudioEngine::start_playback() {
 
 void AudioEngine::stop_playback()
 {
+    qDebug() << "Playback stop: sink played" << (m_out ? m_out->processedUSecs() / 1000 : -1) << "ms, state"
+             << (m_out ? m_out->state() : QAudio::StoppedState) << "error" << (m_out ? m_out->error() : QAudio::NoError);
     //m_outdev->reset();
     m_out->reset();
     m_out->stop();

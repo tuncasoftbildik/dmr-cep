@@ -34,6 +34,9 @@ void setPreferredInputDevice(void);
 bool isAppInBackground(void);
 // Current hardware sample rate of the shared audio session (0 if unknown).
 double audioSessionSampleRate(void);
+// Re-activate the shared session. Qt deactivates it when a QAudioSource stops (end of TX), which
+// left RX playback silent until something else (e.g. the replay player) reactivated it.
+void ensureAudioSessionActive(void);
 
 // Now Playing / Lock Screen / Control Center state updates
 void setAudioConnectionState(bool connected, const char *host, const char *mode);

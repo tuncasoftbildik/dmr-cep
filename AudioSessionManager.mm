@@ -879,6 +879,13 @@ extern "C" void updateNowPlayingInfo() {
     [[AudioSessionManager sharedManager] updateNowPlayingInfo];
 }
 
+extern "C" void ensureAudioSessionActive(void) {
+    NSError *error = nil;
+    if (![[AVAudioSession sharedInstance] setActive:YES error:&error]) {
+        NSLog(@"[AudioSessionManager] ensureAudioSessionActive failed: %@", error);
+    }
+}
+
 extern "C" double audioSessionSampleRate(void) {
     return [AVAudioSession sharedInstance].sampleRate;
 }
