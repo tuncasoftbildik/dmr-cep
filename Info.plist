@@ -27,7 +27,7 @@
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundleIconName</key>
-	<string>AppIcon</string>
+	<string>AppIconDMRCep</string>
 	<key>CFBundleIcons</key>
 	<dict/>
 	<key>CFBundleIcons~ipad</key>
@@ -66,16 +66,12 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Konumun, ayarlardan açtığında hotspot konumu olarak DMR ağına (BrandMeister) yaklaşık 10 m hassasiyetle gönderilir; BrandMeister bunu haritasında ve aprs.fi'de gösterebilir.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>You know you want to...</string>
+	<string>DMR Cep, bas-konuş tuşuna bastığında sesini telsiz ağına iletmek için mikrofonu kullanır.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
-		<string>fetch</string>
-		<string>processing</string>
-		<string>voip</string>
-		<string>bluetooth-central</string>
 		<string>push-to-talk</string>
 	</array>
 	<key>UIFileSharingEnabled</key>
