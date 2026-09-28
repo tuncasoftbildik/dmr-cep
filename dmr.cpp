@@ -838,7 +838,8 @@ void DMR::process_modem_data(QByteArray d)
 // or 0 for a silent frame.
 //   start:  mode 2 = 1188 Hz chirp (80 ms), mode 3 = ZVEI-1 five-tone ANI of our ID,
 //           mode 4 = CCIR five-tone "2 1 2 6 5" (the Turkish police radio call-up sound)
-//   end:    mode 1/2 = 1000 -> 1500 Hz two-tone, mode 3/4 = 1000 -> 1500 -> 2000 Hz rising three-tone
+//   end:    mode 1/2 = 1000 -> 1500 Hz two-tone, mode 3 = 1000 -> 1500 -> 2000 Hz rising three-tone,
+//           mode 4 = one 100 ms 2125 Hz beep (CCIR repeat tone, ~2110 Hz on the police sets)
 QVector<int> DMR::roger_head_frames() const
 {
     if(m_roger_beep == 2) return QVector<int>(4, 38);
@@ -850,7 +851,10 @@ QVector<int> DMR::roger_head_frames() const
 QVector<int> DMR::roger_tail_frames() const
 {
     QVector<int> f;
-    if(m_roger_beep >= 3){
+    if(m_roger_beep == 4){
+        f += QVector<int>(5, 68);            // single 100 ms 2125 Hz beep, as the police stations end
+    }
+    else if(m_roger_beep == 3){
         f += QVector<int>(3, 32);
         f += QVector<int>(3, 48);
         f += QVector<int>(3, 64);
