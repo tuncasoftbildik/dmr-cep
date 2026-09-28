@@ -265,6 +265,12 @@ void AudioEngine::start_capture()
     m_cap_clock.invalidate();
     m_cap_measure_bytes = 0;
     m_cap_checks = 0;
+    m_cap_chunk_log = 0;
+    if (m_in) {
+        qDebug() << "Capture start: format" << m_in->format().sampleRate() << "Hz"
+                 << m_in->format().channelCount() << "ch" << m_in->format().sampleFormat()
+                 << "bufferSize" << m_in->bufferSize();
+    }
    // setupAVAudioSession();
     //setPreferredInputDevice();
     if(m_in != nullptr){
@@ -311,6 +317,12 @@ void AudioEngine::input_data_received()
 {
     QByteArray data = m_indev->readAll();
     m_captured_bytes += data.size();
+    if (m_cap_chunk_log < 40) {
+        ++m_cap_chunk_log;
+        qDebug() << "Capture chunk" << m_cap_chunk_log << "bytes" << data.size()
+                 << "t" << (m_cap_clock.isValid() ? m_cap_clock.elapsed() : -1)
+                 << "sender" << static_cast<void *>(sender()) << "indev" << static_cast<void *>(m_indev);
+    }
 
     // Measure the real input rate at 0.5 s and 2 s (the first chunk may be pre-buffered, skip it).
     if (MACHAK && data.size() > 0) {
