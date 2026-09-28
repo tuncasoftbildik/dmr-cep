@@ -8,6 +8,7 @@
 #include <QSharedPointer>
 #include "vuidupdater.h"  // Include the new header
 #include "LogHandler.h"
+#include "languagemanager.h"
 #include "AudioSessionManager.h"
 #include "LiveActivityQtBridge.h"
 
@@ -55,7 +56,11 @@ int main(int argc, char *argv[])
     // Register DroidStar type
     qmlRegisterType<DroidStar>("org.dudetronics.droidstar", 1, 0, "DroidStar");
   
+    // Install the UI translation before any QML is loaded (Turkish by default).
+    LanguageManager languageManager;
     QQmlApplicationEngine engine;
+    languageManager.setEngine(&engine);
+    engine.rootContext()->setContextProperty("languageManager", &languageManager);
     
     // Create an instance of DroidStar
         DroidStar droidStarInstance;

@@ -115,6 +115,30 @@ Page {
             width: parent.width
             spacing: 14
 
+            // Language (Turkish default, English optional) — applied live
+            Rectangle {
+                Layout.fillWidth: true
+                height: 52
+                radius: 10
+                color: t.surface2
+                border.color: t.stroke
+                border.width: 1
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    Label { text: qsTr("Language"); Layout.fillWidth: true }
+                    ComboBox {
+                        Layout.preferredWidth: 150
+                        model: ["Türkçe", "English"]
+                        currentIndex: (typeof languageManager !== "undefined" && languageManager.language === "en") ? 1 : 0
+                        onActivated: function(index) {
+                            if (typeof languageManager !== "undefined") languageManager.setLanguage(index === 1 ? "en" : "tr")
+                        }
+                    }
+                }
+            }
+
             // ─────────────────────────────────────────────────────────
             // IDENTITY
             // ─────────────────────────────────────────────────────────
