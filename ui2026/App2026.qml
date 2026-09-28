@@ -73,7 +73,6 @@ ApplicationWindow {
     // Context properties exposed from C++ (existing backend)
     property var vuidUpdaterRef: (typeof vuidUpdater !== "undefined") ? vuidUpdater : null
     property var logHandlerRef: (typeof logHandler !== "undefined") ? logHandler : null
-    property var liveActivityRef: (typeof liveActivity !== "undefined") ? liveActivity : null
 
     // Realtime QSO logging (legacy parity) - driven by VUIDUpdater replies
     property int _pendingLogDmr: 0
@@ -515,11 +514,6 @@ ApplicationWindow {
         try {
             console.log("Initializing from backend...")
             
-            // Clean up any orphan Live Activities from previous app runs
-            if (window.liveActivityRef && window.liveActivityRef.endAll) {
-                window.liveActivityRef.endAll()
-            }
-
             // Load all settings from QSettings (also calls process_mode_change -> emits mode_changed)
             droidstar.process_settings()
 
@@ -873,55 +867,7 @@ ApplicationWindow {
         }
     }
 
-    function updateDynamicIsland() {
-        if (!window.liveActivityRef || !window.liveActivityRef.available) return
-        if (!appState || !appState.connected) {
-            window.liveActivityRef.end()
-            return
-        }
-
-        var mode = appState.txActive ? "TX" : "RX"
-        
-        // Only show RX callsign from data1, NOT user's own callsign
-        var rxCallsign = (appState.data1 && appState.data1 !== "") ? appState.data1.trim() : ""
-        
-        var callsign = ""
-        var handle = ""
-        var country = ""
-        var tgid = appState.data3 || ""
-        
-        if (appState.txActive) {
-            // TX mode: show user's own callsign
-            callsign = appState.callsign || ""
-            handle = "Transmitting"
-            country = ""
-        } else if (rxCallsign) {
-            // Active RX: show caller's info
-            callsign = rxCallsign
-            handle = appState.fetchedFirstName || ""
-            country = appState.fetchedCountry || ""
-        } else {
-            // Idle (connected but no RX) - show waiting state to keep activity alive
-            callsign = "Awaiting"
-            handle = "RX..."
-            country = ""
-            tgid = appState.data3 || ""
-        }
-
-        window.liveActivityRef.startOrUpdate(mode, callsign, handle, country, tgid)
-    }
-
-    // Update live activity from app state changes
-    Connections {
-        target: appState
-        enabled: !!appState
-        function onConnectedChanged() { window.updateDynamicIsland() }
-        function onTxActiveChanged() { window.updateDynamicIsland() }
-        function onData1Changed() { window.updateDynamicIsland() }
-        function onData3Changed() { window.updateDynamicIsland() }
-        function onFetchedFirstNameChanged() { window.updateDynamicIsland() }
-        function onFetchedCountryChanged() { window.updateDynamicIsland() }
-    }
+    // The iOS Live Activity (lock screen / Dynamic Island) is driven from C++ (DroidStar::live_activity_sync).
 
     // Side drawer navigation
     Drawer {

@@ -1,0 +1,14 @@
+/* Live Activity card, Turkish. */
+"NO SIGNAL" = "SİNYAL YOK";
+"RX" = "RX";
+"TX" = "TX";
+"STANDBY" = "BEKLEMEDE";
+"LINKING" = "BAĞLANIYOR";
+"App is not running" = "Uygulama çalışmıyor";
+"Receiving" = "Alınıyor";
+"Transmitting" = "Yayında";
+"Listening" = "Dinleniyor";
+"Last heard" = "Son duyulan";
+"Connecting…" = "Bağlanıyor…";
+"TG" = "TG";
+"TG %@" = "TG %@";

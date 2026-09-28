@@ -27,6 +27,16 @@ void ios_live_activity_start_or_update(const char *mode,
                                        const char *handle,
                                        const char *country,
                                        const char *tgid);
+// Full update used by DroidStar: mode is "RX", "TX", "IDLE" or "LINK"; since_epoch_sec marks
+// when the current mode began (0 = now). Starts the activity when none is running.
+void ios_live_activity_update(const char *mode,
+                              const char *callsign,
+                              const char *name,
+                              const char *country,
+                              const char *tg,
+                              const char *status,
+                              const char *station,
+                              double since_epoch_sec);
 void ios_live_activity_end(void);
 void ios_live_activity_end_all(void);
 
