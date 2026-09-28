@@ -64,7 +64,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the microphone to transmit audio</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your position is sent to the DMR network (BrandMeister) as your hotspot location, rounded to about 10 m, when you turn on "Use phone location" in Settings.</string>
+	<string>Konumun, ayarlardan açtığında hotspot konumu olarak DMR ağına (BrandMeister) yaklaşık 10 m hassasiyetle gönderilir; BrandMeister bunu haritasında ve aprs.fi'de gösterebilir.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>You know you want to...</string>
 	<key>NSSupportsLiveActivities</key>
