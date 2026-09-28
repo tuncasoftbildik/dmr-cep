@@ -344,6 +344,10 @@ Page {
 
     readonly property var rogerBeepOptions: [qsTr("Off"), qsTr("End only"), qsTr("Start and end"), qsTr("5-tone ANI (ZVEI)"), qsTr("Police radio (CCIR)")]
     readonly property var voiceToneOptions: [qsTr("Natural"), qsTr("Thin (300 Hz)"), qsTr("Very thin (500 Hz)")]
+    // Index = DroidStar::set_hw_ptt_buttons value (bit 1 volume down, bit 2 volume up).
+    readonly property var hwPttButtonOptions: [qsTr("Off"), qsTr("Volume down"), qsTr("Volume up"), qsTr("Both")]
+    readonly property var hwPttModeOptions: [qsTr("Toggle"), qsTr("Hold to talk")]
+    readonly property bool isIos: Qt.platform.os === "ios"
 
     // Phone GPS: the backend API may not exist yet in this build, so every
     // call is guarded and the page degrades to manual coordinates only.
@@ -630,6 +634,37 @@ Page {
                     }
                 }
                 Rule {}
+
+                // Physical side buttons (iOS): volume keys as PTT while connected.
+                SettingRow {
+                    stacked: true
+                    visible: page.isIos
+                    title: qsTr("Side button keys TX")
+                    hint: qsTr("While connected, the chosen volume button keys TX instead of changing the volume. Use Control Center for the volume meanwhile")
+                    Chips {
+                        id: hwButtonChips
+                        options: page.hwPttButtonOptions
+                        current: page.droidstarRef ? page.droidstarRef.get_hw_ptt_buttons() : 0
+                        onPicked: function(index) { page.droidstarRef.set_hw_ptt_buttons(index) }
+                    }
+                }
+                SettingRow {
+                    stacked: true
+                    visible: page.isIos && hwButtonChips.current > 0
+                    title: qsTr("Side button mode")
+                    hint: qsTr("Toggle: press once to talk, again to stop. Hold to talk: TX starts about half a second after you press and ends about half a second after you let go")
+                    Chips {
+                        options: page.hwPttModeOptions
+                        current: page.droidstarRef ? page.droidstarRef.get_hw_ptt_mode() : 0
+                        onPicked: function(index) { page.droidstarRef.set_hw_ptt_mode(index) }
+                    }
+                }
+                SettingRow {
+                    visible: page.isIos
+                    title: qsTr("Action Button")
+                    hint: qsTr("Settings → Action Button → Shortcut → DMR Cep: Bas-konuş. Works on the lock screen when System Push-to-Talk is on")
+                }
+                Rule { visible: page.isIos }
 
                 SettingRow {
                     title: qsTr("Toggle TX mode")

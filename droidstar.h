@@ -62,6 +62,12 @@ public:
     // Headphone / lock-screen play-pause keys TX. Off by default: a tap on AirPods must not key up.
     Q_INVOKABLE bool get_headphone_ptt() const { return m_headphonePtt; }
     Q_INVOKABLE void set_headphone_ptt(bool on);
+    // Physical side buttons as PTT (iOS). Buttons: 0 off, 1 volume down, 2 volume up, 3 both.
+    // Mode: 0 toggle (press = on, press again = off), 1 hold-to-talk (from auto-repeat, see HardwareButtonPTT.mm).
+    Q_INVOKABLE int get_hw_ptt_buttons() const { return m_hwPttButtons; }
+    Q_INVOKABLE void set_hw_ptt_buttons(int buttons);
+    Q_INVOKABLE int get_hw_ptt_mode() const { return m_hwPttMode; }
+    Q_INVOKABLE void set_hw_ptt_mode(int mode);
     // Roger beep over the air: 0 off, 1 end only, 2 start and end, 3 five-tone ANI (ZVEI-1) start and end
     Q_INVOKABLE int get_roger_beep() const { return m_rogerBeep; }
     Q_INVOKABLE void set_roger_beep(int mode);
@@ -205,7 +211,7 @@ public slots:
     void set_mmdvm_direct(bool mmdvm) { m_mdirect = mmdvm; process_mode_change(m_protocol); }
     void set_iaxport(const QString &port){ m_iaxport = port.simplified().toUInt(); save_settings(); }
     void set_dst(QString dst){emit dst_changed(dst);}
-    void set_debug(bool debug){emit debug_changed(debug);}
+    void set_debug(bool debug){ m_debugLog = debug; emit debug_changed(debug); }
 
     void set_modemRxFreq(QString m) { m_modemRxFreq = m; save_settings(); }
     void set_modemTxFreq(QString m) { m_modemTxFreq = m; save_settings(); }
@@ -362,6 +368,11 @@ public slots:
     void ptt_system_begin_tx();
     void ptt_system_end_tx();
     void ptt_audio_activated();
+    // Physical button / Action Button PTT. action: 0 stop, 1 start, 2 toggle.
+    // Returns the TX state afterwards (1 on air, 0 off) or -1 when not connected.
+    int hw_ptt_action(int action, const QString &source);
+    // Side-button detail lines from HardwareButtonPTT.mm; shown in the app log when Debug is on.
+    void hw_ptt_log(const QString &line);
     
 private:
     AudioEngine *m_audioEngine;
@@ -496,6 +507,14 @@ private:
     void connect_failed(const QString &reason);
     bool m_pttFramework = false;
     bool m_headphonePtt = false;
+    bool m_debugLog = false;
+    int m_hwPttButtons = 0;
+    int m_hwPttMode = 0;
+    // TX state as far as this object knows (in-app key, headphone, system PTT, side buttons).
+    bool m_txOn = false;
+    // Side-button TX has no visible finger on a key: stop it after m_txtimeout seconds.
+    QTimer *m_hwTxSafetyTimer = nullptr;
+    void set_tx_from_hw(bool on, const QString &source);
     // Phone GPS as hotspot position. Live updates (RPTG) go to BrandMeister only, at most
     // every kGpsUpdateMinMs and only after moving more than kGpsUpdateMinMeters.
     PhoneGps *m_phoneGps = nullptr;

@@ -44,6 +44,8 @@ void ptt_update_name(const char *channelName);
 void ptt_leave(void);
 bool ptt_is_joined(void);
 void ptt_app_tx(bool transmitting);
+// The system confirmed a transmission (didBeginTransmitting .. didEndTransmitting), any source.
+bool ptt_is_transmitting(void);
 // Who is talking right now; NULL or "" clears.
 void ptt_set_remote_talker(const char *name);
 

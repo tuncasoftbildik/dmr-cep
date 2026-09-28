@@ -99,6 +99,9 @@ macx:OBJECTIVE_SOURCES += micpermission.mm
 ios:OBJECTIVE_SOURCES += micpermission.mm AudioSessionManager.mm
 ios:OBJECTIVE_SOURCES += ios_live_activity.mm
 ios:OBJECTIVE_SOURCES += PushToTalkManager.mm
+# Physical-button PTT: volume buttons (KVO) + App Intents bridge for the Action Button.
+ios:OBJECTIVE_SOURCES += HardwareButtonPTT.mm
+ios:HEADERS += HardwareButtonPTT.h
 # Phone position as DMR hotspot location (CoreLocation; Qt Positioning is not in the iOS kit).
 # The permission text is NSLocationWhenInUseUsageDescription in Info.plist.
 ios:OBJECTIVE_SOURCES += phonegps_ios.mm
@@ -106,6 +109,8 @@ ios:LIBS += -framework CoreLocation
 ios:HEADERS += PushToTalkManager.h
 # PushToTalk is iOS 16+; weak link so the app still starts on iOS 14/15 (feature hidden there).
 ios:LIBS += -weak_framework PushToTalk
+# App Intents (Action Button PTT, PttIntents.swift): iOS 16+, the app still deploys to 15.
+ios:LIBS += -weak_framework AppIntents
 ios:PTT_ENTITLEMENTS.name = CODE_SIGN_ENTITLEMENTS
 ios:PTT_ENTITLEMENTS.value = $$PWD/DroidStar.entitlements
 ios:QMAKE_MAC_XCODE_SETTINGS += PTT_ENTITLEMENTS
@@ -124,7 +129,7 @@ ios:QMAKE_CXXFLAGS += -fobjc-arc
 # only puts files with a known source extension into "Compile Sources" (otherwise they are
 # listed but never built, and NSClassFromString(@"LiveActivityManager") fails at runtime),
 # so .swift is registered as a source extension here. Xcode picks the Swift compiler by type.
-LA_SWIFT_SOURCES = LiveActivityManager.swift DroidStarActivityAttributes.swift
+LA_SWIFT_SOURCES = LiveActivityManager.swift DroidStarActivityAttributes.swift PttIntents.swift
 ios:SOURCES += $$LA_SWIFT_SOURCES
 ios:QMAKE_EXT_CPP += .swift
 # ...which types them as C++ in the project file. This preprocess step (part of

@@ -1209,6 +1209,56 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <translation>Kulaklık ya da kilit ekranındaki oynat/duraklat TX'i açar-kapar. Kapalıyken AirPods'a dokunmak seni yayına sokmaz</translation>
     </message>
     <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="348" />
+        <source>Volume down</source>
+        <translation>Ses kısma</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="348" />
+        <source>Volume up</source>
+        <translation>Ses açma</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="348" />
+        <source>Both</source>
+        <translation>İkisi</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="349" />
+        <source>Toggle</source>
+        <translation>Aç-kapa</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="642" />
+        <source>Side button keys TX</source>
+        <translation>Yan tuş TX yapsın</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="643" />
+        <source>While connected, the chosen volume button keys TX instead of changing the volume. Use Control Center for the volume meanwhile</source>
+        <translation>Bağlıyken seçilen ses tuşu sesi değiştirmek yerine TX yapar. Bu sırada sesi Denetim Merkezi'nden ayarla</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="654" />
+        <source>Side button mode</source>
+        <translation>Yan tuş kipi</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="655" />
+        <source>Toggle: press once to talk, again to stop. Hold to talk: TX starts about half a second after you press and ends about half a second after you let go</source>
+        <translation>Aç-kapa: bir bas konuş, tekrar bas bitir. Basılı tut: TX bastıktan yaklaşık yarım saniye sonra başlar, bıraktıktan yaklaşık yarım saniye sonra biter</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="664" />
+        <source>Action Button</source>
+        <translation>Eylem Tuşu</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="665" />
+        <source>Settings → Action Button → Shortcut → DMR Cep: Bas-konuş. Works on the lock screen when System Push-to-Talk is on</source>
+        <translation>Ayarlar → Eylem Tuşu → Kısayol → DMR Cep: Bas-konuş. Sistem Bas-Konuş açıksa kilit ekranında da çalışır</translation>
+    </message>
+    <message>
         <location filename="../ui2026/pages/SettingsPage.qml" line="1135" />
         <source>RX Freq</source>
         <translation>RX Frekansı</translation>

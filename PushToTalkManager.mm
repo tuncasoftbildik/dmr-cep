@@ -46,6 +46,8 @@ API_AVAILABLE(ios(16.0))
 @property (nonatomic) BOOL appTransmitting;
 // YES while TX was started by the system (lock screen / handsfree) and handed to the app.
 @property (nonatomic) BOOL systemTransmitting;
+// YES between didBegin and didEnd, whoever started it (read by the Action Button intent).
+@property (nonatomic) BOOL transmitActive;
 + (instancetype)shared;
 @end
 
@@ -161,6 +163,7 @@ API_AVAILABLE(ios(16.0))
     // PushToTalk may call delegates on its own queue; keep all state on the main queue.
     dispatch_async(dispatch_get_main_queue(), ^{
         self.joined = NO;
+        self.transmitActive = NO;
         if (self.systemTransmitting) {
             self.systemTransmitting = NO;
             if (g_endTx) g_endTx();
@@ -173,6 +176,7 @@ API_AVAILABLE(ios(16.0))
 {
     // PushToTalk may call delegates on its own queue; keep all state on the main queue.
     dispatch_async(dispatch_get_main_queue(), ^{
+        self.transmitActive = YES;
         if (self.appTransmitting || source == PTChannelTransmitRequestSourceDeveloperRequest) {
             return; // echo of our own requestBeginTransmitting
         }
@@ -185,6 +189,7 @@ API_AVAILABLE(ios(16.0))
 {
     // PushToTalk may call delegates on its own queue; keep all state on the main queue.
     dispatch_async(dispatch_get_main_queue(), ^{
+        self.transmitActive = NO;
         if (!self.systemTransmitting) {
             return; // app-owned TX (or already ended)
         }
@@ -299,6 +304,12 @@ extern "C" void ptt_leave(void)
 extern "C" bool ptt_is_joined(void)
 {
     if (@available(iOS 16.0, *)) return [DSPushToTalk shared].joined;
+    return false;
+}
+
+extern "C" bool ptt_is_transmitting(void)
+{
+    if (@available(iOS 16.0, *)) return [DSPushToTalk shared].transmitActive;
     return false;
 }
 

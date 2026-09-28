@@ -34,6 +34,7 @@
 #include "AudioSessionManager.h"
 #include "PushToTalkManager.h"
 #include "ios_live_activity.h"
+#include "HardwareButtonPTT.h"
 #endif
 #include <QStandardPaths>
 #include <QFile>
@@ -72,6 +73,27 @@ static void pttSystemBeginCallback() {
 static void pttSystemEndCallback() {
     if (s_droidStarInstance) {
         QMetaObject::invokeMethod(s_droidStarInstance, "ptt_system_end_tx", Qt::QueuedConnection);
+    }
+}
+
+// Volume buttons and the Action Button intent (HardwareButtonPTT.mm). Called on the main thread,
+// which is the Qt GUI thread on iOS, so the result can be returned synchronously.
+static int hwPttHandler(int action, const char *source) {
+    DroidStar *d = s_droidStarInstance;
+    if (!d) return -1;
+    const QString src = QString::fromUtf8(source ? source : "?");
+    if (QThread::currentThread() == d->thread()) return d->hw_ptt_action(action, src);
+    int r = -1;
+    QMetaObject::invokeMethod(d, [d, action, src]() { return d->hw_ptt_action(action, src); },
+                              Qt::BlockingQueuedConnection, &r);
+    return r;
+}
+
+static void hwPttLog(const char *line) {
+    const QString l = QString::fromUtf8(line ? line : "");
+    qDebug().noquote() << "[HWPTT]" << l;
+    if (s_droidStarInstance) {
+        QMetaObject::invokeMethod(s_droidStarInstance, "hw_ptt_log", Qt::QueuedConnection, Q_ARG(QString, l));
     }
 }
 
@@ -191,6 +213,14 @@ DroidStar::DroidStar(QObject *parent) :
     s_droidStarInstance = this;
     setPTTCallbacks(pttPressCallback, pttReleaseCallback);
     setRemotePTTEnabled(m_headphonePtt);
+    hwptt_set_handler(hwPttHandler);
+    hwptt_set_log(hwPttLog);
+    hwptt_configure(m_hwPttButtons, m_hwPttMode);
+    // Volume buttons are only captured while connected; otherwise they stay plain volume keys.
+    connect(this, &DroidStar::connect_status_changed, this, [this](int c) {
+        if (c != 2) m_txOn = false;
+        hwptt_set_armed(c == 2);
+    });
     ptt_set_callbacks(pttSystemBeginCallback, pttSystemEndCallback, pttStatusCallback, pttAudioActivatedCallback);
 #endif
 }
@@ -953,6 +983,8 @@ void DroidStar::save_settings()
     m_settings->setValue("TXTOGGLE", m_toggletx ? "true" : "false");
     m_settings->setValue("PTTFRAMEWORK", m_pttFramework ? "true" : "false");
     m_settings->setValue("HEADPHONEPTT", m_headphonePtt ? "true" : "false");
+    m_settings->setValue("HWPTTBUTTONS", m_hwPttButtons);
+    m_settings->setValue("HWPTTMODE", m_hwPttMode);
     m_settings->setValue("USEPHONEGPS", m_usePhoneGps ? "true" : "false");
     m_settings->setValue("AUTOCONNECT", m_autoConnect ? "true" : "false");
     m_settings->setValue("ROGERBEEP", m_rogerBeep);
@@ -1037,6 +1069,8 @@ void DroidStar::process_settings()
     m_toggletx = (m_settings->value("TXTOGGLE", "true").toString().simplified() == "true") ? true : false;
     m_pttFramework = (m_settings->value("PTTFRAMEWORK", "false").toString().simplified() == "true");
     m_headphonePtt = (m_settings->value("HEADPHONEPTT", "false").toString().simplified() == "true");
+    m_hwPttButtons = qBound(0, m_settings->value("HWPTTBUTTONS", 0).toInt(), 3);
+    m_hwPttMode = qBound(0, m_settings->value("HWPTTMODE", 0).toInt(), 1);
     m_usePhoneGps = (m_settings->value("USEPHONEGPS", "false").toString().simplified() == "true");
     m_autoConnect = (m_settings->value("AUTOCONNECT", "true").toString().simplified() == "true");
     m_rogerBeep = m_settings->value("ROGERBEEP", 2).toInt();
@@ -1871,6 +1905,8 @@ void DroidStar::set_input_volume(qreal v)
 void DroidStar::press_tx()
 {
     qDebug() << "TX press (app button / headphone)";
+    m_txOn = true;
+    if (m_hwTxSafetyTimer) m_hwTxSafetyTimer->stop();   // TX now owned by another source
 #ifdef Q_OS_IOS
     setAudioTXState(true);
     if (m_pttFramework) ptt_app_tx(true);
@@ -1882,6 +1918,8 @@ void DroidStar::press_tx()
 void DroidStar::release_tx()
 {
     qDebug() << "TX release (app button / headphone)";
+    m_txOn = false;
+    if (m_hwTxSafetyTimer) m_hwTxSafetyTimer->stop();   // TX now owned by another source
 #ifdef Q_OS_IOS
     setAudioTXState(false);
     if (m_pttFramework) ptt_app_tx(false);
@@ -1893,6 +1931,8 @@ void DroidStar::release_tx()
 void DroidStar::click_tx(bool tx)
 {
     qDebug() << "TX toggle (app button):" << tx;
+    m_txOn = tx;
+    if (m_hwTxSafetyTimer) m_hwTxSafetyTimer->stop();   // TX now owned by another source
 #ifdef Q_OS_IOS
     if (m_pttFramework) ptt_app_tx(tx);
 #endif
@@ -1905,6 +1945,8 @@ void DroidStar::ptt_system_begin_tx()
 {
     qDebug() << "TX begin from system PTT, connected:" << (connect_status == Mode::CONNECTED_RW);
     if (connect_status != Mode::CONNECTED_RW) return;
+    m_txOn = true;
+    if (m_hwTxSafetyTimer) m_hwTxSafetyTimer->stop();   // TX now owned by another source
 #ifdef Q_OS_IOS
     setAudioTXState(true);
 #endif
@@ -1916,6 +1958,8 @@ void DroidStar::ptt_system_begin_tx()
 void DroidStar::ptt_system_end_tx()
 {
     qDebug() << "TX end from system PTT";
+    m_txOn = false;
+    if (m_hwTxSafetyTimer) m_hwTxSafetyTimer->stop();   // TX now owned by another source
 #ifdef Q_OS_IOS
     setAudioTXState(false);
 #endif
@@ -2162,6 +2206,76 @@ void DroidStar::on_rptg_rejected()
 {
     m_rptgRejectedHost = m_host;
     m_gpsThrottleTimer->stop();
+}
+
+void DroidStar::set_hw_ptt_buttons(int buttons)
+{
+    m_hwPttButtons = qBound(0, buttons, 3);
+    qDebug() << "HW PTT buttons set to" << m_hwPttButtons;
+    save_settings();
+#ifdef Q_OS_IOS
+    hwptt_configure(m_hwPttButtons, m_hwPttMode);
+#endif
+}
+
+void DroidStar::set_hw_ptt_mode(int mode)
+{
+    m_hwPttMode = qBound(0, mode, 1);
+    qDebug() << "HW PTT mode set to" << (m_hwPttMode ? "hold" : "toggle");
+    save_settings();
+#ifdef Q_OS_IOS
+    hwptt_configure(m_hwPttButtons, m_hwPttMode);
+#endif
+}
+
+int DroidStar::hw_ptt_action(int action, const QString &source)
+{
+    const bool connected = (connect_status == Mode::CONNECTED_RW);
+    const bool want = (action == 2) ? !m_txOn : (action == 1);
+    qDebug() << "HW PTT event from" << source << "action" << action << "tx" << m_txOn << "->" << want
+             << "connected" << connected;
+    if (m_debugLog) {
+        emit update_log(QString("PTT button: %1 action %2, TX %3 -> %4%5").arg(source).arg(action)
+                        .arg(m_txOn ? "on" : "off").arg(want ? "on" : "off").arg(connected ? "" : " (not connected)"));
+    }
+    if (!connected) {
+        m_txOn = false;
+        return (action == 0) ? 0 : -1;
+    }
+    if (want != m_txOn) set_tx_from_hw(want, source);
+    return m_txOn ? 1 : 0;
+}
+
+void DroidStar::hw_ptt_log(const QString &line)
+{
+    if (m_debugLog) emit update_log("PTT button: " + line);
+}
+
+// Same path as the in-app key (press_tx/release_tx) plus system_tx_changed so the UI mirrors it.
+void DroidStar::set_tx_from_hw(bool on, const QString &source)
+{
+    m_txOn = on;
+#ifdef Q_OS_IOS
+    setAudioTXState(on);
+    if (m_pttFramework) ptt_app_tx(on);
+#endif
+    if (on) emit tx_pressed(); else emit tx_released();
+    emit system_tx_changed(on);
+    live_activity_set_tx(on);
+
+    if (!m_hwTxSafetyTimer) {
+        m_hwTxSafetyTimer = new QTimer(this);
+        m_hwTxSafetyTimer->setSingleShot(true);
+        connect(m_hwTxSafetyTimer, &QTimer::timeout, this, [this]() {
+            if (!m_txOn) return;
+            qDebug() << "HW PTT: TX timeout" << m_txtimeout << "s reached, stopping TX";
+            emit update_log(QString("TX stopped after %1 s (side button TX timeout)").arg(m_txtimeout));
+            set_tx_from_hw(false, "tx-timeout");
+        });
+    }
+    if (on && m_txtimeout > 0) m_hwTxSafetyTimer->start(int(m_txtimeout) * 1000);
+    else m_hwTxSafetyTimer->stop();
+    qDebug() << "HW PTT: TX" << (on ? "ON" : "OFF") << "by" << source;
 }
 
 void DroidStar::set_headphone_ptt(bool on)
