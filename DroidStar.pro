@@ -53,6 +53,7 @@ SOURCES += \
         dcs.cpp \
         dmr.cpp \
         droidstar.cpp \
+        phonegps.cpp \
         httpmanager.cpp \
         iax.cpp \
         imbe_vocoder/aux_sub.cc \
@@ -98,6 +99,10 @@ macx:OBJECTIVE_SOURCES += micpermission.mm
 ios:OBJECTIVE_SOURCES += micpermission.mm AudioSessionManager.mm
 ios:OBJECTIVE_SOURCES += ios_live_activity.mm
 ios:OBJECTIVE_SOURCES += PushToTalkManager.mm
+# Phone position as DMR hotspot location (CoreLocation; Qt Positioning is not in the iOS kit).
+# The permission text is NSLocationWhenInUseUsageDescription in Info.plist.
+ios:OBJECTIVE_SOURCES += phonegps_ios.mm
+ios:LIBS += -framework CoreLocation
 ios:HEADERS += PushToTalkManager.h
 # PushToTalk is iOS 16+; weak link so the app still starts on iOS 14/15 (feature hidden there).
 ios:LIBS += -weak_framework PushToTalk
@@ -192,7 +197,9 @@ HEADERS += \
 	crs129.h \
 	dcs.h \
 	dmr.h \
+	dmrposition.h \
 	droidstar.h \
+	phonegps.h \
 	httpmanager.h \
 	iax.h \
 	iaxdefines.h \

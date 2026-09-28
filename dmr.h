@@ -31,6 +31,9 @@ public:
     ~DMR();
     void set_dmr_params(uint8_t essid, QString password, QString lat, QString lon, QString location, QString desc, QString freq, QString url, QString swid, QString pkid, QString options);
     uint8_t * get_eot();
+signals:
+    // The master answered an RPTG position update with MSTNAK/MSTCL: do not send RPTG to it again.
+    void position_update_rejected();
 private slots:
     void process_udp();
     void process_rx_data();
@@ -46,6 +49,9 @@ private slots:
     void slot_changed(int s) {m_txslot = s + 1; }
     void send_frame();
     void resend_handshake();
+    // New hotspot position (strings with 4 decimals). Stored for the next RPTC login and,
+    // while linked, sent to the master as RPTG (DMRGateway's writeHomePosition format).
+    void send_position(QString lat, QString lon);
 private:
     // Login/auth/config are single UDP packets with no retransmit in the protocol; one lost
     // reply used to leave the connect hanging until the 15 s timeout.
@@ -109,6 +115,8 @@ private:
     QString m_password;
     QString m_lat;
     QString m_lon;
+    qint64 m_rptg_sent_ms = 0;
+    static const qint64 RPTG_REJECT_WINDOW_MS = 5000;
     QString m_location;
     QString m_desc;
     QString m_freq;
