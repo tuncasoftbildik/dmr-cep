@@ -1126,6 +1126,10 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <translation>5 ton ANI (ZVEI)</translation>
     </message>
     <message>
+        <source>Police radio (CCIR)</source>
+        <translation>Polis telsizi (CCIR)</translation>
+    </message>
+    <message>
         <location filename="../ui2026/pages/SettingsPage.qml" line="410" />
         <source>This station</source>
         <translation>Bu istasyon</translation>

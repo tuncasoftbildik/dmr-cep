@@ -342,7 +342,7 @@ Page {
         return ids;
     })()
 
-    readonly property var rogerBeepOptions: [qsTr("Off"), qsTr("End only"), qsTr("Start and end"), qsTr("5-tone ANI (ZVEI)")]
+    readonly property var rogerBeepOptions: [qsTr("Off"), qsTr("End only"), qsTr("Start and end"), qsTr("5-tone ANI (ZVEI)"), qsTr("Police radio (CCIR)")]
     readonly property var voiceToneOptions: [qsTr("Natural"), qsTr("Thin (300 Hz)"), qsTr("Very thin (500 Hz)")]
 
     // Phone GPS: the backend API may not exist yet in this build, so every

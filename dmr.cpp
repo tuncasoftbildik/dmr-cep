@@ -836,19 +836,21 @@ void DMR::process_modem_data(QByteArray d)
 // Roger tones are sent as AMBE+2 tone frames (clean on DVSI radios; the software vocoder
 // detuned plain tones by up to 10%). One entry per 20 ms frame: tone index (f = index * 31.25 Hz)
 // or 0 for a silent frame.
-//   start:  mode 2 = 1188 Hz chirp (80 ms), mode 3 = five-tone ANI of our ID
-//   end:    mode 1/2 = 1000 -> 1500 Hz two-tone, mode 3 = 1000 -> 1500 -> 2000 Hz rising three-tone
+//   start:  mode 2 = 1188 Hz chirp (80 ms), mode 3 = ZVEI-1 five-tone ANI of our ID,
+//           mode 4 = CCIR five-tone "2 1 2 6 5" (the Turkish police radio call-up sound)
+//   end:    mode 1/2 = 1000 -> 1500 Hz two-tone, mode 3/4 = 1000 -> 1500 -> 2000 Hz rising three-tone
 QVector<int> DMR::roger_head_frames() const
 {
     if(m_roger_beep == 2) return QVector<int>(4, 38);
     if(m_roger_beep == 3) return build_ani();
+    if(m_roger_beep == 4) return build_ccir("21265");
     return QVector<int>();
 }
 
 QVector<int> DMR::roger_tail_frames() const
 {
     QVector<int> f;
-    if(m_roger_beep == 3){
+    if(m_roger_beep >= 3){
         f += QVector<int>(3, 32);
         f += QVector<int>(3, 48);
         f += QVector<int>(3, 64);
@@ -875,6 +877,24 @@ QVector<int> DMR::build_ani() const
         const int id = (digit == prev) ? repeat_tone : zvei[digit];
         prev = (digit == prev) ? -1 : digit;
         for(int k = 0; k < ((i % 2 == 0) ? 4 : 3); ++k) frames.append(id);
+    }
+    return frames;
+}
+
+// CCIR selective-call five-tone, 100 ms (5 AMBE frames) per tone. Indices on the 31.25 Hz grid,
+// all within 1% of CCIR (1981, 1124, 1197, 1275, 1358, 1446, 1540, 1640, 1747, 1860; R 2110 Hz).
+QVector<int> DMR::build_ccir(const QString &digits) const
+{
+    static const int ccir[10] = {63, 36, 38, 41, 43, 46, 49, 52, 56, 60};   // 0..9
+    static const int repeat_tone = 68;                                      // 2125 Hz
+    QVector<int> frames;
+    int prev = -1;
+    for(const QChar c : digits){
+        const int digit = c.digitValue();
+        if(digit < 0) continue;
+        const int id = (digit == prev) ? repeat_tone : ccir[digit];
+        prev = (digit == prev) ? -1 : digit;
+        for(int k = 0; k < 5; ++k) frames.append(id);
     }
     return frames;
 }

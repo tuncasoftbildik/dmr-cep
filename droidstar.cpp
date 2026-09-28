@@ -2023,7 +2023,7 @@ QString DroidStar::effective_talker_alias() const
 
 void DroidStar::set_roger_beep(int mode)
 {
-    m_rogerBeep = qBound(0, mode, 3);
+    m_rogerBeep = qBound(0, mode, 4);
     save_settings();
     emit roger_beep_changed(m_rogerBeep);
 }

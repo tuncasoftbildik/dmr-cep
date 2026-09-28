@@ -87,6 +87,7 @@ private:
     QVector<int> m_ani_head;
     QVector<int> m_ani_tail;
     QVector<int> build_ani() const;
+    QVector<int> build_ccir(const QString &digits) const;
     // RX diagnostics: voice frames queued vs decoded per stream.
     int m_rx_frames_in = 0;
     int m_rx_frames_decoded = 0;
