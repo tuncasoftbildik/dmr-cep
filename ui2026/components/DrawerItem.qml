@@ -19,38 +19,56 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 
+import "../theme"
+
+// Navigation row: icon + label; the current page gets an amber edge like the radio LCD.
 ItemDelegate {
     id: root
-    
-    // Use different property names to avoid conflicts with FINAL properties
+
     property alias iconText: iconItem.text
     property alias iconFont: iconItem.font.family
 
+    Tokens { id: t }
+
     width: ListView.view ? ListView.view.width : implicitWidth
-    height: 48
+    height: 52
 
     contentItem: Row {
-        spacing: 12
+        spacing: 16
+        leftPadding: 6
         anchors.verticalCenter: parent.verticalCenter
 
         Text {
             id: iconItem
             font.pointSize: 16
-            color: root.highlighted ? "white" : Material.foreground
+            color: root.highlighted ? t.lcd : t.textMuted
             width: 24
             horizontalAlignment: Text.AlignHCenter
+            anchors.verticalCenter: parent.verticalCenter
         }
 
         Label {
             text: root.text
-            color: root.highlighted ? "white" : Material.foreground
+            color: root.highlighted ? t.text : Qt.rgba(t.text.r, t.text.g, t.text.b, 0.85)
+            font.pixelSize: 17
+            font.weight: root.highlighted ? Font.DemiBold : Font.Normal
             elide: Text.ElideRight
+            anchors.verticalCenter: parent.verticalCenter
         }
     }
 
     background: Rectangle {
         radius: 12
-        color: root.highlighted ? Qt.rgba(0.376, 0.647, 0.98, 0.18) : "transparent"
+        color: root.highlighted ? Qt.rgba(t.lcd.r, t.lcd.g, t.lcd.b, 0.12)
+                                : (root.down ? t.surface : "transparent")
+        Rectangle {
+            visible: root.highlighted
+            width: 4
+            height: parent.height - 18
+            radius: 2
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            color: t.lcd
+        }
     }
 }
-

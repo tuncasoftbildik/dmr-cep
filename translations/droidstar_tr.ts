@@ -84,45 +84,66 @@ You should have received a copy of the GNU General Public License along with thi
         <translation>Hata</translation>
     </message>
     <message>
-        <location filename="../ui2026/App2026.qml" line="995" />
-        <location filename="../ui2026/App2026.qml" line="1071" />
+        <location filename="../ui2026/App2026.qml" line="968" />
+        <location filename="../ui2026/App2026.qml" line="975" />
+        <location filename="../ui2026/App2026.qml" line="1119" />
         <source>DMR Cep</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui2026/App2026.qml" line="1008" />
+        <location filename="../ui2026/App2026.qml" line="1005" />
+        <source>Connected</source>
+        <translation>Bağlı</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/App2026.qml" line="1005" />
+        <source>Connecting…</source>
+        <translation>Bağlanıyor…</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/App2026.qml" line="1005" />
+        <source>Not connected</source>
+        <translation>Bağlı değil</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/App2026.qml" line="1048" />
         <source>Main</source>
         <translation>Ana Sayfa</translation>
     </message>
     <message>
-        <location filename="../ui2026/App2026.qml" line="1009" />
+        <location filename="../ui2026/App2026.qml" line="1049" />
         <source>Settings</source>
         <translation>Ayarlar</translation>
     </message>
     <message>
-        <location filename="../ui2026/App2026.qml" line="1010" />
+        <location filename="../ui2026/App2026.qml" line="1050" />
         <source>QSO</source>
         <translation>QSO</translation>
     </message>
     <message>
-        <location filename="../ui2026/App2026.qml" line="1011" />
+        <location filename="../ui2026/App2026.qml" line="1051" />
         <source>Log</source>
         <translation>Günlük</translation>
     </message>
     <message>
-        <location filename="../ui2026/App2026.qml" line="1012" />
+        <location filename="../ui2026/App2026.qml" line="1052" />
         <source>Hosts</source>
         <translation>Sunucular</translation>
     </message>
     <message>
-        <location filename="../ui2026/App2026.qml" line="1013" />
+        <location filename="../ui2026/App2026.qml" line="1053" />
         <source>About</source>
         <translation>Hakkında</translation>
     </message>
     <message>
-        <location filename="../ui2026/App2026.qml" line="1036" />
+        <location filename="../ui2026/App2026.qml" line="1076" />
         <source>Made with ♥  TB1BDL</source>
         <translation>♥ ile yapıldı  TB1BDL</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/App2026.qml" line="1084" />
+        <source>Based on DroidStar (GPL-3.0)</source>
+        <translation>DroidStar tabanlı (GPL-3.0)</translation>
     </message>
 </context>
 <context>
@@ -400,147 +421,147 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 <context>
     <name>QsoPage</name>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="27" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="29" />
         <source>QSO</source>
         <translation>QSO</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="221" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="257" />
         <source>TX ON</source>
         <translation>TX AÇIK</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="221" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="257" />
         <source>TX</source>
         <translation>TX</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="261" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="297" />
         <source>Disconnect</source>
         <translation>Bağlantıyı Kes</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="261" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="297" />
         <source>Connect</source>
         <translation>Bağlan</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="297" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="333" />
         <source>Export</source>
         <translation>Dışa Aktar</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="303" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="339" />
         <source>Clear</source>
         <translation>Temizle</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="313" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="349" />
         <source>Export log</source>
         <translation>Kaydı dışa aktar</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="327" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="363" />
         <source>File name (no extension)</source>
         <translation>Dosya adı (uzantısız)</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="333" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="369" />
         <source>CSV</source>
         <translation>CSV</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="334" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="370" />
         <source>ADIF</source>
         <translation>ADIF</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="341" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="377" />
         <source>Tip: select entries below to export a subset. If none are selected, all entries will be exported.</source>
         <translation>İpucu: yalnızca bir kısmını aktarmak için aşağıdan kayıt seç. Hiçbiri seçilmezse hepsi aktarılır.</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="383" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="419" />
         <source>Error</source>
         <translation>Hata</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="387" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="423" />
         <source>Empty/Invalid File Name.</source>
         <translation>Dosya adı boş ya da geçersiz.</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="396" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="432" />
         <source>File saved</source>
         <translation>Dosya kaydedildi</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="403" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="439" />
         <source>Saved to: %1</source>
         <translation>Kaydedildi: %1</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="409" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="445" />
         <source>Share</source>
         <translation>Paylaş</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="420" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="456" />
         <source>Recordings</source>
         <translation>Kayıtlar</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="432" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="468" />
         <source>QSO log settings</source>
         <translation>QSO kayıt ayarları</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="451" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="487" />
         <source>Enable Self Log</source>
         <translation>Kendi yayınlarımı da kaydet</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="457" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="493" />
         <source>When disabled, entries matching your Callsign + DMR ID (from Settings) are included.</source>
         <translation>Kapalıyken Ayarlar'daki çağrı işaretin + DMR ID'nle eşleşen kayıtlar da listeye girer.</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="486" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="522" />
         <source>QSO log limit</source>
         <translation>QSO kayıt sınırı</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="492" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="528" />
         <source>How many entries to keep (10–5000). Older entries are removed.</source>
         <translation>Kaç kayıt tutulsun (10–5000). Eskiler silinir.</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="527" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="563" />
         <source>Recent activity</source>
         <translation>Son etkinlik</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="528" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="564" />
         <source>Auto-collects lightweight entries from live RX fields.</source>
         <translation>Canlı RX bilgilerinden kısa kayıtları kendiliğinden toplar.</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="586" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="641" />
         <source>Lookup Options</source>
         <translation>Arama Seçenekleri</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="588" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="643" />
         <source>Lookup QRZ</source>
         <translation>QRZ'de bak</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="592" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="647" />
         <source>Lookup BM</source>
         <translation>BM'de bak</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/QsoPage.qml" line="596" />
+        <location filename="../ui2026/pages/QsoPage.qml" line="651" />
         <source>Lookup APRS</source>
         <translation>APRS'te bak</translation>
     </message>

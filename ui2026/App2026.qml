@@ -931,7 +931,9 @@ ApplicationWindow {
         edge: Qt.LeftEdge
         modal: true
 
-        background: Rectangle { color: t.surface2 }
+        background: Rectangle { color: t.bg }
+
+        FontLoader { id: drawerSeg; source: "qrc:/DroidStar/fonts/DSEG7Classic-Bold.ttf" }
 
         ColumnLayout {
             anchors.fill: parent
@@ -942,60 +944,98 @@ ApplicationWindow {
             anchors.topMargin: 16 + (Qt.platform.os === "ios" ? 47 : 0)
             spacing: 12
 
-            AppCard {
+            // Station identity: who you are and what the radio is doing right now
+            ColumnLayout {
                 Layout.fillWidth: true
-                radius: 18
+                spacing: 14
+
                 RowLayout {
-                    anchors.fill: parent
-                    spacing: 12
-                    
-                    Item {
-                        Layout.preferredWidth: 48
-                        Layout.preferredHeight: 48
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 12
-                            color: Qt.rgba(t.accent.r, t.accent.g, t.accent.b, 0.16)
-                            border.color: Qt.rgba(t.accent.r, t.accent.g, t.accent.b, 0.35)
-                            border.width: 1
-                        }
-
-                        Image {
-                            id: drawerLogo
-                            anchors.fill: parent
-                            anchors.margins: 6
-                            // From QRC (see `DroidStar.pro` resources.files)
-                            source: "qrc:/DroidStar/images/dmrcep.png"
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true
-                            asynchronous: true
-                            onStatusChanged: {
-                                // Dev/build fallback: if QRC is missing, try relative file (keeps UI usable).
-                                if (status === Image.Error) {
-                                    source = Qt.resolvedUrl("../../images/dmrcep.png")
-                                }
-                            }
-                        }
-
-                        Label {
-                            anchors.centerIn: parent
-                            visible: drawerLogo.status === Image.Error
-                            text: "DS"
-                            font.bold: true
-                            font.pixelSize: 14
-                            color: t.text
-                            opacity: 0.9
-                        }
+                    Layout.fillWidth: true
+                    spacing: 14
+                    Image {
+                        Layout.preferredWidth: 56
+                        Layout.preferredHeight: 56
+                        source: "qrc:/DroidStar/images/dmrcep.png"
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true
+                        layer.enabled: true
+                        layer.smooth: true
                     }
-                    
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 6
-                        Label { text: qsTr("DMR Cep"); font.pixelSize: 20; font.bold: true }
-                        Label { text: appState.netstatus; opacity: 0.8; wrapMode: Text.WordWrap }
+                        spacing: 0
+                        Label {
+                            text: (appState.callsign && appState.callsign !== "") ? appState.callsign : qsTr("DMR Cep")
+                            color: t.text
+                            font.pixelSize: 26
+                            font.weight: Font.Bold
+                            font.letterSpacing: 1
+                        }
+                        Label {
+                            text: (appState.dmrid && appState.dmrid !== "" && appState.dmrid !== "0") ? ("DMR ID " + appState.dmrid) : qsTr("DMR Cep")
+                            color: t.textMuted
+                            font.pixelSize: 13
+                        }
                     }
                 }
+
+                // Link status + current talkgroup on a small amber LCD
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 52
+                    radius: 14
+                    color: t.surface
+                    border.color: t.stroke
+                    border.width: 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 8
+                        spacing: 10
+                        Rectangle {
+                            width: 9; height: 9; radius: 4.5
+                            color: appState.connected ? t.success : (appState.connecting ? t.warning : t.stroke)
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+                            Label {
+                                Layout.fillWidth: true
+                                text: appState.connected ? qsTr("Connected") : (appState.connecting ? qsTr("Connecting…") : qsTr("Not connected"))
+                                color: t.text
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                text: appState.selectedHost || ""
+                                color: t.textMuted
+                                font.pixelSize: 11
+                                elide: Text.ElideRight
+                            }
+                        }
+                        Rectangle {
+                            visible: appState.mode === "DMR" && appState.dmrtgid !== ""
+                            implicitWidth: drawerTg.implicitWidth + 16
+                            implicitHeight: 34
+                            radius: 8
+                            color: t.lcd
+                            border.color: "#B8761A"
+                            border.width: 1
+                            Label {
+                                id: drawerTg
+                                anchors.centerIn: parent
+                                text: appState.dmrtgid
+                                font.family: drawerSeg.name
+                                font.pixelSize: 17
+                                color: t.lcdInk
+                            }
+                        }
+                    }
+                }
+
+                Rectangle { Layout.fillWidth: true; height: 1; color: t.stroke; opacity: 0.7 }
             }
 
             ListView {
@@ -1034,9 +1074,17 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     text: qsTr("Made with \u2665  TB1BDL")
-                    opacity: 0.75
+                    color: t.textMuted
                     font.pixelSize: 12
                     wrapMode: Text.WordWrap
+                }
+                Label {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    text: qsTr("Based on DroidStar (GPL-3.0)")
+                    color: t.textMuted
+                    opacity: 0.6
+                    font.pixelSize: 10
                 }
             }
         }
