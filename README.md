@@ -43,12 +43,16 @@ Apple **Push-to-Talk** ile kilit ekranından ve Dinamik Ada'dan bas-konuş; Blue
 **Bağlantı**
 - **Açılışta otomatik bağlanır**: son sunucuya ve konuşma grubuna, uygulamayı açar açmaz.
 - **Kopmaz**: sunucu kapanırsa (MSTCL / MSTNAK) ya da 20 sn ses gelmezse kendiliğinden yeniden bağlanır; Wi-Fi ile mobil veri arasında geçerken hemen yeniden kayıt olur.
+- **Kilitliyken de toparlar**: yeniden bağlanmayı beklerken arka plan sesi açık kalır, iOS uygulamayı dondurmaz; telefon cepteyken bağlantı kendiliğinden geri gelir. Testte uygulama 52 dakika arka planda ayakta kaldı, beş Wi-Fi ↔ mobil geçişinin hepsinde kendiliğinden bağlandı.
 - **Bağlantı kalitesi göstergesi**: LCD köşesinde 4 çubuk. Dokununca gecikme (ms), kayıp ping ve son yayındaki kayıp çerçeve oranı. Kopmadan önce zayıfladığını görürsün.
 - Bağlanınca kısa bir çan sesi.
 
 **Kimlik**
 - **Talker Alias**: karşı telsizlerin ekranında yalnızca DMR ID değil, "TB1BDL Tunca" gibi bir yazı çıkar. Gelen yayınların talker alias'ı da ekranda gösterilir.
-- **Roger ve 5 ton ANI**: yayın başında ve sonunda farklı sesler; ZVEI-1 5 ton, DMR ID'nin son beş hanesi.
+- **Roger sesleri**, yayın başında ve sonunda farklı:
+  - **Polis telsizi (CCIR)**: girişte 2-1-2-6-5, çıkışta 1-8-2-7-5; ton başına 100 ms. Türk emniyet telsizlerindeki çağrı sesi, kayıttan ölçülüp birebir kuruldu.
+  - **5 ton ANI (ZVEI-1)**: DMR ID'nin son beş hanesi.
+  - Başta ve sonda kısa bip, yalnız sonda bip ya da kapalı.
 - İsteğe bağlı **telefon GPS'i** ile BrandMeister'a istasyon konumu (varsayılan kapalı).
 
 **Ses**
@@ -67,11 +71,35 @@ Apple **Push-to-Talk** ile kilit ekranından ve Dinamik Ada'dan bas-konuş; Blue
 
 Roger bipleri ve 5 ton, ses olarak mikrofondan değil, AMBE+2 **ton çerçevesi** olarak gönderilir (TIA-102.BABA-1). Karşıdaki telsizin vocoder'ı tonu kendisi üretir, bu yüzden yazılım vocoder'ının robotikliğine uğramadan tertemiz çıkar.
 
-| ZVEI-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | tekrar |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Hz | 2400 | 1060 | 1160 | 1270 | 1400 | 1530 | 1670 | 1830 | 2000 | 2200 | 2600 |
+| Sistem | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | tekrar | ton |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CCIR (Hz) | 1981 | 1124 | 1197 | 1275 | 1358 | 1446 | 1540 | 1640 | 1747 | 1860 | 2110 | 100 ms |
+| ZVEI-1 (Hz) | 2400 | 1060 | 1160 | 1270 | 1400 | 1530 | 1670 | 1830 | 2000 | 2200 | 2600 | 70 ms |
+
+Polis telsizi kipinde giden dizi, karşı telsizin çözdüğü hâliyle ölçüldü:
+
+| | 2 | 1 | 2 | 6 | 5 |
+|---|---|---|---|---|---|
+| Referans kayıt | 1198 Hz | 1125 Hz | 1198 Hz | 1541 Hz | 1447 Hz |
+| DMR Cep | 1188 Hz | 1125 Hz | 1188 Hz | 1531 Hz | 1437 Hz |
 
 <sub>Frekanslar ton çerçevesinin 31,25 Hz'lik adımlarına yuvarlanır.</sub>
+
+## Neler değişti
+
+DroidStar'ın iOS sürümüne göre DMR Cep'te eklenen ve düzeltilenler:
+
+| Alan | Değişiklik |
+|---|---|
+| Bağlantı | Otomatik yeniden bağlanma (geri çekilmeli, 15 deneme), el sıkışmada tekrar gönderme, ağ değişiminde hemen yeniden kayıt, açılışta otomatik bağlanma, kilitliyken yeniden bağlanma, bağlantı kalitesi çubukları |
+| Push-to-Talk | Apple PushToTalk: kilit ekranı, Dinamik Ada, Bluetooth PTT, konuşanın adı |
+| Kilit ekranı | Canlı Etkinlik kartı (TG, sunucu, konuşan, süre) |
+| TX sesi | Mikrofon tamponu 640 B → 4 KB (sesin %64'ü düşüyordu), mikrofon %10 → %100, gerçek örnekleme hızının ölçülmesi (48 ↔ 44,1 kHz), gürültü kapısı + otomatik kazanç, ses tonu süzgeci |
+| RX sesi | TX sonrası sessiz kalan hoparlör düzeltildi, çıkışın üst üste açılması önlendi, otomatik kazanç + sınırlayıcı |
+| Tonlar | Roger bipleri ve 5 ton, AMBE+2 ton çerçevesi olarak; polis telsizi (CCIR) ve ZVEI-1 kipleri; gelen ton çerçeveleri de çalınır |
+| Kimlik | Talker Alias gönderme ve alma, telefon GPS'iyle konum |
+| Kayıt | Gelen ve kendi yayınlarını tekrar dinleme (son 30) |
+| Arayüz | Kehribar LCD'li el telsizi tasarımı, favori TG'ler, TG adı önizleme, yeni menü ve ayarlar, Türkçe, yeni ad, simge ve açılış ekranı, bağlanma çanı |
 
 ## Derleme
 
@@ -118,7 +146,7 @@ GNU General Public License v3.0, bkz. [LICENSE](LICENSE). DSEG yazı tipi kendi 
 <details>
 <summary>English</summary>
 
-DMR Cep turns an iPhone into a DMR handheld for BrandMeister and other HomeBrew/MMDVM networks, no hotspot needed. Built on DroidStar (AD8DP) and the Droidstar-DMR iOS fork (VU3LVO), reworked by TB1BDL for daily use: auto-connect on launch and reliable auto-reconnect, a link-quality meter, Apple Push-to-Talk with lock-screen / Dynamic Island control and a Live Activity card, DMR Talker Alias (TX and RX), roger beeps and ZVEI-1 five-tone ANI sent as AMBE+2 tone frames, TX noise gate / AGC / voice-tone shaping, RX AGC, replay of received and own transmissions, favorite talk groups with live name lookup, optional phone GPS position, and a Turkish/English UI styled like an amber-LCD handheld. GPL-3.0.
+DMR Cep turns an iPhone into a DMR handheld for BrandMeister and other HomeBrew/MMDVM networks, no hotspot needed. Built on DroidStar (AD8DP) and the Droidstar-DMR iOS fork (VU3LVO), reworked by TB1BDL for daily use: auto-connect on launch and reliable auto-reconnect (also while locked), a link-quality meter, Apple Push-to-Talk with lock-screen / Dynamic Island control and a Live Activity card, DMR Talker Alias (TX and RX), roger beeps, a CCIR police-radio five-tone call-up (2-1-2-6-5 in, 1-8-2-7-5 out) and ZVEI-1 five-tone ANI, all sent as AMBE+2 tone frames, TX noise gate / AGC / voice-tone shaping, RX AGC, replay of received and own transmissions, favorite talk groups with live name lookup, optional phone GPS position, and a Turkish/English UI styled like an amber-LCD handheld. GPL-3.0.
 
 </details>
 
