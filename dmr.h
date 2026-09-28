@@ -70,12 +70,10 @@ private:
     VocoderPlugin *m_tx_loop_vocoder = nullptr;
 #endif
     void save_tx_debug_audio();
-    // Roger beep: short chirp replaces the first ~70 ms, two-tone tail is sent before the EOT.
-    QVector<int16_t> m_roger_head;
-    QVector<int16_t> m_roger_tail;
-    int m_roger_head_pos = 0;
-    int m_roger_tail_pos = 0;
+    // Roger tones (key-up and release), sent as AMBE+2 tone frames; see roger_head/tail_frames().
     bool m_roger_tail_started = false;
+    QVector<int> roger_head_frames() const;
+    QVector<int> roger_tail_frames() const;
     // 5-tone ANI (ZVEI-1) sent as AMBE+2 tone frames: one entry per 20 ms frame, tone index
     // (f = index * 31.25 Hz) or 0 for a silent frame.
     QVector<int> m_ani_head;

@@ -649,16 +649,31 @@ void DMR::process_modem_data(QByteArray d)
     }
 }
 
-// Tone helper for the roger beeps: 8 kHz, soft 5 ms fades so the vocoder does not click.
-static void append_tone(QVector<int16_t> &v, double hz, int ms, double amp)
+// Roger tones are sent as AMBE+2 tone frames (clean on DVSI radios; the software vocoder
+// detuned plain tones by up to 10%). One entry per 20 ms frame: tone index (f = index * 31.25 Hz)
+// or 0 for a silent frame.
+//   start:  mode 2 = 1188 Hz chirp (80 ms), mode 3 = five-tone ANI of our ID
+//   end:    mode 1/2 = 1000 -> 1500 Hz two-tone, mode 3 = 1000 -> 1500 -> 2000 Hz rising three-tone
+QVector<int> DMR::roger_head_frames() const
 {
-    const int n = 8 * ms, fade = 40;
-    for(int i = 0; i < n; ++i){
-        double env = 1.0;
-        if(i < fade) env = double(i) / fade;
-        else if(i > n - fade) env = double(n - i) / fade;
-        v.append(int16_t(amp * env * std::sin(2.0 * M_PI * hz * i / 8000.0)));
+    if(m_roger_beep == 2) return QVector<int>(4, 38);
+    if(m_roger_beep == 3) return build_ani();
+    return QVector<int>();
+}
+
+QVector<int> DMR::roger_tail_frames() const
+{
+    QVector<int> f;
+    if(m_roger_beep == 3){
+        f += QVector<int>(3, 32);
+        f += QVector<int>(3, 48);
+        f += QVector<int>(3, 64);
     }
+    else{
+        f += QVector<int>(5, 32);
+        f += QVector<int>(6, 48);
+    }
+    return f;
 }
 
 // ZVEI-1 five-tone ANI of the last five digits of our DMR ID. Tone indices on the AMBE 31.25 Hz
@@ -710,30 +725,19 @@ void DMR::transmit()
         m_tx_peak = 0;
         m_tx_mic_restarted = false;
         qDebug() << "DMR TX start: src" << m_dmrid << "dst" << m_txdstid << (m_flco == FLCO_USER_USER ? "private" : "group") << "slot" << m_txslot << "roger" << m_roger_beep;
-        m_roger_head.clear();
-        m_roger_head_pos = 0;
         m_roger_tail_started = false;
-        if(m_roger_beep == 2) append_tone(m_roger_head, 1200.0, 70, 6000.0);
-        m_ani_head = (m_roger_beep == 3) ? build_ani() : QVector<int>();
+        m_ani_head = roger_head_frames();
     }
 
     // Released: keep the stream open until the roger tail has gone out, then fall through to EOT.
     if(!m_tx && m_tx_logged && (m_roger_beep >= 1) && !m_roger_tail_started){
         m_roger_tail_started = true;
-        m_roger_tail.clear();
-        m_roger_tail_pos = 0;
-        if(m_roger_beep == 3){
-            m_ani_tail = QVector<int>() << 0 << 0;       // 40 ms gap after the last word
-            m_ani_tail += build_ani();
-            m_ani_tail << 0 << 0;
-        }
-        append_tone(m_roger_tail, 0.0, 40, 0.0);          // short gap after the last word
-        append_tone(m_roger_tail, 1000.0, 100, 6000.0);
-        append_tone(m_roger_tail, 1500.0, 120, 6000.0);
-        append_tone(m_roger_tail, 0.0, 60, 0.0);          // let the vocoder flush the tone
+        m_ani_tail = QVector<int>() << 0 << 0;           // 40 ms gap after the last word
+        m_ani_tail += roger_tail_frames();
+        m_ani_tail << 0;
         m_tx = true;
     }
-    if(m_tx && m_roger_tail_started && (m_roger_beep == 3)){
+    if(m_tx && m_roger_tail_started){
         if(!m_ani_tail.isEmpty()){
             tone_frame = m_ani_tail.takeFirst();
             memset(pcm, 0, sizeof(pcm));
@@ -745,29 +749,12 @@ void DMR::transmit()
             m_tx = false;
         }
     }
-    else if(m_tx && m_roger_tail_started){
-        if(m_roger_tail_pos < m_roger_tail.size()){
-            for(int i = 0; i < 160; ++i){
-                pcm[i] = (m_roger_tail_pos < m_roger_tail.size()) ? m_roger_tail[m_roger_tail_pos++] : 0;
-            }
-            int16_t drop[160];
-            m_audio->read(drop, 160);                     // keep the mic queue from piling up
-            synth = true;
-        }
-        else{
-            m_tx = false;                                 // tail done: next code path sends the EOT
-        }
-    }
     if(m_ttsid == 0 && !synth){
         if(m_audio->read(pcm, 160)){
             if(m_audio->level() > m_tx_peak) m_tx_peak = m_audio->level();
             tx_shape(pcm, 160);
             apply_tx_gain(pcm, 160);
-            // Start chirp replaces the first ~70 ms of mic audio (usually silence after the press).
-            for(int i = 0; i < 160 && m_roger_head_pos < m_roger_head.size(); ++i){
-                pcm[i] = m_roger_head[m_roger_head_pos++];
-            }
-            // 5-tone ANI at key-up replaces the first 350 ms of mic audio.
+            // Key-up tones (chirp or 5-tone ANI) replace the first frames of mic audio.
             if(!m_ani_head.isEmpty()){
                 tone_frame = m_ani_head.takeFirst();
                 memset(pcm, 0, sizeof(pcm));
