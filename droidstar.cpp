@@ -20,6 +20,7 @@
 #include "httpmanager.h"
 #include <QGuiApplication>
 #include <QTimer>
+#include <QNetworkInformation>
 #ifdef Q_OS_ANDROID
 #include <QCoreApplication>
 #include <QJniObject>
@@ -95,7 +96,23 @@ DroidStar::DroidStar(QObject *parent) :
 
         // Start timers
         m_reconnectTimer->setInterval(5000);
+        m_reconnectTimer->setSingleShot(true);
         m_keepAliveTimer->setInterval(30000);
+
+        // A connect attempt that gets no answer (dead network) would otherwise sit in CONNECTING forever.
+        m_connectTimeoutTimer = new QTimer(this);
+        m_connectTimeoutTimer->setSingleShot(true);
+        m_connectTimeoutTimer->setInterval(15000);
+        connect(m_connectTimeoutTimer, &QTimer::timeout, this, &DroidStar::on_connect_timeout);
+
+        if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
+            QNetworkInformation *ni = QNetworkInformation::instance();
+            connect(ni, &QNetworkInformation::reachabilityChanged, this, &DroidStar::on_network_state_changed);
+            connect(ni, &QNetworkInformation::transportMediumChanged, this, &DroidStar::on_transport_medium_changed);
+            qDebug() << "Network information backend:" << ni->backendName();
+        } else {
+            qDebug() << "Network information backend not available";
+        }
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_WIN)
     config_path += "/dudetronics";
@@ -322,6 +339,10 @@ void DroidStar::process_connect()
              << "saved_dmrhost=" << m_saved_dmrhost;
 
     if(connect_status != Mode::DISCONNECTED){
+        m_autoReconnect = false;
+        m_reconnectAttempt = 0;
+        m_reconnectTimer->stop();
+        m_connectTimeoutTimer->stop();
         connect_status = Mode::DISCONNECTED;
         m_modethread->quit();
         m_data1.clear();
@@ -379,8 +400,11 @@ void DroidStar::process_connect()
                  << "hostsmodel_count=" << m_hostsmodel.size();
 
         m_keepAliveTimer->start();
+        m_reconnectTimer->stop();
+        m_autoReconnect = true;
         emit connect_status_changed(1);
         connect_status = Mode::CONNECTING;
+        m_connectTimeoutTimer->start();
         QStringList sl;
 
         m_host = m_hostmap[m_refname];
@@ -449,6 +473,7 @@ void DroidStar::process_connect()
         connect(this, SIGNAL(module_changed(char)), m_mode, SLOT(module_changed(char)));
         connect(m_mode, SIGNAL(update(Mode::MODEINFO)), this, SLOT(update_data(Mode::MODEINFO)));
         connect(m_mode, SIGNAL(update_log(QString)), this, SLOT(updatelog(QString)));
+        connect(m_mode, SIGNAL(connection_lost(QString)), this, SLOT(handle_connection_lost(QString)));
         connect(m_mode, SIGNAL(update_output_level(unsigned short)), this, SLOT(update_output_level(unsigned short)));
         connect(m_modethread, SIGNAL(started()), m_mode, SLOT(begin_connect()));
         connect(m_modethread, SIGNAL(finished()), m_mode, SLOT(deleteLater()));
@@ -524,9 +549,68 @@ void DroidStar::process_connect()
 
 void DroidStar::attempt_reconnect()
 {
-    if(connect_status == Mode::DISCONNECTED) {
-        qDebug() << "Attempting to reconnect...";
+    if((connect_status == Mode::DISCONNECTED) && m_autoReconnect) {
+        emit update_log("Reconnecting (attempt " + QString::number(m_reconnectAttempt) + ")...");
         process_connect();
+    }
+}
+
+// Backoff 5, 10, 20, 40, 60, 60... s so a long outage does not hammer the master.
+void DroidStar::schedule_reconnect(const QString &reason, int delayMs)
+{
+    if(delayMs < 0){
+        delayMs = qMin(5000 << qMin(m_reconnectAttempt, 4), 60000);
+    }
+    m_reconnectAttempt++;
+    emit update_log(reason + " - retrying in " + QString::number(delayMs / 1000) + " s");
+    m_reconnectTimer->start(delayMs);
+}
+
+// Link was up and died underneath us. Tear down like a manual disconnect, then re-arm.
+void DroidStar::handle_connection_lost(QString reason)
+{
+    if(connect_status != Mode::CONNECTED_RW) return;
+    qDebug() << "Connection lost:" << reason;
+    process_connect();
+    m_autoReconnect = true;
+    schedule_reconnect("Connection lost (" + reason + ")");
+}
+
+void DroidStar::on_connect_timeout()
+{
+    if(connect_status == Mode::CONNECTING){
+        connect_failed("Connection timed out");
+    }
+}
+
+// A connect attempt did not reach CONNECTED_RW. Retry only if this was an automatic attempt;
+// a failed manual connect is usually a config/password problem and should just be shown.
+void DroidStar::connect_failed(const QString &reason)
+{
+    const bool retry = m_autoReconnect && (m_reconnectAttempt > 0);
+    m_errortxt = reason;
+    m_connectTimeoutTimer->stop();
+    connect_status = Mode::DISCONNECTED;
+    if (m_modethread) {
+        m_modethread->quit();
+    }
+    m_data1.clear();
+    m_data2.clear();
+    m_data3.clear();
+    m_data4.clear();
+    m_data5.clear();
+    m_data6.clear();
+#ifdef Q_OS_IOS
+    setAudioConnectionState(false, "", "");
+#endif
+    emit update_log(m_errortxt);
+    emit connect_status_changed(5);
+    if(retry){
+        schedule_reconnect(reason);
+    }
+    else{
+        m_autoReconnect = false;
+        m_reconnectAttempt = 0;
     }
 }
 
@@ -1388,27 +1472,14 @@ void DroidStar::update_data(Mode::MODEINFO info)
     // and hid the actual failure from the UI.
     if ((connect_status == Mode::CONNECTING) && (info.status == Mode::DISCONNECTED)) {
         qDebug() << "Connect attempt failed (Mode returned DISCONNECTED)";
-        m_errortxt = "Connection failed";
-        connect_status = Mode::DISCONNECTED;
-        if (m_modethread) {
-            m_modethread->quit();
-        }
-        m_data1.clear();
-        m_data2.clear();
-        m_data3.clear();
-        m_data4.clear();
-        m_data5.clear();
-        m_data6.clear();
-#ifdef Q_OS_IOS
-        setAudioConnectionState(false, "", "");
-#endif
-        emit update_log(m_errortxt);
-        emit connect_status_changed(5);
+        connect_failed("Connection failed");
         return;
     }
 
     if( (connect_status == Mode::CONNECTING) && ( info.status == Mode::CONNECTED_RW)){
         connect_status = Mode::CONNECTED_RW;
+        m_connectTimeoutTimer->stop();
+        m_reconnectAttempt = 0;
         emit connect_status_changed(2);
         emit in_audio_vol_changed(0.5);
         emit swtx_state(!m_mode->get_hwtx());
@@ -1673,8 +1744,10 @@ void DroidStar::clearRecentTGIDs() {
 void DroidStar::on_network_state_changed(QNetworkInformation::Reachability reachability) {
     if (reachability == QNetworkInformation::Reachability::Online) {
         qDebug() << "Network is online. Checking connection status...";
-        if (connect_status == Mode::DISCONNECTED) {
-            process_connect();
+        // Network is back: don't wait out the backoff.
+        if ((connect_status == Mode::DISCONNECTED) && m_autoReconnect) {
+            m_reconnectTimer->stop();
+            attempt_reconnect();
         }
     } else {
         qDebug() << "Network is offline. Stopping keep-alive messages.";
@@ -1682,6 +1755,17 @@ void DroidStar::on_network_state_changed(QNetworkInformation::Reachability reach
     }
 }
 
+
+// Wi-Fi <-> cellular: the local IP changes and the old UDP flow is dead even though the
+// master has not noticed yet. Re-register right away instead of waiting for the watchdog.
+void DroidStar::on_transport_medium_changed(QNetworkInformation::TransportMedium medium) {
+    qDebug() << "Network transport medium changed:" << medium;
+    if (connect_status == Mode::CONNECTED_RW) {
+        process_connect();
+        m_autoReconnect = true;
+        schedule_reconnect("Network changed", 1000);
+    }
+}
 
 // Function to handle entering the background
 void DroidStar::handle_background_state() {
@@ -1754,6 +1838,11 @@ void DroidStar::handle_foreground_state() {
     if (connect_status == Mode::CONNECTED_RW) {
         // Restart keep-alive timer if still connected
         m_keepAliveTimer->start();
+    }
+    else if ((connect_status == Mode::DISCONNECTED) && m_autoReconnect && m_reconnectTimer->isActive()) {
+        // Timers may have been frozen while suspended; retry now.
+        m_reconnectTimer->stop();
+        attempt_reconnect();
     }
 }
 

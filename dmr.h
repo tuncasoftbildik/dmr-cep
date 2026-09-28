@@ -45,6 +45,10 @@ private slots:
     void slot_changed(int s) {m_txslot = s + 1; }
     void send_frame();
 private:
+    static const qint64 RX_WATCHDOG_MS = 20000;
+    void report_connection_lost(const QString &reason);
+    qint64 m_last_rx_ms = 0;
+    bool m_link_lost = false;
     uint32_t m_essid;
     QString m_password;
     QString m_lat;

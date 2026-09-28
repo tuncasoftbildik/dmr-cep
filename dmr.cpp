@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <cstring>
+#include <QDateTime>
 #include "dmr.h"
 #include "cgolay2087.h"
 #include "crs129.h"
@@ -90,6 +91,15 @@ void DMR::process_udp()
 
     buf.resize(m_udp->pendingDatagramSize());
     m_udp->readDatagram(buf.data(), buf.size(), &sender, &senderPort);
+    m_last_rx_ms = QDateTime::currentMSecsSinceEpoch();
+
+    // While linked, MSTNAK (master forgot us, e.g. after a restart) and MSTCL (master closing)
+    // mean the link is dead. Without this the app keeps showing "Connected" with no audio.
+    if((m_modeinfo.status == CONNECTED_RW) &&
+        ((::memcmp(buf.data(), "MSTNAK", 6U) == 0) || (::memcmp(buf.data(), "MSTCL", 5U) == 0))){
+        report_connection_lost(::memcmp(buf.data(), "MSTCL", 5U) == 0 ? "master closed connection (MSTCL)" : "master dropped us (MSTNAK)");
+        return;
+    }
    
 
     if(m_debug){
@@ -313,6 +323,8 @@ void DMR::process_udp()
 void DMR::setup_connection()
 {
     m_modeinfo.status = CONNECTED_RW;
+    m_last_rx_ms = QDateTime::currentMSecsSinceEpoch();
+    m_link_lost = false;
     //m_mbeenc->set_gain_adjust(2.5);
     m_modeinfo.sw_vocoder_loaded = load_vocoder_plugin();
     m_txtimer = new QTimer();
@@ -355,8 +367,24 @@ void DMR::hostname_lookup(QHostInfo i)
     }
 }
 
+void DMR::report_connection_lost(const QString &reason)
+{
+    if(m_link_lost) return;
+    m_link_lost = true;
+    if(m_ping_timer) m_ping_timer->stop();
+    emit update_log("DMR: link lost: " + reason);
+    emit connection_lost(reason);
+}
+
 void DMR::send_ping()
 {
+    // No MSTPONG/traffic for RX_WATCHDOG_MS: the UDP path is dead (Wi-Fi <-> cellular switch,
+    // NAT timeout, server gone). BM answers every 5 s ping, so this is 4 missed pongs.
+    if((m_modeinfo.status == CONNECTED_RW) && (m_last_rx_ms > 0) &&
+        (QDateTime::currentMSecsSinceEpoch() - m_last_rx_ms > RX_WATCHDOG_MS)){
+        report_connection_lost("no reply from server for " + QString::number(RX_WATCHDOG_MS / 1000) + " s");
+        return;
+    }
     QByteArray out;
     char tag[] = { 'R','P','T','P','I','N','G' };
     out.append(tag, 7);

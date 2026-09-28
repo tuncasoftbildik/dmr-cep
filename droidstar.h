@@ -293,6 +293,9 @@ public slots:
        void stop_keep_alive();
        void send_keep_alive();
        void on_network_state_changed(QNetworkInformation::Reachability reachability);
+    void handle_connection_lost(QString reason);
+    void on_connect_timeout();
+    void on_transport_medium_changed(QNetworkInformation::TransportMedium medium);
     
 private:
     AudioEngine *m_audioEngine;
@@ -411,6 +414,12 @@ private:
     bool m_modemPTTInvert;
     QTimer *m_reconnectTimer;
      QTimer *m_keepAliveTimer;
+    // Auto-reconnect: armed when the user connects, disarmed when the user disconnects.
+    QTimer *m_connectTimeoutTimer;
+    bool m_autoReconnect = false;
+    int m_reconnectAttempt = 0;
+    void schedule_reconnect(const QString &reason, int delayMs = -1);
+    void connect_failed(const QString &reason);
  
 #ifdef Q_OS_ANDROID
     AndroidSerialPort *m_USBmonitor;

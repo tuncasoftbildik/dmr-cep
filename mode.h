@@ -135,6 +135,9 @@ signals:
     void update(Mode::MODEINFO);
     void update_log(QString);
     void update_output_level(unsigned short);
+    // Emitted once when an established link dies (master close/NAK or silent timeout).
+    // DroidStar tears the mode down and schedules a reconnect.
+    void connection_lost(QString reason);
 protected slots:
     virtual void send_disconnect(){}
     virtual void hostname_lookup(QHostInfo){}
