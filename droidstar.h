@@ -59,7 +59,7 @@ public:
     // Headphone / lock-screen play-pause keys TX. Off by default: a tap on AirPods must not key up.
     Q_INVOKABLE bool get_headphone_ptt() const { return m_headphonePtt; }
     Q_INVOKABLE void set_headphone_ptt(bool on);
-    // Roger beep over the air: 0 off, 1 end only, 2 start and end
+    // Roger beep over the air: 0 off, 1 end only, 2 start and end, 3 five-tone ANI (ZVEI-1) start and end
     Q_INVOKABLE int get_roger_beep() const { return m_rogerBeep; }
     Q_INVOKABLE void set_roger_beep(int mode);
     // TX voice tone: 0 natural, 1 thin (300 Hz high-pass), 2 very thin (500 Hz)

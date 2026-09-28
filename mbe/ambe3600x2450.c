@@ -596,6 +596,37 @@ mbe_processAmbe2450Dataf (float *aout_buf, int *errs2, char *err_str, char ambe_
       err_str++;
     }
 
+  // AMBE+2 tone frame (TIA-102.BABA-1 clause 7): first six u0 bits set, tone index in u1[11:4],
+  // repeated in u3[12:5]; amplitude u0[5:0]<<1 | u3[4]. Render single tones (index 7..122,
+  // f = 31.25 Hz * index) instead of the silence this decoder used to output.
+  if (ambe_d[0] && ambe_d[1] && ambe_d[2] && ambe_d[3] && ambe_d[4] && ambe_d[5])
+    {
+      int u0 = 0, u1 = 0, u3 = 0;
+      for (i = 0; i < 12; i++) u0 = (u0 << 1) | ambe_d[i];
+      for (i = 12; i < 24; i++) u1 = (u1 << 1) | ambe_d[i];
+      for (i = 35; i < 49; i++) u3 = (u3 << 1) | ambe_d[i];
+      int id = (u1 >> 4) & 0xff;
+      int consistent = ((u3 & 0xf) == 0) || (((u1 >> 8) & 0xf) == (u1 & 0xf));
+      if (consistent && id >= 7 && id <= 122)
+        {
+          static double tone_phase = 0.0;
+          int ad = ((u0 & 0x3f) << 1) | ((u3 >> 4) & 1);
+          float amp = ((float) ad / 127.0f) * 6000.0f;
+          double step = 2.0 * M_PI * (31.25 * id) / 8000.0;
+          for (i = 0; i < 160; i++)
+            {
+              aout_buf[i] = amp * (float) sin (tone_phase);
+              tone_phase += step;
+              if (tone_phase > 2.0 * M_PI) tone_phase -= 2.0 * M_PI;
+            }
+          *err_str = 'T';
+          err_str++;
+          *err_str = 0;
+          cur_mp->repeat = 0;
+          return;
+        }
+    }
+
   bad = mbe_decodeAmbe2450Parms (ambe_d, cur_mp, prev_mp);
   if (bad == 2)
     {

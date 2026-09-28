@@ -893,7 +893,7 @@ Page {
                             }
                             ComboBox {
                                 Layout.preferredWidth: 150
-                                model: [qsTr("Off"), qsTr("End only"), qsTr("Start and end")]
+                                model: [qsTr("Off"), qsTr("End only"), qsTr("Start and end"), qsTr("5-tone ANI (ZVEI)")]
                                 currentIndex: page.droidstarRef ? page.droidstarRef.get_roger_beep() : 2
                                 onActivated: function(index) { page.droidstarRef.set_roger_beep(index) }
                             }

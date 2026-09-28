@@ -68,6 +68,8 @@ public:
 	void decode_2450(int16_t *pcm, uint8_t *codec);
 	void encode_2400x1200(int16_t *pcm, uint8_t *codec);
 	void encode_2450x1150(int16_t *pcm, uint8_t *codec);
+	void encode_tone_2450x1150(int tone_id, int amplitude, uint8_t *codec);
+	void fec_2450x1150(const uint8_t *params49, uint8_t *codec);
 	void encode_2450(int16_t *pcm, uint8_t *codec);
 	
 private:

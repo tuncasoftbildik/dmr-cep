@@ -1875,7 +1875,7 @@ void DroidStar::set_tx_tone(int tone)
 
 void DroidStar::set_roger_beep(int mode)
 {
-    m_rogerBeep = qBound(0, mode, 2);
+    m_rogerBeep = qBound(0, mode, 3);
     save_settings();
     emit roger_beep_changed(m_rogerBeep);
 }

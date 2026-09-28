@@ -1061,15 +1061,41 @@ void encode_ambe(const IMBE_PARAM *imbe_param, int b[], mbe_parms*cur_mp, mbe_pa
 	
 	void VocoderPlugin::encode_2450x1150(int16_t *pcm, uint8_t *ambe)
 	{
+		uint8_t tmp[9];
+		memset(tmp, 0, 9);
+		encode_2450(pcm, tmp);
+		fec_2450x1150(tmp, ambe);
+	}
+
+	// AMBE+2 tone frame (TIA-102.BABA-1 clause 7, Table 10): first six bits of u0 set, the 8-bit
+	// tone index repeated in u1/u2/u3 and a 7-bit amplitude split over u0 and u3. Radios with a
+	// DVSI vocoder render it as a clean tone (frequency = index * 31.25 Hz for 7..122).
+	void VocoderPlugin::encode_tone_2450x1150(int tone_id, int amplitude, uint8_t *ambe)
+	{
+		const unsigned id = unsigned(tone_id) & 0xffU;
+		const unsigned ad = unsigned(amplitude) & 0x7fU;
+		const unsigned u0 = (0x3fU << 6) | ((ad >> 1) & 0x3fU);
+		const unsigned u1 = (id << 4) | (id >> 4);
+		const unsigned u2 = ((id & 0xfU) << 7) | ((id >> 1) & 0x7fU);
+		const unsigned u3 = (id << 5) | ((ad & 1U) << 4);
+		uint8_t tmp[9];
+		memset(tmp, 0, 9);
+		int n = 0;
+		for (int b = 11; b >= 0; --b, ++n) WRITE_BIT(tmp, n, (u0 >> b) & 1U);
+		for (int b = 11; b >= 0; --b, ++n) WRITE_BIT(tmp, n, (u1 >> b) & 1U);
+		for (int b = 10; b >= 0; --b, ++n) WRITE_BIT(tmp, n, (u2 >> b) & 1U);
+		for (int b = 13; b >= 0; --b, ++n) WRITE_BIT(tmp, n, (u3 >> b) & 1U);
+		fec_2450x1150(tmp, ambe);
+	}
+
+	// Golay/PRNG/interleave of 49 parameter bits (tmp, MSB first) into a 72-bit DMR AMBE frame.
+	void VocoderPlugin::fec_2450x1150(const uint8_t *tmp, uint8_t *ambe)
+	{
+		memset(ambe, 0, 9);
 		unsigned int aOrig = 0U;
 		unsigned int bOrig = 0U;
 		unsigned int cOrig = 0U;
 		unsigned int MASK = 0x000800U;
-		uint8_t tmp[9];
-		
-		memset(tmp, 0, 9);
-		memset(ambe, 0, 9);
-		encode_2450(pcm, tmp);
 		
 		for (unsigned int i = 0U; i < 12U; i++, MASK >>= 1) {
 			unsigned int n1 = i;

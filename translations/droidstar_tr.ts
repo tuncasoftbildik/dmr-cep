@@ -851,6 +851,11 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <translation>Başta ve sonda</translation>
     </message>
     <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="896" />
+        <source>5-tone ANI (ZVEI)</source>
+        <translation>5 ton ANI (ZVEI)</translation>
+    </message>
+    <message>
         <location filename="../ui2026/pages/SettingsPage.qml" line="921" />
         <source>System Push-to-Talk</source>
         <translation>Sistem Bas-Konuş (PTT)</translation>

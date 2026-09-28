@@ -75,6 +75,11 @@ private:
     int m_roger_head_pos = 0;
     int m_roger_tail_pos = 0;
     bool m_roger_tail_started = false;
+    // 5-tone ANI (ZVEI-1) sent as AMBE+2 tone frames: one entry per 20 ms frame, tone index
+    // (f = index * 31.25 Hz) or 0 for a silent frame.
+    QVector<int> m_ani_head;
+    QVector<int> m_ani_tail;
+    QVector<int> build_ani() const;
     // RX diagnostics: voice frames queued vs decoded per stream.
     int m_rx_frames_in = 0;
     int m_rx_frames_decoded = 0;
