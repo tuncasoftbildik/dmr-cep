@@ -104,6 +104,7 @@ Page {
     property string lastHeardOther: ""
 
     Component.onCompleted: {
+        if (droidstarRef && droidstarRef.get_auto_connect()) autoConnectTimer.start()
         refreshLastHeardFromLog()
         Qt.callLater(refreshFavoriteTgs)
         if (appState) Qt.callLater(function() { page.lookupTgName(appState.dmrtgid) })
@@ -294,6 +295,13 @@ Page {
             return
         }
 
+        applyConnectionSettings()
+        droidstarRef.process_connect()
+    }
+
+    // Push the current identity, host and TG to the backend before a connect.
+    // Shared by the Connect button and the launch auto-connect.
+    function applyConnectionSettings() {
         if ((!appState.selectedHost || appState.selectedHost === "") && appState.hostsModel && appState.hostsModel.length > 0) {
             appState.selectedHost = appState.hostsModel[0]
         }
@@ -350,8 +358,50 @@ Page {
             droidstarRef.set_dst(appState.selectedHost)
             droidstarRef.process_host_change(appState.selectedHost)
         }
+    }
 
-        droidstarRef.process_connect()
+    // ---- Auto-connect on launch ----
+    // ~1 s after the page first shows (audio session, PTT framework and network settle), connect
+    // to the last server/TG like the Connect button would. The backend allows this once per
+    // launch and never after the user has connected, cancelled or disconnected themselves.
+    property bool autoConnecting: false
+    property int _autoConnectTries: 0
+
+    function autoConnectReady() {
+        return !!appState && !!appState.selectedHost && appState.selectedHost !== ""
+            && !!appState.callsign && appState.callsign !== ""
+            && parseInt(appState.dmrid || "0") > 0
+    }
+
+    Timer {
+        id: autoConnectTimer
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            if (!page.droidstarRef || !page.appState) { stop(); return }
+            // Hosts or identity may still be loading; give them a few more seconds.
+            if (!page.autoConnectReady()) {
+                if (++page._autoConnectTries >= 5) {
+                    console.log("Auto-connect: skipped, no saved server/callsign/DMR ID")
+                    stop()
+                }
+                return
+            }
+            stop()
+            if (page.connected || page.connecting || !page.droidstarRef.take_launch_auto_connect()) return
+            console.log("Auto-connect: connecting to " + page.appState.selectedHost)
+            page.autoConnecting = true
+            page.applyConnectionSettings()
+            page.droidstarRef.process_auto_connect()
+        }
+    }
+
+    Connections {
+        target: page.appState
+        enabled: page.autoConnecting
+        function onConnectStatusChanged() {
+            if (page.appState.connectStatus !== 1) page.autoConnecting = false
+        }
     }
 
     // The big round key: connect when idle, PTT when connected.
@@ -378,7 +428,7 @@ Page {
         if (onAir) return qsTr("On air")
         if (receiving) return qsTr("Receiving") + (rxElapsed !== "" ? "  " + rxElapsed : "")
         if (connected) return qsTr("Ready")
-        if (connecting) return qsTr("Connecting…")
+        if (connecting) return autoConnecting ? qsTr("Auto-connecting…") : qsTr("Connecting…")
         return qsTr("Not connected")
     }
 
