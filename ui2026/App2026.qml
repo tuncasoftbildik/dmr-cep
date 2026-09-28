@@ -970,8 +970,10 @@ ApplicationWindow {
                             implicitWidth: drawerLcdRow.implicitWidth + 16
                             implicitHeight: 34
                             radius: 8
-                            color: t.lcd
-                            border.color: "#B8761A"
+                            // Green while someone is talking, as on the main screen.
+                            readonly property bool rx: appState.txActive !== true && (appState.data1 || "") !== ""
+                            color: rx ? t.lcdRx : t.lcd
+                            border.color: rx ? t.lcdRxBorder : t.lcdBorder
                             border.width: 1
                             Row {
                                 id: drawerLcdRow

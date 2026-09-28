@@ -36,6 +36,12 @@ QtObject {
     readonly property color lcdHi: "#FFC45C"
     readonly property color lcdInk: "#2B1702"
     readonly property color lcdGhost: "#DB9223"     // unlit 7-segment "8"s behind the digits
+    readonly property color lcdBorder: "#B8761A"
+    // Receiving: the backlight turns green, like a handheld with an RX-lit display.
+    readonly property color lcdRx: "#5CCB6E"
+    readonly property color lcdRxHi: "#9BEAA4"
+    readonly property color lcdRxGhost: "#4DB45E"
+    readonly property color lcdRxBorder: "#2F8A3F"
 
     // Link quality bars (radio-style RSSI indicator on the LCD)
     readonly property real lqBarWidth: 4

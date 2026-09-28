@@ -657,10 +657,10 @@ Page {
             implicitHeight: lcdCol.implicitHeight + 28
             radius: 18
             gradient: Gradient {
-                GradientStop { position: 0.0; color: t.lcdHi }
-                GradientStop { position: 1.0; color: t.lcd }
+                GradientStop { position: 0.0; color: page.receiving ? t.lcdRxHi : t.lcdHi; Behavior on color { ColorAnimation { duration: 180 } } }
+                GradientStop { position: 1.0; color: page.receiving ? t.lcdRx : t.lcd; Behavior on color { ColorAnimation { duration: 180 } } }
             }
-            border.color: "#B8761A"
+            border.color: page.receiving ? t.lcdRxBorder : t.lcdBorder
             border.width: 2
             opacity: page.connected ? 1.0 : 0.82
 
@@ -726,7 +726,7 @@ Page {
                         text: "8888888"
                         font.family: segFont.name
                         font.pixelSize: Math.min(64, lcd.width / 6.2)
-                        color: t.lcdGhost
+                        color: page.receiving ? t.lcdRxGhost : t.lcdGhost
                         opacity: 0.55
                     }
                     Label {
