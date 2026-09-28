@@ -28,6 +28,7 @@
 #include "SHA256.h"
 #include "CRCenc.h"
 #include "MMDVMDefines.h"
+#include "dmrposition.h"
 #ifdef USE_MD380_VOCODER
 #include <md380_vocoder.h>
 #endif
@@ -83,6 +84,20 @@ void DMR::set_dmr_params(uint8_t essid, QString password, QString lat, QString l
     m_options = options;
 }
 
+void DMR::send_position(QString lat, QString lon)
+{
+    m_lat = lat;
+    m_lon = lon;
+    if((m_modeinfo.status != CONNECTED_RW) || (m_udp == nullptr)){
+        return;   // the next RPTC login carries it
+    }
+    unsigned char out[DMR_RPTG_LENGTH + 1U];
+    const unsigned int len = dmr_build_rptg(m_essid, lat.toDouble(), lon.toDouble(), out);
+    m_udp->writeDatagram((const char *)out, len, m_address, m_modeinfo.port);
+    m_rptg_sent_ms = QDateTime::currentMSecsSinceEpoch();
+    emit update_log("DMR: position update sent (" + lat + ", " + lon + ")");
+}
+
 void DMR::process_udp()
 {
     QByteArray buf;
@@ -104,6 +119,11 @@ void DMR::process_udp()
     }
     if((m_modeinfo.status == CONNECTED_RW) &&
         ((::memcmp(buf.data(), "MSTNAK", 6U) == 0) || (::memcmp(buf.data(), "MSTCL", 5U) == 0))){
+        if(m_rptg_sent_ms && (m_last_rx_ms - m_rptg_sent_ms < RPTG_REJECT_WINDOW_MS)){
+            // Most likely this master does not know RPTG; the reconnect logs in with RPTC instead.
+            emit update_log("DMR: master rejected the position update (RPTG); position will only be sent at login.");
+            emit position_update_rejected();
+        }
         report_connection_lost(::memcmp(buf.data(), "MSTCL", 5U) == 0 ? "master closed connection (MSTCL)" : "master dropped us (MSTNAK)");
         return;
     }
@@ -168,17 +188,7 @@ void DMR::process_udp()
             m_modeinfo.status = DMR_CONF;
             char latitude[20U];
             char longitude[20U];
-
-            sprintf(latitude, "%08f", m_lat.toFloat());
-            sprintf(longitude, "%09f", m_lon.toFloat());
-
-            char *p;
-            if((p = strchr(latitude, ',')) != NULL){
-                *p = '.';
-            }
-            if((p = strchr(longitude, ',')) != NULL){
-                *p = '.';
-            }
+            dmr_format_rptc_position(m_lat.toFloat(), m_lon.toFloat(), latitude, longitude);
             ::sprintf(buffer + 8U, "%-8.8s%09u%09u%02u%02u%8.8s%9.9s%03d%-20.20s%-19.19s%c%-124.124s%-40.40s%-40.40s", m_modeinfo.callsign.toStdString().c_str(),
                       m_freq.toUInt(), m_freq.toUInt(), 1, 1, latitude, longitude, 0, m_location.toStdString().c_str(), m_desc.toStdString().c_str(), '4',
                       m_url.toStdString().c_str(), m_swid.toStdString().c_str(), m_pkid.toStdString().c_str());

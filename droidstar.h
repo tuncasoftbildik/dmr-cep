@@ -22,6 +22,7 @@
 #include <QObject>
 #include "mode.h"
 #include "audioengine.h"  // Make sure AudioEngine is included
+#include "phonegps.h"
 
 class DroidStar : public QObject
 {
@@ -65,11 +66,20 @@ public:
     // TX voice tone: 0 natural, 1 thin (300 Hz high-pass), 2 very thin (500 Hz)
     Q_INVOKABLE int get_tx_tone() const { return m_txTone; }
     Q_INVOKABLE void set_tx_tone(int tone);
+    // Phone position as DMR hotspot location (BrandMeister map / aprs.fi) instead of the manual
+    // latitude/longitude. Persisted as USEPHONEGPS, off by default.
+    Q_INVOKABLE bool get_use_phone_gps() const { return m_usePhoneGps; }
+    Q_INVOKABLE void set_use_phone_gps(bool on);
+    // Short English status, e.g. "41.0082, 28.9784 (±12 m)", "Waiting for location",
+    // "Location permission denied", "Off". Changes are signalled by gps_status_changed().
+    Q_INVOKABLE QString get_gps_status() const;
     Q_INVOKABLE void updateNowPlayingRX(const QString& callsign, const QString& name, const QString& country);
     void setup_state_change_listeners();
     
 
 signals:
+    void gps_status_changed();
+    void dmr_position_changed(QString lat, QString lon);   // to DMR::send_position (mode thread)
     void recordings_changed();
     void restart_capture_requested();
     void roger_beep_changed(int mode);
@@ -455,6 +465,20 @@ private:
     void connect_failed(const QString &reason);
     bool m_pttFramework = false;
     bool m_headphonePtt = false;
+    // Phone GPS as hotspot position. Live updates (RPTG) go to BrandMeister only, at most
+    // every kGpsUpdateMinMs and only after moving more than kGpsUpdateMinMeters.
+    PhoneGps *m_phoneGps = nullptr;
+    bool m_usePhoneGps = false;
+    QTimer *m_gpsThrottleTimer = nullptr;
+    double m_gpsSentLat = 0.0;
+    double m_gpsSentLon = 0.0;
+    qint64 m_gpsSentMs = 0;
+    bool m_gpsSentFromPhone = false;
+    QString m_rptgRejectedHost;
+    static const qint64 kGpsUpdateMinMs = 5 * 60 * 1000;
+    static constexpr double kGpsUpdateMinMeters = 200.0;
+    void apply_phone_gps();
+    void dmr_login_position(QString &lat, QString &lon);
     int m_rogerBeep = 2;
     int m_txTone = 1;
     bool m_keepPttChannel = false;   // teardown for an automatic reconnect keeps the PTT channel
@@ -470,6 +494,8 @@ private slots:
 #ifdef Q_OS_ANDROID
     void keepScreenOn();
 #endif
+    void on_phone_position();
+    void on_rptg_rejected();
     void discover_devices();
     void process_dstar_hosts(QString);
     void process_ysf_hosts();

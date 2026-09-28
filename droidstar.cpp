@@ -19,9 +19,11 @@
 #include "droidstar.h"
 #include "httpmanager.h"
 #include "rxrecorder.h"
+#include "dmrposition.h"
 #include <QUrl>
 #include <QGuiApplication>
 #include <QTimer>
+#include <QDateTime>
 #include <QNetworkInformation>
 #ifdef Q_OS_ANDROID
 #include <QCoreApplication>
@@ -153,6 +155,13 @@ DroidStar::DroidStar(QObject *parent) :
     m_USBmonitor = &AndroidSerialPort::GetInstance();
     connect(m_USBmonitor, SIGNAL(devices_changed()), this, SLOT(discover_devices()));
 #endif
+    m_phoneGps = new PhoneGps(this);
+    connect(m_phoneGps, &PhoneGps::status_changed, this, &DroidStar::gps_status_changed);
+    connect(m_phoneGps, &PhoneGps::position_changed, this, &DroidStar::on_phone_position);
+    m_gpsThrottleTimer = new QTimer(this);
+    m_gpsThrottleTimer->setSingleShot(true);
+    connect(m_gpsThrottleTimer, &QTimer::timeout, this, &DroidStar::on_phone_position);
+
     check_host_files();
     discover_devices();
     process_settings();
@@ -570,7 +579,11 @@ void DroidStar::process_connect()
                     dmrpass = m_tgif_password;
                 }
             }
-            m_mode->set_dmr_params(m_essid, dmrpass, m_latitude, m_longitude, m_location, m_description, m_freq, m_url, m_swid, m_pkgid, m_dmropts);
+            QString dmrlat, dmrlon;
+            dmr_login_position(dmrlat, dmrlon);
+            m_mode->set_dmr_params(m_essid, dmrpass, dmrlat, dmrlon, m_location, m_description, m_freq, m_url, m_swid, m_pkgid, m_dmropts);
+            connect(this, SIGNAL(dmr_position_changed(QString,QString)), m_mode, SLOT(send_position(QString,QString)));
+            connect(m_mode, SIGNAL(position_update_rejected()), this, SLOT(on_rptg_rejected()));
             connect(this, SIGNAL(dmr_tgid_changed(int)), m_mode, SLOT(dmr_tgid_changed(int)));
             connect(this, SIGNAL(dmrpc_state_changed(int)), m_mode, SLOT(dmrpc_state_changed(int)));
             connect(this, SIGNAL(slot_changed(int)), m_mode, SLOT(slot_changed(int)));
@@ -886,6 +899,7 @@ void DroidStar::save_settings()
     m_settings->setValue("TXTOGGLE", m_toggletx ? "true" : "false");
     m_settings->setValue("PTTFRAMEWORK", m_pttFramework ? "true" : "false");
     m_settings->setValue("HEADPHONEPTT", m_headphonePtt ? "true" : "false");
+    m_settings->setValue("USEPHONEGPS", m_usePhoneGps ? "true" : "false");
     m_settings->setValue("ROGERBEEP", m_rogerBeep);
     m_settings->setValue("TXTONE", m_txTone);
     m_settings->setValue("XRF2REF", m_xrf2ref ? "true" : "false");
@@ -966,6 +980,7 @@ void DroidStar::process_settings()
     m_toggletx = (m_settings->value("TXTOGGLE", "true").toString().simplified() == "true") ? true : false;
     m_pttFramework = (m_settings->value("PTTFRAMEWORK", "false").toString().simplified() == "true");
     m_headphonePtt = (m_settings->value("HEADPHONEPTT", "false").toString().simplified() == "true");
+    m_usePhoneGps = (m_settings->value("USEPHONEGPS", "false").toString().simplified() == "true");
     m_rogerBeep = m_settings->value("ROGERBEEP", 2).toInt();
     m_txTone = m_settings->value("TXTONE", 1).toInt();
     m_dstarusertxt = m_settings->value("USRTXT").toString().simplified();
@@ -1008,6 +1023,7 @@ void DroidStar::process_settings()
              << "MODE=" << m_protocol
              << "DMRHOST=" << m_saved_dmrhost;
     m_settings_processed = true;
+    apply_phone_gps();
     emit update_settings();
 }
 
@@ -1571,6 +1587,8 @@ void DroidStar::update_data(Mode::MODEINFO info)
         if(m_urcall.isEmpty()) set_urcall("CQCQCQ");
         if(m_rptr1.isEmpty()) set_rptr1(m_callsign + " " + m_module);
         emit update_log("Connected to " + m_protocol + " " + m_refname + " " + m_host + ":" + QString::number(m_port));
+        // A phone fix that arrived during the login handshake was not in RPTC.
+        QTimer::singleShot(0, this, &DroidStar::on_phone_position);
 #ifdef Q_OS_IOS
         // Notify audio session manager of connection (enables Now Playing & keep-alive)
         setAudioConnectionState(true, m_refname.toUtf8().constData(), m_protocol.toUtf8().constData());
@@ -1878,6 +1896,105 @@ void DroidStar::set_roger_beep(int mode)
     m_rogerBeep = qBound(0, mode, 3);
     save_settings();
     emit roger_beep_changed(m_rogerBeep);
+}
+
+void DroidStar::set_use_phone_gps(bool on)
+{
+    if(on == m_usePhoneGps){
+        return;
+    }
+    m_usePhoneGps = on;
+    save_settings();
+    apply_phone_gps();
+    emit gps_status_changed();
+}
+
+QString DroidStar::get_gps_status() const
+{
+    if(!m_usePhoneGps || !m_phoneGps){
+        return "Off";
+    }
+    return m_phoneGps->status_text();
+}
+
+void DroidStar::apply_phone_gps()
+{
+    if(!m_phoneGps){
+        return;
+    }
+    if(m_usePhoneGps){
+        m_phoneGps->start();
+    }
+    else{
+        m_phoneGps->stop();
+        m_gpsThrottleTimer->stop();
+    }
+}
+
+// Position for the RPTC login packet: the phone fix when enabled and available, else the
+// manual settings. Remembered as the last position the master knows about.
+void DroidStar::dmr_login_position(QString &lat, QString &lon)
+{
+    m_gpsThrottleTimer->stop();
+    m_gpsSentMs = QDateTime::currentMSecsSinceEpoch();
+    if(m_usePhoneGps && m_phoneGps && m_phoneGps->has_fix()){
+        m_gpsSentLat = m_phoneGps->latitude();
+        m_gpsSentLon = m_phoneGps->longitude();
+        m_gpsSentFromPhone = true;
+        lat = QString::number(m_gpsSentLat, 'f', 4);
+        lon = QString::number(m_gpsSentLon, 'f', 4);
+        emit update_log("DMR: using phone position " + lat + ", " + lon);
+        return;
+    }
+    lat = m_latitude;
+    lon = m_longitude;
+    m_gpsSentLat = m_latitude.toDouble();
+    m_gpsSentLon = m_longitude.toDouble();
+    m_gpsSentFromPhone = false;
+    if(m_usePhoneGps){
+        emit update_log("DMR: no phone position yet, logging in with the manual location");
+    }
+}
+
+// Live position update while linked. RPTG goes to BrandMeister only (the network DMRGateway
+// enables it for); other masters get the phone position at the next login.
+void DroidStar::on_phone_position()
+{
+    if(!m_usePhoneGps || !m_phoneGps || !m_phoneGps->has_fix()){
+        return;
+    }
+    if((connect_status != Mode::CONNECTED_RW) || (m_protocol != "DMR") || !m_mode){
+        return;
+    }
+    if(!m_refname.startsWith("BM") || (m_rptgRejectedHost == m_host)){
+        return;
+    }
+    const double lat = m_phoneGps->latitude();
+    const double lon = m_phoneGps->longitude();
+    if(dmr_distance_m(m_gpsSentLat, m_gpsSentLon, lat, lon) < kGpsUpdateMinMeters){
+        return;
+    }
+    // Replacing the manual login position with the first phone fix is not throttled.
+    if(m_gpsSentFromPhone){
+        const qint64 wait = m_gpsSentMs + kGpsUpdateMinMs - QDateTime::currentMSecsSinceEpoch();
+        if(wait > 0){
+            if(!m_gpsThrottleTimer->isActive()){
+                m_gpsThrottleTimer->start(int(wait) + 1000);
+            }
+            return;
+        }
+    }
+    m_gpsSentLat = lat;
+    m_gpsSentLon = lon;
+    m_gpsSentMs = QDateTime::currentMSecsSinceEpoch();
+    m_gpsSentFromPhone = true;
+    emit dmr_position_changed(QString::number(lat, 'f', 4), QString::number(lon, 'f', 4));
+}
+
+void DroidStar::on_rptg_rejected()
+{
+    m_rptgRejectedHost = m_host;
+    m_gpsThrottleTimer->stop();
 }
 
 void DroidStar::set_headphone_ptt(bool on)

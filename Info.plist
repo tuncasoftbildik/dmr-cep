@@ -63,6 +63,8 @@
 	<string>We need Bluetooth access to use your device's microphone.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the microphone to transmit audio</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your position is sent to the DMR network (BrandMeister) as your hotspot location, rounded to about 10 m, when you turn on "Use phone location" in Settings.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>You know you want to...</string>
 	<key>NSSupportsLiveActivities</key>
