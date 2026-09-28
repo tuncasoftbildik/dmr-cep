@@ -61,6 +61,14 @@ private:
     int m_tx_peak = 0;
     bool m_tx_logged = false;
     bool m_tx_mic_restarted = false;
+    // Last TX kept as two 8 kHz WAVs in AppData: what went into the vocoder (tx_last_mic.wav)
+    // and what a listener decodes from our AMBE (tx_last_decoded.wav).
+    QByteArray m_tx_mic_pcm;
+    QByteArray m_tx_loop_pcm;
+#ifndef VOCODER_PLUGIN
+    VocoderPlugin *m_tx_loop_vocoder = nullptr;
+#endif
+    void save_tx_debug_audio();
     static const qint64 RX_WATCHDOG_MS = 20000;
     void report_connection_lost(const QString &reason);
     void record_rx(const int16_t *pcm);

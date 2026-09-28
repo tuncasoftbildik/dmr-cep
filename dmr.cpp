@@ -18,6 +18,10 @@
 #include <iostream>
 #include <cstring>
 #include <QDateTime>
+#include <cmath>
+#include <QStandardPaths>
+#include <QFile>
+#include <QDir>
 #include "dmr.h"
 #include "cgolay2087.h"
 #include "crs129.h"
@@ -376,6 +380,40 @@ void DMR::hostname_lookup(QHostInfo i)
     }
 }
 
+static void write_wav_8k(const QString &path, const QByteArray &pcm)
+{
+    QFile f(path);
+    if(!f.open(QIODevice::WriteOnly)) return;
+    QByteArray h;
+    auto le32 = [&h](quint32 v){ for(int i = 0; i < 4; ++i) h.append(char((v >> (8 * i)) & 0xff)); };
+    auto le16 = [&h](quint16 v){ h.append(char(v & 0xff)); h.append(char(v >> 8)); };
+    h.append("RIFF"); le32(36 + pcm.size()); h.append("WAVE");
+    h.append("fmt "); le32(16); le16(1); le16(1); le32(8000); le32(16000); le16(2); le16(16);
+    h.append("data"); le32(pcm.size());
+    f.write(h);
+    f.write(pcm);
+}
+
+static double rms_dbfs(const QByteArray &pcm)
+{
+    const int16_t *s = reinterpret_cast<const int16_t *>(pcm.constData());
+    const int n = pcm.size() / 2;
+    if(n == 0) return -120.0;
+    double acc = 0;
+    for(int i = 0; i < n; ++i) acc += double(s[i]) * s[i];
+    return 20.0 * std::log10(std::sqrt(acc / n) / 32768.0 + 1e-9);
+}
+
+void DMR::save_tx_debug_audio()
+{
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir().mkpath(dir);
+    write_wav_8k(dir + "/tx_last_mic.wav", m_tx_mic_pcm);
+    write_wav_8k(dir + "/tx_last_decoded.wav", m_tx_loop_pcm);
+    qDebug() << "DMR TX audio saved:" << m_tx_mic_pcm.size() / 16000.0 << "s, mic RMS"
+             << rms_dbfs(m_tx_mic_pcm) << "dBFS, decoded RMS" << rms_dbfs(m_tx_loop_pcm) << "dBFS";
+}
+
 void DMR::send_handshake(const QByteArray &out)
 {
     m_last_handshake = out;
@@ -529,6 +567,8 @@ void DMR::transmit()
 #endif
     if(m_tx && !m_tx_logged){
         m_tx_logged = true;
+        m_tx_mic_pcm.clear();
+        m_tx_loop_pcm.clear();
         m_tx_frames = 0;
         m_tx_starved = 0;
         m_tx_peak = 0;
@@ -567,6 +607,15 @@ void DMR::transmit()
             md380_encode_fec(ambe, pcm);
 #else
             m_mbevocoder->encode_2450x1150(pcm, ambe);
+#endif
+        }
+        if(m_tx && m_modeinfo.sw_vocoder_loaded && (m_tx_mic_pcm.size() < 8000 * 2 * 60)){
+            m_tx_mic_pcm.append(reinterpret_cast<const char *>(pcm), 160 * 2);
+#if !defined(VOCODER_PLUGIN) && !defined(USE_MD380_VOCODER)
+            if(!m_tx_loop_vocoder) m_tx_loop_vocoder = new VocoderPlugin();
+            int16_t loop[160];
+            m_tx_loop_vocoder->decode_2450x1150(loop, ambe);
+            m_tx_loop_pcm.append(reinterpret_cast<const char *>(loop), 160 * 2);
 #endif
         }
         for(int i = 0; i < 9; ++i){
@@ -632,6 +681,7 @@ void DMR::send_frame()
         qDebug() << "DMR TX end: voice frames" << m_tx_frames << "mic starved ticks" << m_tx_starved
                  << "mic bytes" << m_audio->captured_bytes() << "peak level" << m_tx_peak;
         m_tx_logged = false;
+        save_tx_debug_audio();
         get_eot();
         build_frame();
         m_ttscnt = 0;
