@@ -398,8 +398,54 @@ void DMR::apply_tx_gain(int16_t *pcm, int n)
     }
     float g = m_tx_gain;
     if(peak * g > 30000.0f) g = 30000.0f / float(qMax(peak, 1));
+    // Ramp from the previous block's gain to avoid zipper noise at 20 ms boundaries.
+    static float last_g = 4.0f;
     for(int i = 0; i < n; ++i){
-        pcm[i] = int16_t(qBound(-32767.0f, pcm[i] * g, 32767.0f));
+        const float gi = last_g + (g - last_g) * float(i + 1) / float(n);
+        pcm[i] = int16_t(qBound(-32767.0f, pcm[i] * gi, 32767.0f));
+    }
+    last_g = g;
+}
+
+// Fixed boost with a tanh soft limiter so loud stations do not crackle.
+void DMR::apply_rx_gain(int16_t *pcm, int n)
+{
+    for(int i = 0; i < n; ++i){
+        const float x = pcm[i] * m_rx_gain / 32768.0f;
+        pcm[i] = int16_t(std::tanh(x) * 30000.0f);
+    }
+}
+
+static DMR::Bq make_bq(double b0, double b1, double b2, double a0, double a1, double a2)
+{
+    DMR::Bq q;
+    q.b0 = float(b0 / a0); q.b1 = float(b1 / a0); q.b2 = float(b2 / a0);
+    q.a1 = float(a1 / a0); q.a2 = float(a2 / a0);
+    return q;
+}
+
+void DMR::tx_shape(int16_t *pcm, int n)
+{
+    if(!m_tx_filters_ready){
+        const double fs = 8000.0;
+        // RBJ high-pass, 250 Hz, Q 0.707
+        double w = 2 * M_PI * 250.0 / fs, al = std::sin(w) / (2 * 0.707), c = std::cos(w);
+        m_tx_hpf = make_bq((1 + c) / 2, -(1 + c), (1 + c) / 2, 1 + al, -2 * c, 1 - al);
+        // RBJ peaking EQ, 2200 Hz, Q 0.9, +6 dB
+        const double A = std::pow(10.0, 6.0 / 40.0);
+        w = 2 * M_PI * 2200.0 / fs; al = std::sin(w) / (2 * 0.9); c = std::cos(w);
+        m_tx_peq = make_bq(1 + al * A, -2 * c, 1 - al * A, 1 + al / A, -2 * c, 1 - al / A);
+        m_tx_filters_ready = true;
+    }
+    for(int i = 0; i < n; ++i){
+        float x = pcm[i];
+        for(Bq *q : {&m_tx_hpf, &m_tx_peq}){
+            const float y = q->b0 * x + q->z1;
+            q->z1 = q->b1 * x - q->a1 * y + q->z2;
+            q->z2 = q->b2 * x - q->a2 * y;
+            x = y;
+        }
+        pcm[i] = int16_t(qBound(-32767.0f, x, 32767.0f));
     }
 }
 
@@ -601,6 +647,7 @@ void DMR::transmit()
     if(m_ttsid == 0){
         if(m_audio->read(pcm, 160)){
             if(m_audio->level() > m_tx_peak) m_tx_peak = m_audio->level();
+            tx_shape(pcm, 160);
             apply_tx_gain(pcm, 160);
         }
         else if(!m_tx){
@@ -609,8 +656,9 @@ void DMR::transmit()
             return;
         }
         else{
-            // No microphone data yet. If it stays silent for ~0.5 s, reopen the mic once.
-            if((++m_tx_starved == 8) && !m_tx_mic_restarted){
+            // No microphone data. Only if the mic has delivered nothing at all for ~0.6 s reopen it
+            // once; restarting a working mic mid-sentence caused an audible pop.
+            if((++m_tx_starved >= 30) && !m_tx_mic_restarted && (m_audio->captured_bytes() == 0)){
                 m_tx_mic_restarted = true;
                 qDebug() << "DMR TX: microphone delivered" << m_audio->captured_bytes() << "bytes, restarting capture";
                 m_audio->stop_capture();
@@ -1158,6 +1206,7 @@ void DMR::process_rx_data()
             else{
                 memset(pcm, 0, 160 * sizeof(int16_t));
             }
+            apply_rx_gain(pcm, 160);
             record_rx(pcm);
             ++m_rx_frames_decoded;
             m_audio->write(pcm, 160);

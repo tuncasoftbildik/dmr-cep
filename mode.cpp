@@ -169,7 +169,14 @@ void Mode::mmdvm_connect_status(bool s)
 
 void Mode::in_audio_vol_changed(qreal v)
 {
+#ifdef Q_OS_IOS
+    // The /m_attenuation (5x) cut is meant for hot desktop mics; on the iPhone it left the mic at
+    // 10% (~-44 dBFS) and the TX sounded thin through the vocoder. Use full level, TX AGC does the rest.
+    Q_UNUSED(v);
+    m_audio->set_input_volume(1.0);
+#else
     m_audio->set_input_volume(v / m_attenuation);
+#endif
 }
 
 void Mode::out_audio_vol_changed(qreal v)

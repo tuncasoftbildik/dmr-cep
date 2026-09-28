@@ -75,6 +75,16 @@ private:
     // TX automatic gain (iPhone mic arrives around -40 dBFS).
     float m_tx_gain = 4.0f;
     void apply_tx_gain(int16_t *pcm, int n);
+    // TX voice shaping at 8 kHz before the vocoder: 250 Hz high-pass + presence peak at 2.2 kHz.
+public:
+    struct Bq { float b0, b1, b2, a1, a2, z1 = 0, z2 = 0; };
+private:
+    Bq m_tx_hpf{}, m_tx_peq{};
+    bool m_tx_filters_ready = false;
+    void tx_shape(int16_t *pcm, int n);
+    // RX output gain with a soft limiter (decoded AMBE is quiet on the iPhone speaker).
+    float m_rx_gain = 6.0f;
+    void apply_rx_gain(int16_t *pcm, int n);
     static const qint64 RX_WATCHDOG_MS = 20000;
     void report_connection_lost(const QString &reason);
     void record_rx(const int16_t *pcm);
