@@ -29,6 +29,7 @@ ColumnLayout {
 
     required property var droidstarRef
     property int maxItems: 0
+    property bool excludeOwn: false      // main screen: only other stations
     property bool allowDelete: maxItems === 0
 
     property var recordings: []
@@ -40,6 +41,7 @@ ColumnLayout {
     function refresh() {
         if (!droidstarRef) return
         var all = droidstarRef.loadRecordings()
+        if (excludeOwn) all = all.filter(function(r) { return !r.own })
         recordings = (maxItems > 0) ? all.slice(0, maxItems) : all
     }
 
@@ -113,7 +115,9 @@ ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 0
                 Label {
-                    text: (root.maxItems > 0 ? qsTr("Replay last: ") : "") + modelData.callsign
+                    text: (root.maxItems > 0 ? qsTr("Replay last: ") : "")
+                          + (modelData.own ? qsTr("You (as heard by others)") : modelData.callsign)
+                    color: modelData.own ? t.warning : t.text
                     font.pixelSize: 13
                     elide: Text.ElideRight
                     Layout.fillWidth: true

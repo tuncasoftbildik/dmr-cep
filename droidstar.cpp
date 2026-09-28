@@ -2001,6 +2001,7 @@ QVariantList DroidStar::loadRecordings() const {
         m["src"] = src;
         m["dst"] = parts.at(2).toUInt();
         m["callsign"] = m_dmrids.contains(src) ? m_dmrids.value(src) : QString::number(src);
+        m["own"] = (src == m_dmrid);
         m["time"] = ts.isValid() ? ts.toMSecsSinceEpoch() : fi.lastModified().toMSecsSinceEpoch();
         m["seconds"] = qMax<qint64>(0, (fi.size() - 44) / (RxRecorder::kSampleRate * 2));
         out.append(m);

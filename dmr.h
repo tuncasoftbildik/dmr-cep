@@ -65,6 +65,7 @@ private:
     // and what a listener decodes from our AMBE (tx_last_decoded.wav).
     QByteArray m_tx_mic_pcm;
     QByteArray m_tx_loop_pcm;
+    qint64 m_tx_start_ms = 0;
 #ifndef VOCODER_PLUGIN
     VocoderPlugin *m_tx_loop_vocoder = nullptr;
 #endif

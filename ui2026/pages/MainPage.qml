@@ -609,6 +609,7 @@ Page {
                 visible: !page.receiving && !page.onAir
                 droidstarRef: page.droidstarRef
                 maxItems: 1
+                excludeOwn: true
             }
 
             Item { Layout.fillHeight: true }

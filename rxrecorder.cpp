@@ -56,21 +56,24 @@ QString RxRecorder::finish()
 {
     if (!m_active) return QString();
     m_active = false;
+    const QString path = writeRecording(m_src, m_dst, m_startMs, m_pcm);
+    m_pcm.clear();
+    return path;
+}
 
-    const qint64 durMs = (qint64)m_pcm.size() * 1000 / (kSampleRate * 2);
-    if (durMs < kMinMs) {
-        m_pcm.clear();
-        return QString();
-    }
+QString RxRecorder::writeRecording(uint32_t src, uint32_t dst, qint64 startMs, const QByteArray &pcm)
+{
+    const qint64 durMs = (qint64)pcm.size() * 1000 / (kSampleRate * 2);
+    if (durMs < kMinMs) return QString();
 
     QDir().mkpath(recordingsDir());
-    const QString name = QDateTime::fromMSecsSinceEpoch(m_startMs).toString("yyyyMMdd-HHmmss-zzz")
-                         + "_" + QString::number(m_src) + "_" + QString::number(m_dst) + ".wav";
+    const QString name = QDateTime::fromMSecsSinceEpoch(startMs).toString("yyyyMMdd-HHmmss-zzz")
+                         + "_" + QString::number(src) + "_" + QString::number(dst) + ".wav";
     const QString path = recordingsDir() + "/" + name;
 
     QByteArray hdr;
     hdr.append("RIFF");
-    putLE32(hdr, 36 + m_pcm.size());
+    putLE32(hdr, 36 + pcm.size());
     hdr.append("WAVE");
     hdr.append("fmt ");
     putLE32(hdr, 16);
@@ -81,18 +84,16 @@ QString RxRecorder::finish()
     putLE16(hdr, 2);                    // block align
     putLE16(hdr, 16);                   // bits per sample
     hdr.append("data");
-    putLE32(hdr, m_pcm.size());
+    putLE32(hdr, pcm.size());
 
     QFile f(path);
     if (!f.open(QIODevice::WriteOnly)) {
         qDebug() << "RxRecorder: cannot write" << path << f.errorString();
-        m_pcm.clear();
         return QString();
     }
     f.write(hdr);
-    f.write(m_pcm);
+    f.write(pcm);
     f.close();
-    m_pcm.clear();
 
     prune();
     return path;

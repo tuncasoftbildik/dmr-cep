@@ -511,6 +511,9 @@ void DMR::save_tx_debug_audio()
     write_wav_8k(dir + "/tx_last_decoded.wav", m_tx_loop_pcm);
     qDebug() << "DMR TX audio saved:" << m_tx_mic_pcm.size() / 16000.0 << "s, mic RMS"
              << rms_dbfs(m_tx_mic_pcm) << "dBFS, decoded RMS" << rms_dbfs(m_tx_loop_pcm) << "dBFS";
+    // Also keep it in the replay list: what the other side heard (vocoder round trip, tones included).
+    const QString path = RxRecorder::writeRecording(m_dmrid, m_txdstid, m_tx_start_ms, m_tx_loop_pcm);
+    if (!path.isEmpty()) emit recording_saved(path);
 }
 
 void DMR::send_handshake(const QByteArray &out)
@@ -701,6 +704,7 @@ void DMR::transmit()
         m_tx_logged = true;
         m_tx_mic_pcm.clear();
         m_tx_loop_pcm.clear();
+        m_tx_start_ms = QDateTime::currentMSecsSinceEpoch();
         m_tx_frames = 0;
         m_tx_starved = 0;
         m_tx_peak = 0;

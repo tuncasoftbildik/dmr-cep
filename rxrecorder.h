@@ -45,6 +45,10 @@ public:
     // Writes the file if long enough. Returns the file path, or an empty string when nothing was saved.
     QString finish();
 
+    // Write an 8 kHz mono recording with the standard name (also used for our own TX, decoded as
+    // the other side hears it). Returns the path, or empty if shorter than kMinMs.
+    static QString writeRecording(uint32_t src, uint32_t dst, qint64 startMs, const QByteArray &pcm);
+
 private:
     static void prune();
 

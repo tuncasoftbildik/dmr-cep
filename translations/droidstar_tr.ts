@@ -175,13 +175,13 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 <context>
     <name>MainPage</name>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="780" />
+        <location filename="../ui2026/pages/MainPage.qml" line="781" />
         <source>Connection</source>
         <translation>Bağlantı</translation>
     </message>
     <message>
         <location filename="../ui2026/pages/MainPage.qml" line="319" />
-        <location filename="../ui2026/pages/MainPage.qml" line="659" />
+        <location filename="../ui2026/pages/MainPage.qml" line="660" />
         <source>Connecting…</source>
         <translation>Bağlanıyor…</translation>
     </message>
@@ -202,13 +202,13 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
     </message>
     <message>
         <location filename="../ui2026/pages/MainPage.qml" line="409" />
-        <location filename="../ui2026/pages/MainPage.qml" line="749" />
+        <location filename="../ui2026/pages/MainPage.qml" line="750" />
         <source>Private call</source>
         <translation>Özel arama</translation>
     </message>
     <message>
         <location filename="../ui2026/pages/MainPage.qml" line="409" />
-        <location filename="../ui2026/pages/MainPage.qml" line="704" />
+        <location filename="../ui2026/pages/MainPage.qml" line="705" />
         <source>Talkgroup</source>
         <translation>Konuşma grubu</translation>
     </message>
@@ -238,58 +238,58 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <translation>Son duyulan</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="687" />
+        <location filename="../ui2026/pages/MainPage.qml" line="688" />
         <source>Tap to connect to %1</source>
         <translation>%1 sunucusuna bağlanmak için dokun</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="788" />
+        <location filename="../ui2026/pages/MainPage.qml" line="789" />
         <source>Mode</source>
         <translation>Mod</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="789" />
+        <location filename="../ui2026/pages/MainPage.qml" line="790" />
         <source>Host</source>
         <translation>Sunucu</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="818" />
+        <location filename="../ui2026/pages/MainPage.qml" line="819" />
         <source>Host...</source>
         <translation>Sunucu...</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="850" />
+        <location filename="../ui2026/pages/MainPage.qml" line="851" />
         <source>Module</source>
         <translation>Modül</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="851" />
+        <location filename="../ui2026/pages/MainPage.qml" line="852" />
         <source>Slot</source>
         <translation>Slot</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="852" />
+        <location filename="../ui2026/pages/MainPage.qml" line="853" />
         <source>CC</source>
         <translation>CC</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="853" />
+        <location filename="../ui2026/pages/MainPage.qml" line="854" />
         <source>CAN</source>
         <translation>CAN</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="900" />
+        <location filename="../ui2026/pages/MainPage.qml" line="901" />
         <source>Audio</source>
         <translation>Ses</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="715" />
+        <location filename="../ui2026/pages/MainPage.qml" line="716" />
         <source>Talkgroup ID</source>
         <translation>Konuşma Grubu (TG)</translation>
     </message>
     <message>
         <location filename="../ui2026/pages/MainPage.qml" line="316" />
-        <location filename="../ui2026/pages/MainPage.qml" line="658" />
+        <location filename="../ui2026/pages/MainPage.qml" line="659" />
         <source>On air</source>
         <translation>Yayında</translation>
     </message>
@@ -314,7 +314,7 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <translation>Favorilere ekle</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="730" />
+        <location filename="../ui2026/pages/MainPage.qml" line="731" />
         <source>Recent</source>
         <translation>Son</translation>
     </message>
@@ -334,65 +334,65 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <translation>%1 sil</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="887" />
+        <location filename="../ui2026/pages/MainPage.qml" line="888" />
         <source>DTMF digits</source>
         <translation>DTMF rakamları</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="888" />
+        <location filename="../ui2026/pages/MainPage.qml" line="889" />
         <source>Send</source>
         <translation>Gönder</translation>
     </message>
     <message>
         <location filename="../ui2026/pages/MainPage.qml" line="375" />
-        <location filename="../ui2026/pages/MainPage.qml" line="893" />
+        <location filename="../ui2026/pages/MainPage.qml" line="894" />
         <source>Cancel</source>
         <translation>İptal</translation>
     </message>
     <message>
         <location filename="../ui2026/pages/MainPage.qml" line="375" />
-        <location filename="../ui2026/pages/MainPage.qml" line="893" />
+        <location filename="../ui2026/pages/MainPage.qml" line="894" />
         <source>Disconnect</source>
         <translation>Bağlantıyı Kes</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="659" />
-        <location filename="../ui2026/pages/MainPage.qml" line="893" />
+        <location filename="../ui2026/pages/MainPage.qml" line="660" />
+        <location filename="../ui2026/pages/MainPage.qml" line="894" />
         <source>Connect</source>
         <translation>Bağlan</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="905" />
+        <location filename="../ui2026/pages/MainPage.qml" line="906" />
         <source>Voice tone</source>
         <translation>Ses tonu</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="908" />
+        <location filename="../ui2026/pages/MainPage.qml" line="909" />
         <source>Natural</source>
         <translation>Doğal</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="908" />
+        <location filename="../ui2026/pages/MainPage.qml" line="909" />
         <source>Thin (300 Hz)</source>
         <translation>İnce (300 Hz)</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="908" />
+        <location filename="../ui2026/pages/MainPage.qml" line="909" />
         <source>Very thin (500 Hz)</source>
         <translation>Çok ince (500 Hz)</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="917" />
+        <location filename="../ui2026/pages/MainPage.qml" line="918" />
         <source>Mic</source>
         <translation>Mikrofon</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="688" />
+        <location filename="../ui2026/pages/MainPage.qml" line="689" />
         <source>Tap to toggle TX</source>
         <translation>TX'i açıp kapatmak için dokun</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="688" />
+        <location filename="../ui2026/pages/MainPage.qml" line="689" />
         <source>Hold to transmit (PTT)</source>
         <translation>Konuşmak için basılı tut (PTT)</translation>
     </message>
@@ -548,14 +548,19 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 <context>
     <name>ReplayList</name>
     <message>
-        <location filename="../ui2026/components/ReplayList.qml" line="78" />
+        <location filename="../ui2026/components/ReplayList.qml" line="80" />
         <source>No recordings yet. Received transmissions longer than 1 s are kept (last 30).</source>
-        <translation>Henüz kayıt yok. 1 saniyeden uzun gelen yayınlar saklanır (son 30).</translation>
+        <translation>Henüz kayıt yok. 1 saniyeden uzun gelen yayınlar ve kendi yayınların saklanır (son 30).</translation>
     </message>
     <message>
-        <location filename="../ui2026/components/ReplayList.qml" line="116" />
+        <location filename="../ui2026/components/ReplayList.qml" line="118" />
         <source>Replay last: </source>
         <translation>Son yayını dinle: </translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ReplayList.qml" line="119" />
+        <source>You (as heard by others)</source>
+        <translation>Sen (karşının duyduğu)</translation>
     </message>
 </context>
 <context>
