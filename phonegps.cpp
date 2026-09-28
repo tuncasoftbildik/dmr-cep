@@ -26,23 +26,23 @@ QString PhoneGps::status_text() const
 {
     switch(m_state){
     case Off:
-        return "Off";
+        return tr("Off");
     case NeedPermission:
-        return "Waiting for permission";
+        return tr("Waiting for permission");
     case Denied:
-        return "Location permission denied";
+        return tr("Location permission denied");
     case ServicesOff:
-        return "Location services are off";
+        return tr("Location services are off");
     case Waiting:
-        return "Waiting for location";
+        return tr("Waiting for location");
     case Fix:
         return QString("%1, %2 (±%3 m)").arg(m_lat, 0, 'f', 4).arg(m_lon, 0, 'f', 4).arg(qRound(m_accuracy));
     case Unavailable:
     default:
 #if defined(Q_OS_IOS)
-        return "Location unavailable";
+        return tr("Location unavailable");
 #else
-        return "Not available on this platform";
+        return tr("Not available on this platform");
 #endif
     }
 }

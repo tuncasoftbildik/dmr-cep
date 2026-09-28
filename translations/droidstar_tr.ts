@@ -456,6 +456,44 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
     </message>
 </context>
 <context>
+    <name>PhoneGps</name>
+    <message>
+        <location filename="../phonegps.cpp" line="29" />
+        <source>Off</source>
+        <translation>Kapalı</translation>
+    </message>
+    <message>
+        <location filename="../phonegps.cpp" line="31" />
+        <source>Waiting for permission</source>
+        <translation>İzin bekleniyor</translation>
+    </message>
+    <message>
+        <location filename="../phonegps.cpp" line="33" />
+        <source>Location permission denied</source>
+        <translation>Konum izni reddedildi</translation>
+    </message>
+    <message>
+        <location filename="../phonegps.cpp" line="35" />
+        <source>Location services are off</source>
+        <translation>Konum servisleri kapalı</translation>
+    </message>
+    <message>
+        <location filename="../phonegps.cpp" line="37" />
+        <source>Waiting for location</source>
+        <translation>Konum bekleniyor</translation>
+    </message>
+    <message>
+        <location filename="../phonegps.cpp" line="43" />
+        <source>Location unavailable</source>
+        <translation>Konum alınamıyor</translation>
+    </message>
+    <message>
+        <location filename="../phonegps.cpp" line="45" />
+        <source>Not available on this platform</source>
+        <translation>Bu platformda yok</translation>
+    </message>
+</context>
+<context>
     <name>QsoPage</name>
     <message>
         <location filename="../ui2026/pages/QsoPage.qml" line="29" />
