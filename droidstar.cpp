@@ -403,6 +403,9 @@ void DroidStar::process_connect()
         m_pttTalker.clear();
 #endif
         emit connect_status_changed(0);
+#ifdef Q_OS_IOS
+        setAudioReconnectHold(false);
+#endif
         emit update_log("Auto-reconnect cancelled");
         live_activity_sync();
         return;
@@ -427,7 +430,9 @@ void DroidStar::process_connect()
         m_data5.clear();
         m_data6.clear();
 #ifdef Q_OS_IOS
-        // Notify audio session manager of disconnection (clears Now Playing)
+        // Notify audio session manager of disconnection (clears Now Playing).
+        // m_keepPttChannel is only set when the link died and a reconnect follows.
+        setAudioReconnectHold(m_keepPttChannel);
         setAudioConnectionState(false, "", "");
 #endif
         emit connect_status_changed(0);
@@ -657,6 +662,9 @@ void DroidStar::schedule_reconnect(const QString &reason, int delayMs)
     emit update_log(reason + " - retrying in " + QString::number(delayMs / 1000) + " s (" +
                     QString::number(m_reconnectAttempt) + "/" + QString::number(kMaxReconnectAttempts) + ")");
     m_reconnectTimer->start(delayMs);
+#ifdef Q_OS_IOS
+    setAudioReconnectHold(true);
+#endif
     // Keep the UI in "connecting" so the button reads Cancel during the wait.
     emit connect_status_changed(1);
     live_activity_sync();
@@ -726,6 +734,7 @@ void DroidStar::connect_failed(const QString &reason)
     m_data5.clear();
     m_data6.clear();
 #ifdef Q_OS_IOS
+    setAudioReconnectHold(retry);
     setAudioConnectionState(false, "", "");
 #endif
     emit update_log(m_errortxt);
@@ -1643,6 +1652,7 @@ void DroidStar::update_data(Mode::MODEINFO info)
 #ifdef Q_OS_IOS
         // Notify audio session manager of connection (enables Now Playing & keep-alive)
         setAudioConnectionState(true, m_refname.toUtf8().constData(), m_protocol.toUtf8().constData());
+        setAudioReconnectHold(false);
 #endif
 
         if(info.sw_vocoder_loaded){

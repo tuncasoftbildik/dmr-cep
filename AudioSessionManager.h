@@ -40,6 +40,8 @@ void ensureAudioSessionActive(void);
 
 // Now Playing / Lock Screen / Control Center state updates
 void setAudioConnectionState(bool connected, const char *host, const char *mode);
+// Keep background audio alive while an automatic reconnect is pending.
+void setAudioReconnectHold(bool hold);
 void setAudioRXState(const char *callsign, const char *name, const char *country);
 void setAudioTXState(bool transmitting);
 void clearAudioRXState(void);

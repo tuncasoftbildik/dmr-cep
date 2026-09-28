@@ -36,6 +36,7 @@ static void (*g_pttReleaseCallback)(void) = NULL;
     BOOL _isAudioSessionActive;
     BOOL _isHandlingRouteChange;
     BOOL _isConnected;
+    BOOL _reconnectHold;   // link dropped, auto-reconnect pending: keep the silent player so iOS doesn't suspend us
     BOOL _isTransmitting;
     BOOL _isReceiving;
     
@@ -73,6 +74,7 @@ static void (*g_pttReleaseCallback)(void) = NULL;
 
 // State updates from app
 - (void)setConnectionState:(BOOL)connected host:(NSString *)host mode:(NSString *)mode;
+- (void)setReconnectHold:(BOOL)hold;
 - (void)setCurrentRX:(NSString *)callsign name:(NSString *)name country:(NSString *)country;
 - (void)setTransmitting:(BOOL)transmitting;
 - (void)clearCurrentRX;
@@ -598,10 +600,23 @@ static void (*g_pttReleaseCallback)(void) = NULL;
     } else {
         _playbackStartTime = 0;
         [self stopNowPlayingTimer];
-        [self stopKeepAliveAudio];
+        // Between reconnect attempts nothing else plays; without the silent player iOS
+        // suspends the app and the retry timer freezes until the user opens it.
+        if (!_reconnectHold) [self stopKeepAliveAudio];
         [self clearCurrentRX];
         [self clearNowPlayingInfo];
-        [[UIApplication sharedApplication] endReceivingRemoteControlEvents];
+        if (!_reconnectHold) [[UIApplication sharedApplication] endReceivingRemoteControlEvents];
+    }
+}
+
+- (void)setReconnectHold:(BOOL)hold {
+    if (_reconnectHold == hold) return;
+    _reconnectHold = hold;
+    NSLog(@"[AudioSessionManager] Reconnect hold %@", hold ? @"on" : @"off");
+    if (hold) {
+        [self startKeepAliveAudio];
+    } else if (!_isConnected) {
+        [self stopKeepAliveAudio];
     }
 }
 
@@ -718,7 +733,7 @@ static void (*g_pttReleaseCallback)(void) = NULL;
         [self stopKeepAliveAudio];
         // In the background nobody may ever send "ended" (seen with the PushToTalk channel joined),
         // and without playing audio iOS suspends/kills us. Try to take the session back.
-        if (_isConnected) [self reclaimAudioSessionAttempt:0];
+        if (_isConnected || _reconnectHold) [self reclaimAudioSessionAttempt:0];
     } else if (interruptionType == AVAudioSessionInterruptionTypeEnded) {
         NSLog(@"[AudioSessionManager] Audio interruption ended");
         
@@ -736,7 +751,7 @@ static void (*g_pttReleaseCallback)(void) = NULL;
             _isAudioSessionActive = YES;
             NSLog(@"[AudioSessionManager] Audio session reactivated after interruption");
             
-            if (_isConnected) {
+            if (_isConnected || _reconnectHold) {
                 [self startKeepAliveAudio];
             }
         } else {
@@ -753,7 +768,7 @@ static void (*g_pttReleaseCallback)(void) = NULL;
     }
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((attempt == 0 ? 1.5 : 5.0) * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
-        if (!self->_isConnected || self->_isAudioSessionActive) return;
+        if (!(self->_isConnected || self->_reconnectHold) || self->_isAudioSessionActive) return;
         NSError *error = nil;
         if ([[AVAudioSession sharedInstance] setActive:YES error:&error]) {
             self->_isAudioSessionActive = YES;
@@ -883,6 +898,10 @@ extern "C" void setAudioConnectionState(bool connected, const char *host, const 
     NSString *hostStr = host ? [NSString stringWithUTF8String:host] : @"";
     NSString *modeStr = mode ? [NSString stringWithUTF8String:mode] : @"";
     [[AudioSessionManager sharedManager] setConnectionState:connected host:hostStr mode:modeStr];
+}
+
+extern "C" void setAudioReconnectHold(bool hold) {
+    [[AudioSessionManager sharedManager] setReconnectHold:hold];
 }
 
 extern "C" void setAudioRXState(const char *callsign, const char *name, const char *country) {
