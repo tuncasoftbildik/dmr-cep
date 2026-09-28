@@ -31,6 +31,7 @@
 #include "micpermission.h"
 #include "AudioSessionManager.h"
 #include "PushToTalkManager.h"
+#include "ios_live_activity.h"
 #endif
 #include <QStandardPaths>
 #include <QFile>
@@ -135,6 +136,15 @@ DroidStar::DroidStar(QObject *parent) :
         m_connectTimeoutTimer->setSingleShot(true);
         m_connectTimeoutTimer->setInterval(15000);
         connect(m_connectTimeoutTimer, &QTimer::timeout, this, &DroidStar::on_connect_timeout);
+
+        // Re-sends the Live Activity state now and then so a quiet link does not look stale.
+        m_laRefreshTimer = new QTimer(this);
+        m_laRefreshTimer->setInterval(5 * 60 * 1000);
+        connect(m_laRefreshTimer, &QTimer::timeout, this, [this]() { live_activity_sync(true); });
+#ifdef Q_OS_IOS
+        // A previous run may have been killed with its card still on the lock screen.
+        ios_live_activity_end_all();
+#endif
 
         if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
             QNetworkInformation *ni = QNetworkInformation::instance();
@@ -382,6 +392,7 @@ void DroidStar::process_connect()
 #endif
         emit connect_status_changed(0);
         emit update_log("Auto-reconnect cancelled");
+        live_activity_sync();
         return;
     }
     if(connect_status != Mode::DISCONNECTED){
@@ -409,6 +420,8 @@ void DroidStar::process_connect()
 #endif
         emit connect_status_changed(0);
         emit update_log("Disconnected");
+        // An automatic reconnect keeps the card up (it switches to "reconnecting" below).
+        if (!m_keepPttChannel) live_activity_sync();
     }
     else{
 #ifdef Q_OS_IOS
@@ -626,6 +639,7 @@ void DroidStar::schedule_reconnect(const QString &reason, int delayMs)
     m_reconnectTimer->start(delayMs);
     // Keep the UI in "connecting" so the button reads Cancel during the wait.
     emit connect_status_changed(1);
+    live_activity_sync();
 }
 
 // Link was up and died underneath us. Tear down like a manual disconnect, then re-arm.
@@ -684,6 +698,7 @@ void DroidStar::connect_failed(const QString &reason)
         m_pttTalker.clear();
 #endif
         emit connect_status_changed(5);
+        live_activity_sync();
     }
 }
 
@@ -1754,7 +1769,26 @@ void DroidStar::update_data(Mode::MODEINFO info)
         setAudioRXState(m_data1.toUtf8().constData(), "", "");
     }
 #endif
-    
+
+    // Track the talker for the Live Activity; the card keeps the last one while idle.
+    if ((info.stream_state == Mode::STREAM_NEW) || (info.stream_state == Mode::STREAMING)) {
+        QString talker = m_data1.trimmed();
+        if (talker.isEmpty()) talker = m_data2.trimmed();
+        if (!talker.isEmpty()) {
+            if (!m_laRxActive || talker != m_laTalker) m_laSinceMs = QDateTime::currentMSecsSinceEpoch();
+            m_laRxActive = true;
+            m_laTalker = talker;
+            const bool hasTg = (m_protocol == "DMR") || (m_protocol == "P25") || (m_protocol == "NXDN")
+                || (m_protocol == "YSF") || (m_protocol == "FCS");
+            m_laTg = hasTg ? m_data3.trimmed() : QString();
+        }
+    }
+    else if (m_laRxActive) {
+        m_laRxActive = false;
+        m_laSinceMs = QDateTime::currentMSecsSinceEpoch();
+    }
+    live_activity_sync();
+
     emit update_data();
 }
 
@@ -1777,6 +1811,7 @@ void DroidStar::press_tx()
     if (m_pttFramework) ptt_app_tx(true);
 #endif
     emit tx_pressed();
+    live_activity_set_tx(true);
 }
 
 void DroidStar::release_tx()
@@ -1787,6 +1822,7 @@ void DroidStar::release_tx()
     if (m_pttFramework) ptt_app_tx(false);
 #endif
     emit tx_released();
+    live_activity_set_tx(false);
 }
 
 void DroidStar::click_tx(bool tx)
@@ -1796,6 +1832,7 @@ void DroidStar::click_tx(bool tx)
     if (m_pttFramework) ptt_app_tx(tx);
 #endif
     emit tx_clicked(tx);
+    live_activity_set_tx(tx);
 }
 
 // TX requested by the system PTT UI or a handsfree button: do the TX without echoing it back.
@@ -1808,6 +1845,7 @@ void DroidStar::ptt_system_begin_tx()
 #endif
     emit tx_pressed();
     emit system_tx_changed(true);
+    live_activity_set_tx(true);
 }
 
 void DroidStar::ptt_system_end_tx()
@@ -1818,6 +1856,7 @@ void DroidStar::ptt_system_end_tx()
 #endif
     emit tx_released();
     emit system_tx_changed(false);
+    live_activity_set_tx(false);
 }
 
 // The system just activated the audio session; if we are transmitting, the mic opened before
@@ -1904,8 +1943,103 @@ void DroidStar::addRecentTGID(const QString& tgid) {
     settings.endGroup();
 }
 
+void DroidStar::live_activity_set_tx(bool tx)
+{
+    if (tx == m_laTx) return;
+    m_laTx = tx;
+    m_laSinceMs = QDateTime::currentMSecsSinceEpoch();
+    live_activity_sync();
+}
+
+// Mirrors the link state onto the iOS Live Activity: starts it once connected, updates it on
+// RX/TX changes and ends it on disconnect. Cheap when nothing changed (update_data calls this
+// for every voice frame).
+void DroidStar::live_activity_sync(bool force)
+{
+#ifdef Q_OS_IOS
+    const bool linked = (connect_status == Mode::CONNECTED_RW);
+    const bool relinking = !linked && m_autoReconnect
+        && (m_reconnectTimer->isActive() || (connect_status == Mode::CONNECTING));
+
+    if (!linked && !relinking) {
+        m_laTx = false;
+        m_laRxActive = false;
+        m_laTalker.clear();
+        m_laTg.clear();
+        m_laRefreshTimer->stop();
+        if (!m_laMode.isEmpty()) {
+            m_laMode.clear();
+            m_laKey.clear();
+            ios_live_activity_end();
+        }
+        return;
+    }
+
+    QString status = m_protocol;
+    QString ref = m_refname;
+    ref.replace('_', ' ');
+    ref = ref.simplified();
+    if (!ref.isEmpty()) {
+        if ((m_protocol == "REF") || (m_protocol == "XRF") || (m_protocol == "DCS") || (m_protocol == "M17")) {
+            ref += " " + QString(QChar(m_module));
+        }
+        status += QString::fromUtf8(" · ") + ref;
+    }
+
+    QString mode, callsign, name, country, tg;
+    if (!linked) {
+        mode = "LINK";
+    }
+    else if (m_laTx) {
+        mode = "TX";
+        callsign = m_callsign;
+        if (m_protocol == "DMR") tg = m_dmr_destid ? QString::number(m_dmr_destid) : QString();
+    }
+    else {
+        mode = m_laRxActive ? "RX" : "IDLE";
+        callsign = m_laTalker;
+        tg = m_laTg;
+        if (tg.isEmpty() && (m_protocol == "DMR") && m_dmr_destid) tg = QString::number(m_dmr_destid);
+        if (!m_laTalker.isEmpty() && (m_laNameFor.compare(m_laTalker, Qt::CaseInsensitive) == 0)) {
+            name = m_laName;
+            country = m_laCountry;
+        }
+    }
+
+    if (mode != m_laMode && (mode == "LINK" || m_laMode.isEmpty() || m_laMode == "LINK")) {
+        m_laSinceMs = QDateTime::currentMSecsSinceEpoch();
+    }
+    if (m_laSinceMs == 0) m_laSinceMs = QDateTime::currentMSecsSinceEpoch();
+
+    const QString key = QStringList{mode, callsign, name, country, tg, status, m_callsign,
+                                    QString::number(m_laSinceMs)}.join('\x1f');
+    if (!force && key == m_laKey) return;
+    m_laKey = key;
+    m_laMode = mode;
+    if (!m_laRefreshTimer->isActive()) m_laRefreshTimer->start();
+
+    ios_live_activity_update(mode.toUtf8().constData(),
+                             callsign.toUtf8().constData(),
+                             name.toUtf8().constData(),
+                             country.toUtf8().constData(),
+                             tg.toUtf8().constData(),
+                             status.toUtf8().constData(),
+                             m_callsign.toUtf8().constData(),
+                             m_laSinceMs / 1000.0);
+#else
+    Q_UNUSED(force);
+#endif
+}
+
 void DroidStar::updateNowPlayingRX(const QString& callsign, const QString& name, const QString& country)
 {
+    // Name/country come from the QML lookup, a moment after the callsign.
+    if (!callsign.trimmed().isEmpty()) {
+        m_laNameFor = callsign.trimmed();
+        m_laName = name.trimmed();
+        m_laCountry = country.trimmed();
+        live_activity_sync();
+    }
 #ifdef Q_OS_IOS
     setAudioRXState(callsign.toUtf8().constData(), 
                     name.toUtf8().constData(), 

@@ -114,22 +114,46 @@ ios:QMAKE_INFO_PLIST_EXTRA += "    <string>push-to-talk</string>"
 ios:QMAKE_INFO_PLIST_EXTRA += "</array>"
 ios:QMAKE_CXXFLAGS += -fobjc-arc
 
-# Live Activities / Dynamic Island require Swift compilation on iOS.
-# We include LiveActivityManager.swift here so it is ALWAYS part of the generated Xcode target
-# after running iOS qmake (no manual "Target Membership" re-adding each build).
-#
-# IMPORTANT:
-# - Generate the Xcode project with the iOS qmake:
-#   ./6.6.1/ios/bin/qmake ../DroidStar.pro
-# - The Widget UI is NOT in this file anymore (moved out to avoid module conflicts).
-ios:SOURCES += LiveActivityManager.swift
-ios:SOURCES += DroidStarActivityAttributes.swift
+# Live Activities / Dynamic Island (see docs/live-activity-build.md).
+# App side: the Swift files below are compiled into the main target. qmake's Xcode generator
+# only puts files with a known source extension into "Compile Sources" (otherwise they are
+# listed but never built, and NSClassFromString(@"LiveActivityManager") fails at runtime),
+# so .swift is registered as a source extension here. Xcode picks the Swift compiler by type.
+LA_SWIFT_SOURCES = LiveActivityManager.swift DroidStarActivityAttributes.swift
+ios:SOURCES += $$LA_SWIFT_SOURCES
+ios:QMAKE_EXT_CPP += .swift
+# ...which types them as C++ in the project file. This preprocess step (part of
+# qt_preprocess.mak, so it runs right after qmake) retypes them as Swift. It re-runs whenever
+# qmake rewrites the project file.
+ios {
+    swift_filetype.input = LA_SWIFT_SOURCES
+    swift_filetype.output = $$OUT_PWD/.swift_filetype.stamp
+    swift_filetype.depends = $$OUT_PWD/$${TARGET}.xcodeproj/project.pbxproj
+    swift_filetype.commands = /bin/bash $$shell_quote($$PWD/scripts/xcodeproj_swift_filetype.sh) $$shell_quote($$OUT_PWD/$${TARGET}.xcodeproj) && touch ${QMAKE_FILE_OUT}
+    swift_filetype.CONFIG = combine no_link target_predeps
+    swift_filetype.variable_out = LA_UNUSED
+    QMAKE_EXTRA_COMPILERS += swift_filetype
+}
 
-# Xcode Swift build settings (use KEY=VALUE to avoid qmake tokenization issues)
-ios:QMAKE_MAC_XCODE_SETTINGS += SWIFT_VERSION=5.0
-ios:QMAKE_MAC_XCODE_SETTINGS += CLANG_ENABLE_MODULES=YES
-ios:QMAKE_MAC_XCODE_SETTINGS += ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES
-ios:QMAKE_MAC_XCODE_SETTINGS += EMBEDDED_CONTENT_CONTAINS_SWIFT=YES
+# Xcode build settings must be name/value pairs; "KEY=VALUE" strings are written verbatim
+# as bogus setting names and have no effect.
+ios {
+    LA_SWIFT_VERSION.name = SWIFT_VERSION
+    LA_SWIFT_VERSION.value = 5.0
+    LA_CLANG_MODULES.name = CLANG_ENABLE_MODULES
+    LA_CLANG_MODULES.value = YES
+    LA_EMBED_SWIFT.name = ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES
+    LA_EMBED_SWIFT.value = NO
+    LA_SWIFT_MODULE.name = PRODUCT_MODULE_NAME
+    LA_SWIFT_MODULE.value = DroidStar
+    QMAKE_MAC_XCODE_SETTINGS += LA_SWIFT_VERSION LA_CLANG_MODULES LA_EMBED_SWIFT LA_SWIFT_MODULE
+
+    # UI side: the WidgetKit extension (ios/LiveActivityExtension) is a separate XcodeGen
+    # project. This post-link phase builds it with the same team/configuration and copies the
+    # signed .appex into DroidStar.app/PlugIns before Xcode signs the app.
+    # Set LIVEACTIVITY_SKIP=1 in the environment to build without it.
+    QMAKE_POST_LINK += /bin/bash $$shell_quote($$PWD/scripts/embed_live_activity_extension.sh)
+}
 
 
                          

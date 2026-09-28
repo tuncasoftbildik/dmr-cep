@@ -1,0 +1,38 @@
+# XcodeGen spec for the Live Activity Widget Extension.
+# Generated and built by scripts/embed_live_activity_extension.sh (called from the qmake
+# post-link phase); see docs/live-activity-build.md. Paths are relative to this file.
+name: DroidStarLiveActivity
+options:
+  deploymentTarget:
+    iOS: "16.1"
+  developmentLanguage: en
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Manual
+targets:
+  DroidStarLiveActivityExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: ../../DroidStarActivityAttributes.swift
+      - path: ../../fonts/DSEG7Classic-Bold.ttf
+        buildPhase: resources
+      - path: Resources
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_NAME: DroidStarLiveActivityExtension
+        PRODUCT_MODULE_NAME: DroidStarLiveActivityExtension
+        # INFOPLIST_FILE is passed as an absolute path by the build script (the project is
+        # generated outside this directory).
+        GENERATE_INFOPLIST_FILE: NO
+        APPLICATION_EXTENSION_API_ONLY: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+      - sdk: ActivityKit.framework

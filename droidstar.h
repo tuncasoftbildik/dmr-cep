@@ -459,6 +459,21 @@ private:
     int m_txTone = 1;
     bool m_keepPttChannel = false;   // teardown for an automatic reconnect keeps the PTT channel
     QString m_pttTalker;
+    // iOS Live Activity (lock screen / Dynamic Island card). DroidStar drives it directly so
+    // it follows the link even while the UI is suspended.
+    void live_activity_sync(bool force = false);
+    void live_activity_set_tx(bool tx);
+    QTimer *m_laRefreshTimer = nullptr;
+    QString m_laMode;           // mode of the running activity; empty = none
+    QString m_laKey;            // last pushed content, so per-frame update_data calls are free
+    QString m_laTalker;         // current (or last heard) talker
+    QString m_laName;
+    QString m_laCountry;
+    QString m_laNameFor;        // talker the name/country above belong to
+    QString m_laTg;
+    bool m_laRxActive = false;
+    bool m_laTx = false;
+    qint64 m_laSinceMs = 0;
     QString ptt_channel_name() const;
     void ptt_sync_channel();
  

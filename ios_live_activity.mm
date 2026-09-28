@@ -25,39 +25,35 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
+// LiveActivityManager is a Swift class compiled into the main target (DroidStar.pro adds
+// the .swift files to Compile Sources). It is looked up at runtime so this file needs no
+// generated Swift header and still links on iOS < 16.1.
 static inline Class liveActivityManagerClass(void)
 {
-    // Swift class runtime name can be "<Module>.<Class>" OR explicit @objc name.
     Class cls = NSClassFromString(@"LiveActivityManager"); // @objc(LiveActivityManager)
     if (!cls) cls = NSClassFromString(@"DroidStar.LiveActivityManager");
+    if (!cls) {
+        static bool logged = false;
+        if (!logged) {
+            logged = true;
+            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager class not found. "
+                  @"Make sure LiveActivityManager.swift is part of the MAIN app target.");
+        }
+    }
     return cls;
 }
 
-bool ios_live_activity_is_available(void)
+static id liveActivityManager(void)
 {
-    if (@available(iOS 16.1, *)) {
-        Class cls = liveActivityManagerClass();
-        if (!cls) {
-            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager class not found. "
-                  @"Make sure LiveActivityManager.swift is part of the MAIN app target.");
-            return false;
-        }
-
-        SEL sel = NSSelectorFromString(@"isDynamicIslandAvailable");
-        if (![cls respondsToSelector:sel]) {
-            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector isDynamicIslandAvailable");
-            return false;
-        }
-
-        typedef BOOL (*MsgSendBool)(id, SEL);
-        BOOL enabled = ((MsgSendBool)objc_msgSend)((id)cls, sel);
-        if (!enabled) {
-            NSLog(@"[DroidStar][LiveActivity] ActivityAuthorizationInfo().areActivitiesEnabled == false "
-                  @"(Settings → DroidStar → Live Activities might be OFF).");
-        }
-        return enabled;
+    Class cls = liveActivityManagerClass();
+    if (!cls) return nil;
+    SEL sharedSel = NSSelectorFromString(@"shared");
+    if (![cls respondsToSelector:sharedSel]) {
+        NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector +shared");
+        return nil;
     }
-    return false;
+    typedef id (*MsgSendId)(id, SEL);
+    return ((MsgSendId)objc_msgSend)((id)cls, sharedSel);
 }
 
 static inline NSString *ns(const char *s)
@@ -66,110 +62,88 @@ static inline NSString *ns(const char *s)
     return [NSString stringWithUTF8String:s] ?: @"";
 }
 
+bool ios_live_activity_is_available(void)
+{
+    if (@available(iOS 16.1, *)) {
+        Class cls = liveActivityManagerClass();
+        if (!cls) return false;
+
+        SEL sel = NSSelectorFromString(@"isDynamicIslandAvailable");
+        if (![cls respondsToSelector:sel]) {
+            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector isDynamicIslandAvailable");
+            return false;
+        }
+        typedef BOOL (*MsgSendBool)(id, SEL);
+        return ((MsgSendBool)objc_msgSend)((id)cls, sel);
+    }
+    return false;
+}
+
+void ios_live_activity_update(const char *mode,
+                              const char *callsign,
+                              const char *name,
+                              const char *country,
+                              const char *tg,
+                              const char *status,
+                              const char *station,
+                              double since_epoch_sec)
+{
+    if (@available(iOS 16.1, *)) {
+        id mgr = liveActivityManager();
+        if (!mgr) return;
+        SEL sel = NSSelectorFromString(@"updateWithMode:callsign:name:country:tg:status:station:since:");
+        if (![mgr respondsToSelector:sel]) {
+            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector %@", NSStringFromSelector(sel));
+            return;
+        }
+        typedef void (*MsgSendUpdate)(id, SEL, NSString *, NSString *, NSString *, NSString *,
+                                      NSString *, NSString *, NSString *, double);
+        ((MsgSendUpdate)objc_msgSend)(mgr, sel, ns(mode), ns(callsign), ns(name), ns(country),
+                                      ns(tg), ns(status), ns(station), since_epoch_sec);
+    }
+}
+
 void ios_live_activity_start_or_update(const char *mode,
                                        const char *callsign,
                                        const char *handle,
                                        const char *country,
                                        const char *tgid)
 {
+    ios_live_activity_update(mode, callsign, handle, country, tgid, "", "", 0);
+}
+
+static void callVoid(NSString *selName)
+{
     if (@available(iOS 16.1, *)) {
-        Class cls = liveActivityManagerClass();
-        if (!cls) {
-            NSLog(@"[DroidStar][LiveActivity] start/update called but LiveActivityManager class not found");
+        id mgr = liveActivityManager();
+        if (!mgr) return;
+        SEL sel = NSSelectorFromString(selName);
+        if (![mgr respondsToSelector:sel]) {
+            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector %@", selName);
             return;
         }
-
-        // Get singleton: +shared
-        SEL sharedSel = NSSelectorFromString(@"shared");
-        if (![cls respondsToSelector:sharedSel]) {
-            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector +shared");
-            return;
-        }
-        typedef id (*MsgSendId)(id, SEL);
-        id mgr = ((MsgSendId)objc_msgSend)((id)cls, sharedSel);
-        if (!mgr) {
-            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager.shared returned nil");
-            return;
-        }
-
-        SEL updSel = NSSelectorFromString(@"startOrUpdateLiveActivityWithMode:callsign:handle:country:tgid:");
-        if (![mgr respondsToSelector:updSel]) {
-            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector startOrUpdateLiveActivityWithMode:callsign:handle:country:tgid:");
-            return;
-        }
-        typedef void (*MsgSendUpdate)(id, SEL, NSString*, NSString*, NSString*, NSString*, NSString*);
-        ((MsgSendUpdate)objc_msgSend)(mgr,
-                                      updSel,
-                                      ns(mode),
-                                      ns(callsign),
-                                      ns(handle),
-                                      ns(country),
-                                      ns(tgid));
+        typedef void (*MsgSendVoid)(id, SEL);
+        ((MsgSendVoid)objc_msgSend)(mgr, sel);
     }
 }
 
 void ios_live_activity_end(void)
 {
-    if (@available(iOS 16.1, *)) {
-        Class cls = liveActivityManagerClass();
-        if (!cls) {
-            NSLog(@"[DroidStar][LiveActivity] end called but LiveActivityManager class not found");
-            return;
-        }
-
-        SEL sharedSel = NSSelectorFromString(@"shared");
-        if (![cls respondsToSelector:sharedSel]) {
-            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector +shared");
-            return;
-        }
-        typedef id (*MsgSendId)(id, SEL);
-        id mgr = ((MsgSendId)objc_msgSend)((id)cls, sharedSel);
-        if (!mgr) {
-            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager.shared returned nil");
-            return;
-        }
-
-        SEL endSel = NSSelectorFromString(@"endLiveActivity");
-        if (![mgr respondsToSelector:endSel]) {
-            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector endLiveActivity");
-            return;
-        }
-        typedef void (*MsgSendVoid)(id, SEL);
-        ((MsgSendVoid)objc_msgSend)(mgr, endSel);
-    }
+    callVoid(@"endLiveActivity");
 }
 
 void ios_live_activity_end_all(void)
 {
-    if (@available(iOS 16.1, *)) {
-        Class cls = liveActivityManagerClass();
-        if (!cls) {
-            NSLog(@"[DroidStar][LiveActivity] endAll called but LiveActivityManager class not found");
-            return;
-        }
-
-        SEL sharedSel = NSSelectorFromString(@"shared");
-        if (![cls respondsToSelector:sharedSel]) return;
-        typedef id (*MsgSendId)(id, SEL);
-        id mgr = ((MsgSendId)objc_msgSend)((id)cls, sharedSel);
-        if (!mgr) return;
-
-        SEL endAllSel = NSSelectorFromString(@"endAllActivities");
-        if (![mgr respondsToSelector:endAllSel]) {
-            NSLog(@"[DroidStar][LiveActivity] LiveActivityManager missing selector endAllActivities");
-            return;
-        }
-        typedef void (*MsgSendVoid)(id, SEL);
-        ((MsgSendVoid)objc_msgSend)(mgr, endAllSel);
-    }
+    callVoid(@"endAllActivities");
 }
 
 #else
 
 bool ios_live_activity_is_available(void) { return false; }
+void ios_live_activity_update(const char *, const char *, const char *, const char *, const char *,
+                              const char *, const char *, double) {}
 void ios_live_activity_start_or_update(const char *, const char *, const char *, const char *, const char *) {}
 void ios_live_activity_end(void) {}
 void ios_live_activity_end_all(void) {}
 
 #endif
-
