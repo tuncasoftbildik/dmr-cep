@@ -144,6 +144,9 @@ signals:
     void connection_lost(QString reason);
     // A received transmission was saved for replay (see RxRecorder).
     void recording_saved(QString path);
+    // Link quality (DMR only), at most about once a second. bars: -1 unknown (no pong yet),
+    // 0 link lost .. 4 excellent. Times in ms, losses in percent; -1 = not measured yet.
+    void link_quality(int bars, int rtt_ms, int rtt_avg_ms, int ping_loss_pct, int rx_loss_pct, int jitter_ms);
 protected slots:
     virtual void send_disconnect(){}
     virtual void hostname_lookup(QHostInfo){}

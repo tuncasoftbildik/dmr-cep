@@ -105,6 +105,8 @@ ApplicationWindow {
         property bool connecting: false
         property bool txEnabled: false
         property bool txActive: false
+        // DMR link quality from DroidStar::get_link_quality(): {bars, rtt, rttAvg, pingLoss, rxLoss, jitter}
+        property var linkQuality: ({ bars: -1, rtt: -1, rttAvg: -1, pingLoss: -1, rxLoss: -1, jitter: -1 })
 
         property string data1: ""
         property string data2: ""
@@ -761,6 +763,8 @@ ApplicationWindow {
             }
         }
 
+        function onLink_quality_changed() { appState.linkQuality = window.droidstar.get_link_quality() }
+
         function onSwtx_state(s) { appState.swtx = !!s }
         function onSwrx_state(s) { appState.swrx = !!s }
         function onAgc_state(s) { appState.agc = !!s }
@@ -963,19 +967,31 @@ ApplicationWindow {
                         }
                         Rectangle {
                             visible: appState.mode === "DMR" && appState.dmrtgid !== ""
-                            implicitWidth: drawerTg.implicitWidth + 16
+                            implicitWidth: drawerLcdRow.implicitWidth + 16
                             implicitHeight: 34
                             radius: 8
                             color: t.lcd
                             border.color: "#B8761A"
                             border.width: 1
-                            Label {
-                                id: drawerTg
+                            Row {
+                                id: drawerLcdRow
                                 anchors.centerIn: parent
-                                text: appState.dmrtgid
-                                font.family: drawerSeg.name
-                                font.pixelSize: 17
-                                color: t.lcdInk
+                                spacing: 7
+                                SignalBars {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    visible: appState.connected
+                                    bars: appState.linkQuality.bars
+                                    barWidth: 3
+                                    barHeight: 12
+                                }
+                                Label {
+                                    id: drawerTg
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: appState.dmrtgid
+                                    font.family: drawerSeg.name
+                                    font.pixelSize: 17
+                                    color: t.lcdInk
+                                }
                             }
                         }
                     }

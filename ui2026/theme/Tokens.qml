@@ -37,6 +37,12 @@ QtObject {
     readonly property color lcdInk: "#2B1702"
     readonly property color lcdGhost: "#DB9223"     // unlit 7-segment "8"s behind the digits
 
+    // Link quality bars (radio-style RSSI indicator on the LCD)
+    readonly property real lqBarWidth: 4
+    readonly property real lqBarGap: 2
+    readonly property real lqBarHeight: 14
+    readonly property real lqBarUnlitOpacity: 0.2
+
     readonly property int rSm: 12
     readonly property int rMd: 16
     readonly property int rLg: 22

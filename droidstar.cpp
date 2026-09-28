@@ -549,6 +549,8 @@ void DroidStar::process_connect()
         connect(m_mode, SIGNAL(update_log(QString)), this, SLOT(updatelog(QString)));
         connect(m_mode, SIGNAL(connection_lost(QString)), this, SLOT(handle_connection_lost(QString)));
         connect(m_mode, SIGNAL(recording_saved(QString)), this, SIGNAL(recordings_changed()));
+        update_link_quality(-1, -1, -1, -1, -1, -1);   // nothing measured on this link yet
+        connect(m_mode, SIGNAL(link_quality(int,int,int,int,int,int)), this, SLOT(update_link_quality(int,int,int,int,int,int)));
         connect(m_mode, SIGNAL(update_output_level(unsigned short)), this, SLOT(update_output_level(unsigned short)));
         connect(m_modethread, SIGNAL(started()), m_mode, SLOT(begin_connect()));
         connect(m_modethread, SIGNAL(finished()), m_mode, SLOT(deleteLater()));
@@ -665,6 +667,29 @@ void DroidStar::handle_connection_lost(QString reason)
     m_keepPttChannel = false;
     m_autoReconnect = true;
     schedule_reconnect("Connection lost (" + reason + ")");
+}
+
+void DroidStar::update_link_quality(int bars, int rtt, int rttAvg, int pingLoss, int rxLoss, int jitter)
+{
+    m_lqBars = bars;
+    m_lqRtt = rtt;
+    m_lqRttAvg = rttAvg;
+    m_lqPingLoss = pingLoss;
+    m_lqRxLoss = rxLoss;
+    m_lqJitter = jitter;
+    emit link_quality_changed();
+}
+
+QVariantMap DroidStar::get_link_quality() const
+{
+    QVariantMap m;
+    m["bars"] = m_lqBars;
+    m["rtt"] = m_lqRtt;
+    m["rttAvg"] = m_lqRttAvg;
+    m["pingLoss"] = m_lqPingLoss;
+    m["rxLoss"] = m_lqRxLoss;
+    m["jitter"] = m_lqJitter;
+    return m;
 }
 
 void DroidStar::on_connect_timeout()

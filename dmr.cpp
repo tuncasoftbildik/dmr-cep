@@ -225,6 +225,7 @@ void DMR::process_udp()
     }
     if((buf.size() == 11) && (::memcmp(buf.data(), "MSTPONG", 7U) == 0)){
         m_modeinfo.count++;
+        lq_pong_received();
     }
     if((buf.size() != 55) && ( (m_modeinfo.stream_state == STREAM_LOST) || (m_modeinfo.stream_state == STREAM_END) )){
         m_modeinfo.stream_state = STREAM_IDLE;
@@ -235,9 +236,11 @@ void DMR::process_udp()
         (m_modeinfo.status == CONNECTED_RW))
     {
         m_rxwatchdog = 0;
+        lq_track_rx(buf);
         uint8_t t = 0;
         if((uint8_t)buf.data()[15] & 0x02){
             qDebug() << "DMR RX EOT";
+            lq_stream_ended();
             m_modeinfo.stream_state = STREAM_END;
             m_modeinfo.ts = QDateTime::currentMSecsSinceEpoch();
             m_modeinfo.streamid = 0;
@@ -290,6 +293,7 @@ void DMR::process_udp()
             m_modeinfo.stream_state = STREAMING;
         }
         m_rxwatchdog = 0;
+        lq_track_rx(buf);
 
         uint8_t dmrframe[33];
         uint8_t dmr3ambe[27];
@@ -351,6 +355,23 @@ void DMR::setup_connection()
     m_modeinfo.status = CONNECTED_RW;
     m_last_rx_ms = QDateTime::currentMSecsSinceEpoch();
     m_link_lost = false;
+    m_lq_ping_pending = false;
+    m_lq_rtt_last = -1;
+    m_lq_rtt_avg = -1;
+    m_lq_ping_hist = 0;
+    m_lq_ping_count = 0;
+    m_lq_consecutive_miss = 0;
+    m_lq_streamid = 0;
+    m_lq_last_seq = -1;
+    m_lq_rx_received = 0;
+    m_lq_rx_lost = 0;
+    m_lq_rx_loss_pct = -1;
+    m_lq_jitter = 0;
+    m_lq_last_frame_ms = 0;
+    m_lq_last_emit_ms = 0;
+    m_lq_last_log_ms = m_last_rx_ms;
+    m_lq_emitted_sig.clear();
+    emit link_quality(-1, -1, -1, -1, -1, -1);
     //m_mbeenc->set_gain_adjust(2.5);
     m_modeinfo.sw_vocoder_loaded = load_vocoder_plugin();
     m_txtimer = new QTimer();
@@ -555,6 +576,7 @@ void DMR::report_connection_lost(const QString &reason)
     if(m_link_lost) return;
     m_link_lost = true;
     if(m_ping_timer) m_ping_timer->stop();
+    lq_emit(true);   // bars drop to 0
     emit update_log("DMR: link lost: " + reason);
     emit connection_lost(reason);
 }
@@ -567,6 +589,15 @@ void DMR::send_ping()
         (QDateTime::currentMSecsSinceEpoch() - m_last_rx_ms > RX_WATCHDOG_MS)){
         report_connection_lost("no reply from server for " + QString::number(RX_WATCHDOG_MS / 1000) + " s");
         return;
+    }
+    lq_ping_sent();
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if(now - m_lq_last_log_ms >= LQ_LOG_INTERVAL_MS){
+        m_lq_last_log_ms = now;
+        qDebug().noquote() << "DMR link quality: bars" << lq_bars()
+                           << "rtt" << m_lq_rtt_last << "ms avg" << qRound(m_lq_rtt_avg) << "ms"
+                           << "ping loss" << lq_ping_loss_pct() << "% (" << m_lq_ping_count << "pings, miss streak" << m_lq_consecutive_miss << ")"
+                           << "last RX loss" << m_lq_rx_loss_pct << "% jitter" << qRound(m_lq_jitter) << "ms";
     }
     QByteArray out;
     char tag[] = { 'R','P','T','P','I','N','G' };
@@ -586,6 +617,135 @@ void DMR::send_ping()
         }
         debug << s;
     }
+}
+
+// ---- Link quality ------------------------------------------------------------------------
+
+void DMR::lq_ping_sent()
+{
+    if(m_lq_ping_pending){
+        // The previous ping got no MSTPONG before this one: count it as lost.
+        m_lq_ping_hist = quint16(((m_lq_ping_hist << 1) | 1U) & ((1U << LQ_PING_WINDOW) - 1U));
+        m_lq_ping_count = qMin(m_lq_ping_count + 1, LQ_PING_WINDOW);
+        m_lq_consecutive_miss++;
+    }
+    m_lq_ping_pending = true;
+    m_lq_ping_clock.start();
+    lq_emit(true);
+}
+
+void DMR::lq_pong_received()
+{
+    if(!m_lq_ping_pending) return;   // late pong of a ping already counted as lost
+    m_lq_ping_pending = false;
+    m_lq_rtt_last = int(m_lq_ping_clock.elapsed());
+    m_lq_rtt_avg = (m_lq_rtt_avg < 0) ? m_lq_rtt_last : (0.75 * m_lq_rtt_avg + 0.25 * m_lq_rtt_last);
+    m_lq_ping_hist = quint16((m_lq_ping_hist << 1) & ((1U << LQ_PING_WINDOW) - 1U));
+    m_lq_ping_count = qMin(m_lq_ping_count + 1, LQ_PING_WINDOW);
+    m_lq_consecutive_miss = 0;
+    lq_emit(true);
+}
+
+// Called for every DMRD frame while linked. The sequence byte (buf[4]) counts up by one per
+// packet within a stream, so a jump of n means n - 1 packets never arrived.
+void DMR::lq_track_rx(const QByteArray &buf)
+{
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    const uint8_t flags = (uint8_t)buf.data()[15];
+    const bool data_sync = flags & 0x20;
+    const bool lc_header = data_sync && ((flags & 0x0f) == 0x01);
+    const uint32_t sid = ((uint8_t)buf.data()[16] << 24) | ((uint8_t)buf.data()[17] << 16) | ((uint8_t)buf.data()[18] << 8) | (uint8_t)buf.data()[19];
+    const int seq = (uint8_t)buf.data()[4];
+
+    if(sid != m_lq_streamid){
+        // Another stream interleaving with a live one (other slot): keep measuring the live one.
+        if(!lc_header && m_lq_streamid && (now - m_lq_last_frame_ms < 1000)) return;
+        m_lq_streamid = sid;
+        m_lq_last_seq = seq;
+        m_lq_rx_received = 1;
+        m_lq_rx_lost = 0;
+        m_lq_rx_loss_pct = 0;
+        m_lq_jitter = 0;
+        m_lq_last_frame_ms = now;
+        m_lq_prev_voice = !data_sync;
+        lq_emit(false);
+        return;
+    }
+    const int diff = (seq - m_lq_last_seq) & 0xff;
+    if(diff == 0) return;   // duplicate
+    if(diff < 128){
+        m_lq_rx_lost += diff - 1;
+        if(!data_sync && m_lq_prev_voice){
+            // Voice packets carry 60 ms of audio each; deviation from that is jitter.
+            const double d = double(now - m_lq_last_frame_ms) - 60.0 * diff;
+            m_lq_jitter += (std::fabs(d) - m_lq_jitter) / 16.0;
+        }
+        m_lq_last_seq = seq;
+        m_lq_last_frame_ms = now;
+        m_lq_prev_voice = !data_sync;
+    }
+    else if(m_lq_rx_lost > 0){
+        m_lq_rx_lost--;   // out of order: it was counted as lost when the gap opened
+    }
+    m_lq_rx_received++;
+    m_lq_rx_loss_pct = qRound(100.0 * m_lq_rx_lost / (m_lq_rx_received + m_lq_rx_lost));
+    lq_emit(false);
+}
+
+void DMR::lq_stream_ended()
+{
+    if(m_lq_streamid && (m_lq_rx_received + m_lq_rx_lost) > 0){
+        qDebug() << "DMR RX stream quality: received" << m_lq_rx_received << "lost" << m_lq_rx_lost
+                 << "(" << m_lq_rx_loss_pct << "%) jitter" << qRound(m_lq_jitter) << "ms";
+    }
+    m_lq_streamid = 0;
+    lq_emit(true);
+}
+
+int DMR::lq_ping_loss_pct() const
+{
+    if(m_lq_ping_count == 0) return -1;
+    const quint16 mask = quint16((1U << m_lq_ping_count) - 1U);
+    return qRound(100.0 * qPopulationCount(quint16(m_lq_ping_hist & mask)) / m_lq_ping_count);
+}
+
+// 4 = RTT < 150 ms, no ping loss, RX loss < 1 %
+// 3 = RTT < 300 ms, ping loss <= 10 %, RX loss < 3 %
+// 2 = RTT < 600 ms, ping loss <= 20 %, RX loss < 8 %
+// 1 = still answering, but worse than that
+// 0 = link lost, or 2+ pings in a row without a pong
+// RX loss only counts while a stream is live or up to 2 min after it (and only with >= 10 frames).
+int DMR::lq_bars() const
+{
+    if(m_link_lost || (m_lq_consecutive_miss >= 2)) return 0;
+    if(m_lq_rtt_avg < 0) return -1;
+    const int ploss = qMax(0, lq_ping_loss_pct());
+    int rx = 0;
+    if((m_lq_rx_loss_pct >= 0) && ((m_lq_rx_received + m_lq_rx_lost) >= 10) &&
+        (QDateTime::currentMSecsSinceEpoch() - m_lq_last_frame_ms < LQ_RX_LOSS_RELEVANT_MS)){
+        rx = m_lq_rx_loss_pct;
+    }
+    const double rtt = m_lq_rtt_avg;
+    if((rtt < 150) && (ploss == 0) && (rx < 1)) return 4;
+    if((rtt < 300) && (ploss <= 10) && (rx < 3)) return 3;
+    if((rtt < 600) && (ploss <= 20) && (rx < 8)) return 2;
+    return 1;
+}
+
+void DMR::lq_emit(bool force)
+{
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if(!force && (now - m_lq_last_emit_ms < LQ_EMIT_MIN_MS)) return;
+    const int bars = lq_bars();
+    const int avg = (m_lq_rtt_avg < 0) ? -1 : qRound(m_lq_rtt_avg);
+    const int ploss = lq_ping_loss_pct();
+    const int jitter = (m_lq_rx_loss_pct < 0) ? -1 : qRound(m_lq_jitter);
+    const QString sig = QString("%1/%2/%3/%4/%5/%6").arg(bars).arg(m_lq_rtt_last).arg(avg).arg(ploss).arg(m_lq_rx_loss_pct).arg(jitter);
+    if(sig == m_lq_emitted_sig) return;
+    // A burst of forced updates (ping + pong + end of stream) is still at most a few per second.
+    m_lq_emitted_sig = sig;
+    m_lq_last_emit_ms = now;
+    emit link_quality(bars, m_lq_rtt_last, avg, ploss, m_lq_rx_loss_pct, jitter);
 }
 
 void DMR::send_disconnect()

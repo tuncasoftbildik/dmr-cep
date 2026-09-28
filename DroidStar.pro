@@ -181,6 +181,7 @@ resources.files = main.qml AboutTab.qml HostsTab.qml LogTab.qml MainTab.qml Sett
                   ui2026/components/DrawerItem.qml \
                   ui2026/components/CollapsibleSection.qml \
                   ui2026/components/ReplayList.qml \
+                  ui2026/components/SignalBars.qml \
                   ui2026/pages/MainPage.qml \
                   ui2026/pages/SettingsPage.qml \
                   ui2026/pages/QsoPage.qml \

@@ -48,6 +48,11 @@ Page {
     readonly property bool connecting: !!(appState && appState.connecting)
     readonly property bool onAir: !!(appState && appState.txActive)
     readonly property bool receiving: connected && !onAir && !!(appState && appState.data1 !== "")
+    // Link quality bars are measured by the DMR (HomeBrew) protocol only.
+    readonly property var linkQuality: (appState && appState.linkQuality) ? appState.linkQuality : ({ bars: -1 })
+    readonly property bool showLinkQuality: connected && !!(appState && appState.mode === "DMR")
+
+    function lqValue(v, unit) { return (v === undefined || v < 0) ? "–" : (v + " " + unit) }
 
     Connections {
         target: page.appState
@@ -464,9 +469,24 @@ Page {
                 anchors.top: parent.top
                 anchors.margins: 14
                 spacing: 4
+                z: 1   // above the LCD's tap area; only the signal bars and the star take touches
 
                 RowLayout {
                     Layout.fillWidth: true
+                    spacing: 8
+                    // Radio-style signal bars: network link quality. Tap for details.
+                    SignalBars {
+                        id: lqBars
+                        visible: page.showLinkQuality
+                        bars: page.linkQuality.bars
+                        Layout.alignment: Qt.AlignVCenter
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -12   // comfortable touch target around the small bars
+                            onClicked: lqPopup.open()
+                            onPressAndHold: lqPopup.open()
+                        }
+                    }
                     Label {
                         text: page.isTgMode ? ((appState && appState.privateCall) ? qsTr("Private call") : qsTr("Talkgroup"))
                                             : (appState ? appState.mode : "")
@@ -539,6 +559,45 @@ Page {
                 anchors.rightMargin: 56   // leave the star tappable
                 enabled: page.isTgMode
                 onClicked: { tgField.text = appState ? appState.dmrtgid : ""; tgDialog.open() }
+            }
+
+            // Link quality details, dropped down from the signal bars.
+            Popup {
+                id: lqPopup
+                x: 8
+                y: lcdCol.y + lqBars.y + lqBars.height + 10
+                padding: 14
+                modal: false
+                focus: true
+                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                background: Rectangle { radius: t.rSm; color: t.surface2; border.color: t.stroke; border.width: 1 }
+
+                GridLayout {
+                    columns: 2
+                    columnSpacing: 16
+                    rowSpacing: 4
+                    Label {
+                        Layout.columnSpan: 2
+                        Layout.bottomMargin: 4
+                        text: qsTr("Link quality: %1").arg(lqBars.label(page.linkQuality.bars))
+                        color: t.text
+                        font.pixelSize: 14
+                        font.weight: Font.DemiBold
+                    }
+                    Label { text: qsTr("Round trip"); color: t.textMuted; font.pixelSize: 13 }
+                    Label {
+                        text: page.linkQuality.rtt >= 0
+                              ? qsTr("%1 ms (avg %2 ms)").arg(page.linkQuality.rtt).arg(page.linkQuality.rttAvg)
+                              : "–"
+                        color: t.text; font.pixelSize: 13
+                    }
+                    Label { text: qsTr("Ping loss"); color: t.textMuted; font.pixelSize: 13 }
+                    Label { text: page.lqValue(page.linkQuality.pingLoss, "%"); color: t.text; font.pixelSize: 13 }
+                    Label { text: qsTr("Last RX frame loss"); color: t.textMuted; font.pixelSize: 13 }
+                    Label { text: page.lqValue(page.linkQuality.rxLoss, "%"); color: t.text; font.pixelSize: 13 }
+                    Label { text: qsTr("RX jitter"); color: t.textMuted; font.pixelSize: 13 }
+                    Label { text: page.lqValue(page.linkQuality.jitter, "ms"); color: t.text; font.pixelSize: 13 }
+                }
             }
         }
 

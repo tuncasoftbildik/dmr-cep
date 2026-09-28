@@ -196,6 +196,36 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 <context>
     <name>MainPage</name>
     <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="582" />
+        <source>Link quality: %1</source>
+        <translation>Bağlantı kalitesi: %1</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="587" />
+        <source>Round trip</source>
+        <translation>Gidiş-dönüş</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="590" />
+        <source>%1 ms (avg %2 ms)</source>
+        <translation>%1 ms (ort. %2 ms)</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="594" />
+        <source>Ping loss</source>
+        <translation>Ping kaybı</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="596" />
+        <source>Last RX frame loss</source>
+        <translation>Son alım çerçeve kaybı</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="598" />
+        <source>RX jitter</source>
+        <translation>Alım titreşimi</translation>
+    </message>
+    <message>
         <location filename="../ui2026/pages/MainPage.qml" line="994" />
         <source>Connection</source>
         <translation>Bağlantı</translation>
@@ -1288,6 +1318,44 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <location filename="../ui2026/pages/SettingsPage.qml" line="1260" />
         <source>Text to speak</source>
         <translation>Seslendirilecek metin</translation>
+    </message>
+</context>
+<context>
+    <name>SignalBars</name>
+    <message>
+        <location filename="../ui2026/components/SignalBars.qml" line="43" />
+        <source>Excellent</source>
+        <translation>Mükemmel</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/SignalBars.qml" line="44" />
+        <source>Good</source>
+        <translation>İyi</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/SignalBars.qml" line="45" />
+        <source>Fair</source>
+        <translation>Orta</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/SignalBars.qml" line="46" />
+        <source>Weak</source>
+        <translation>Zayıf</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/SignalBars.qml" line="47" />
+        <source>None</source>
+        <translation>Yok</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/SignalBars.qml" line="48" />
+        <source>Measuring…</source>
+        <translation>Ölçülüyor…</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/SignalBars.qml" line="53" />
+        <source>Link quality: %1</source>
+        <translation>Bağlantı kalitesi: %1</translation>
     </message>
 </context>
 </TS>
