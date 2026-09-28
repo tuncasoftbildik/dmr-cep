@@ -45,7 +45,16 @@ private slots:
     void cc_changed(int cc) {m_txcc = cc;}
     void slot_changed(int s) {m_txslot = s + 1; }
     void send_frame();
+    void resend_handshake();
 private:
+    // Login/auth/config are single UDP packets with no retransmit in the protocol; one lost
+    // reply used to leave the connect hanging until the 15 s timeout.
+    static const int HANDSHAKE_RESEND_MS = 3000;
+    static const int HANDSHAKE_MAX_RESENDS = 3;
+    void send_handshake(const QByteArray &out);
+    QTimer *m_handshake_timer = nullptr;
+    QByteArray m_last_handshake;
+    int m_handshake_resends = 0;
     static const qint64 RX_WATCHDOG_MS = 20000;
     void report_connection_lost(const QString &reason);
     void record_rx(const int16_t *pcm);

@@ -201,7 +201,13 @@ void DMR::process_udp()
         default:
             break;
         }
-        m_udp->writeDatagram(out, m_address, m_modeinfo.port);
+        if(m_modeinfo.status == CONNECTED_RW){
+            if(m_handshake_timer) m_handshake_timer->stop();
+            m_udp->writeDatagram(out, m_address, m_modeinfo.port);
+        }
+        else{
+            send_handshake(out);
+        }
     }
     if((buf.size() == 11) && (::memcmp(buf.data(), "MSTPONG", 7U) == 0)){
         m_modeinfo.count++;
@@ -356,7 +362,7 @@ void DMR::hostname_lookup(QHostInfo i)
         m_address = i.addresses().first();
         m_udp = new QUdpSocket(this);
         connect(m_udp, SIGNAL(readyRead()), this, SLOT(process_udp()));
-        m_udp->writeDatagram(out, m_address, m_modeinfo.port);
+        send_handshake(out);
 
         if(m_debug){
             QDebug debug = qDebug();
@@ -368,6 +374,30 @@ void DMR::hostname_lookup(QHostInfo i)
             debug << s;
         }
     }
+}
+
+void DMR::send_handshake(const QByteArray &out)
+{
+    m_last_handshake = out;
+    m_handshake_resends = 0;
+    m_udp->writeDatagram(out, m_address, m_modeinfo.port);
+    if(!m_handshake_timer){
+        m_handshake_timer = new QTimer(this);
+        connect(m_handshake_timer, SIGNAL(timeout()), this, SLOT(resend_handshake()));
+    }
+    m_handshake_timer->start(HANDSHAKE_RESEND_MS);
+}
+
+void DMR::resend_handshake()
+{
+    const bool handshaking = (m_modeinfo.status == CONNECTING) || (m_modeinfo.status == DMR_AUTH) || (m_modeinfo.status == DMR_CONF);
+    if(!handshaking || !m_udp || m_last_handshake.isEmpty() || (m_handshake_resends >= HANDSHAKE_MAX_RESENDS)){
+        m_handshake_timer->stop();
+        return;
+    }
+    m_handshake_resends++;
+    qDebug() << "DMR: no reply, resending handshake packet" << m_last_handshake.left(4) << "attempt" << m_handshake_resends;
+    m_udp->writeDatagram(m_last_handshake, m_address, m_modeinfo.port);
 }
 
 void DMR::report_connection_lost(const QString &reason)
