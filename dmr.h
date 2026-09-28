@@ -23,6 +23,7 @@
 #include "DMRDefines.h"
 #include "cbptc19696.h"
 #include <QElapsedTimer>
+#include "talkeralias.h"
 
 class DMR : public Mode
 {
@@ -175,6 +176,21 @@ private:
     bool m_raw[128U];
     bool m_data[72U];
     QString m_options;
+    // Talker Alias TX: TA LCs (header + blocks) built at key-up from Mode::m_talker_alias, sent in the
+    // embedded LC of every other voice superframe; each block also goes to the master once as "DMRA".
+    uint8_t m_ta_lc[4][9];
+    unsigned int m_ta_blocks = 0;
+    uint8_t m_ta_dmra_sent = 0;
+    void prepare_talker_alias();
+    void send_talker_alias_block(unsigned int block);
+    // Talker Alias RX: embedded LC fragments of bursts B..E and the alias assembled per stream.
+    bool m_rx_emb_raw[128U];
+    uint8_t m_rx_emb_have = 0;
+    uint32_t m_rx_ta_stream = 0;
+    TalkerAlias::Decoder m_rx_ta;
+    void rx_talker_alias_reset(uint32_t streamid);
+    void rx_embedded_fragment(const uint8_t *burst, uint8_t flags);
+    void rx_talker_alias_update();
 
     void byteToBitsBE(uint8_t byte, bool* bits);
     void bitsToByteBE(const bool* bits, uint8_t& byte);
@@ -186,7 +202,7 @@ private:
     void get_slot_data(uint8_t* data);
     void lc_get_data(uint8_t*);
     void lc_get_data(bool* bits);
-    void encode_embedded_data();
+    void encode_embedded_data(const uint8_t *lc);
     uint8_t get_embedded_data(uint8_t* data, uint8_t n);
     void get_emb_data(uint8_t* data, uint8_t lcss);
     void full_lc_encode(uint8_t* data, uint8_t type);

@@ -227,6 +227,14 @@ void DMR::process_udp()
         m_modeinfo.count++;
         lq_pong_received();
     }
+    // Talker Alias block relayed by the master in MMDVMHost's "DMRA" format.
+    if((buf.size() >= 15) && (::memcmp(buf.data(), "DMRA", 4U) == 0) && !m_tx){
+        const uint8_t *d = (const uint8_t *)buf.data();
+        const uint32_t id = ((uint32_t)d[4] << 16) | ((uint32_t)d[5] << 8) | d[6];
+        if((id == m_modeinfo.srcid) && m_rx_ta.addBlock(d[7], d + 8)){
+            rx_talker_alias_update();
+        }
+    }
     if((buf.size() != 55) && ( (m_modeinfo.stream_state == STREAM_LOST) || (m_modeinfo.stream_state == STREAM_END) )){
         m_modeinfo.stream_state = STREAM_IDLE;
     }
@@ -260,6 +268,7 @@ void DMR::process_udp()
             m_modeinfo.streamid = (uint32_t)((buf.data()[16] << 24) | ((buf.data()[17] << 16) & 0xff0000) | ((buf.data()[18] << 8) & 0xff00) | (buf.data()[19] & 0xff));
             m_modeinfo.frame_number = (uint8_t)buf.data()[4];
             m_modeinfo.slot = (buf.data()[15] & 0x80) ? 2 : 1;
+            rx_talker_alias_reset(m_modeinfo.streamid);
             t = 0x41;
             qDebug() << "New DMR stream from " << m_modeinfo.srcid << " to " << m_modeinfo.dstid << "m_tx" << m_tx << "rxtimer" << m_rxtimer->isActive();
             m_rx_frames_in = 0;
@@ -314,6 +323,11 @@ void DMR::process_udp()
         m_modeinfo.gwid =        (uint32_t)((buf.data()[11] << 24) | ((buf.data()[12] << 16) & 0xff0000) | ((buf.data()[13] << 8) & 0xff00) | (buf.data()[14] & 0xff));
         m_modeinfo.streamid =    (uint32_t)((buf.data()[16] << 24) | ((buf.data()[17] << 16) & 0xff0000) | ((buf.data()[18] << 8) & 0xff00) | (buf.data()[19] & 0xff));
         m_modeinfo.frame_number = (uint8_t)buf.data()[4];
+
+        if(m_modeinfo.streamid != m_rx_ta_stream){
+            rx_talker_alias_reset(m_modeinfo.streamid);  // late entry without a voice header
+        }
+        rx_embedded_fragment(dmrframe, (uint8_t)buf.data()[15]);
 
         if(m_modem){
             uint8_t t = ((uint8_t)buf.data()[15] & 0x0f);
@@ -1002,6 +1016,7 @@ void DMR::send_frame()
         if(!m_dmrcnt){
             encode_header(DT_VOICE_LC_HEADER);
             m_txstreamid = static_cast<uint32_t>(::rand());
+            prepare_talker_alias();
         }
         else{
             ::memcpy(m_dmrFrame + 20U, m_ambe, 13U);
@@ -1129,7 +1144,20 @@ void DMR::encode_data()
     if (!n_dmr) {
         m_dataType = DT_VOICE_SYNC;
         addDMRAudioSync(m_dmrFrame+20, 0);
-        encode_embedded_data();
+        // Embedded LC rotation: even superframes carry the voice LC (late entry keeps working),
+        // odd ones carry the Talker Alias header/blocks in turn: LC, TA0, LC, TA1, LC, TA2, ...
+        const uint32_t superframe = (m_dmrcnt - 1) / 6U;
+        if (m_ta_blocks && (superframe & 1U)) {
+            const unsigned int block = (superframe / 2U) % m_ta_blocks;
+            encode_embedded_data(m_ta_lc[block]);
+            send_talker_alias_block(block);
+        }
+        else {
+            uint8_t lc[9U];
+            ::memset(lc, 0, sizeof(lc));
+            lc_get_data(lc);
+            encode_embedded_data(lc);
+        }
     }
     else {
         m_dataType = DT_VOICE;
@@ -1213,52 +1241,77 @@ uint8_t DMR::get_embedded_data(uint8_t* data, uint8_t n)
     }
 }
 
-void DMR::encode_embedded_data()
+void DMR::encode_embedded_data(const uint8_t *lc)
 {
-    uint32_t crc;
-    lc_get_data(m_data);
-    CCRC::encodeFiveBit(m_data, crc);
+    EmbeddedLC::encode(lc, m_raw);
+}
 
-    bool data[128U];
-    ::memset(data, 0x00U, 128U * sizeof(bool));
+void DMR::prepare_talker_alias()
+{
+    m_ta_dmra_sent = 0;
+    m_modeinfo.usertxt.clear();
+    m_ta_blocks = TalkerAlias::encode(m_talker_alias.toLatin1().toStdString(), m_ta_lc);
+}
 
-    data[106U] = (crc & 0x01U) == 0x01U;
-    data[90U]  = (crc & 0x02U) == 0x02U;
-    data[74U]  = (crc & 0x04U) == 0x04U;
-    data[58U]  = (crc & 0x08U) == 0x08U;
-    data[42U]  = (crc & 0x10U) == 0x10U;
+void DMR::send_talker_alias_block(unsigned int block)
+{
+    // Same packet MMDVMHost sends for a TA block it heard on RF (CDMRNetwork::writeTalkerAlias):
+    // "DMRA" + source id (3) + block number + LC bytes 2..8. Once per block per transmission.
+    if ((block > 3U) || (m_ta_dmra_sent & (1U << block)) || (m_udp == nullptr))
+        return;
+    m_ta_dmra_sent |= (uint8_t)(1U << block);
 
-    uint32_t b = 0U;
-    for (uint32_t a = 0U; a < 11U; a++, b++)
-        data[a] = m_data[b];
-    for (uint32_t a = 16U; a < 27U; a++, b++)
-        data[a] = m_data[b];
-    for (uint32_t a = 32U; a < 42U; a++, b++)
-        data[a] = m_data[b];
-    for (uint32_t a = 48U; a < 58U; a++, b++)
-        data[a] = m_data[b];
-    for (uint32_t a = 64U; a < 74U; a++, b++)
-        data[a] = m_data[b];
-    for (uint32_t a = 80U; a < 90U; a++, b++)
-        data[a] = m_data[b];
-    for (uint32_t a = 96U; a < 106U; a++, b++)
-        data[a] = m_data[b];
+    QByteArray out;
+    out.append("DMRA", 4);
+    out.append((char)((m_dmrid >> 16) & 0xff));
+    out.append((char)((m_dmrid >> 8) & 0xff));
+    out.append((char)((m_dmrid >> 0) & 0xff));
+    out.append((char)block);
+    out.append((const char *)(m_ta_lc[block] + 2U), 7);
+    m_udp->writeDatagram(out, m_address, m_modeinfo.port);
+}
 
-    // Hamming (16,11,4) check each row except the last one
-    for (uint32_t a = 0U; a < 112U; a += 16U)
-        encode16114(data + a);
+void DMR::rx_talker_alias_reset(uint32_t streamid)
+{
+    m_rx_ta_stream = streamid;
+    m_rx_ta.reset();
+    m_rx_emb_have = 0;
+    m_modeinfo.usertxt.clear();
+}
 
-    // Add the parity bits for each column
-    for (uint32_t a = 0U; a < 16U; a++)
-        data[a + 112U] = data[a + 0U] ^ data[a + 16U] ^ data[a + 32U] ^ data[a + 48U] ^ data[a + 64U] ^ data[a + 80U] ^ data[a + 96U];
+void DMR::rx_embedded_fragment(const uint8_t *burst, uint8_t flags)
+{
+    // flags = DMRD byte 15: 0x10 voice sync (burst A), otherwise the low nibble is the burst index.
+    if (flags & 0x10U) {
+        m_rx_emb_have = 0;
+        return;
+    }
+    const uint8_t n = flags & 0x0FU;
+    if ((n < 1U) || (n > 4U))
+        return;
+    EmbeddedLC::get_fragment(burst, m_rx_emb_raw, n - 1U);
+    m_rx_emb_have |= (uint8_t)(1U << (n - 1U));
+    if ((n == 4U) && (m_rx_emb_have == 0x0FU)) {
+        m_rx_emb_have = 0;
+        uint8_t lc[9U];
+        if (EmbeddedLC::decode(m_rx_emb_raw, lc) && m_rx_ta.add(lc)) {
+            rx_talker_alias_update();
+        }
+    }
+}
 
-    // The data is packed downwards in columns
-    b = 0U;
-    for (uint32_t a = 0U; a < 128U; a++) {
-        m_raw[a] = data[b];
-        b += 16U;
-        if (b > 127U)
-            b -= 127U;
+void DMR::rx_talker_alias_update()
+{
+    if (!m_rx_ta.complete())
+        return;
+    const std::string raw = m_rx_ta.text();
+    const QString alias = (m_rx_ta.format() == TalkerAlias::FORMAT_UTF8)
+                              ? QString::fromUtf8(raw.data(), (qsizetype)raw.size())
+                              : QString::fromLatin1(raw.data(), (qsizetype)raw.size());
+    const QString clean = alias.simplified();
+    if (clean != m_modeinfo.usertxt) {
+        m_modeinfo.usertxt = clean;
+        qDebug() << "DMR RX talker alias" << m_modeinfo.srcid << clean;
     }
 }
 

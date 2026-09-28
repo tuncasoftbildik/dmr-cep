@@ -569,6 +569,8 @@ void DroidStar::process_connect()
         QMetaObject::invokeMethod(m_mode, "set_roger_beep", Qt::QueuedConnection, Q_ARG(int, m_rogerBeep));
         connect(this, SIGNAL(tx_tone_changed(int)), m_mode, SLOT(set_tx_tone(int)));
         QMetaObject::invokeMethod(m_mode, "set_tx_tone", Qt::QueuedConnection, Q_ARG(int, m_txTone));
+        connect(this, SIGNAL(talker_alias_changed(QString)), m_mode, SLOT(set_talker_alias(QString)));
+        QMetaObject::invokeMethod(m_mode, "set_talker_alias", Qt::QueuedConnection, Q_ARG(QString, effective_talker_alias()));
         connect(this, SIGNAL(in_audio_vol_changed(qreal)), m_mode, SLOT(in_audio_vol_changed(qreal)));
         connect(this, SIGNAL(mycall_changed(QString)), m_mode, SLOT(mycall_changed(QString)));
         connect(this, SIGNAL(urcall_changed(QString)), m_mode, SLOT(urcall_changed(QString)));
@@ -946,6 +948,8 @@ void DroidStar::save_settings()
     m_settings->setValue("AUTOCONNECT", m_autoConnect ? "true" : "false");
     m_settings->setValue("ROGERBEEP", m_rogerBeep);
     m_settings->setValue("TXTONE", m_txTone);
+    m_settings->setValue("TALKERALIAS", m_talkerAlias);
+    m_settings->setValue("TALKERALIASON", m_talkerAliasOn ? "true" : "false");
     m_settings->setValue("XRF2REF", m_xrf2ref ? "true" : "false");
     m_settings->setValue("USRTXT", m_dstarusertxt);
 
@@ -1028,6 +1032,8 @@ void DroidStar::process_settings()
     m_autoConnect = (m_settings->value("AUTOCONNECT", "true").toString().simplified() == "true");
     m_rogerBeep = m_settings->value("ROGERBEEP", 2).toInt();
     m_txTone = m_settings->value("TXTONE", 1).toInt();
+    m_talkerAlias = m_settings->value("TALKERALIAS").toString().simplified();
+    m_talkerAliasOn = (m_settings->value("TALKERALIASON", "true").toString().simplified() == "true");
     m_dstarusertxt = m_settings->value("USRTXT").toString().simplified();
     m_xrf2ref = (m_settings->value("XRF2REF").toString().simplified() == "true") ? true : false;
     m_localhosts = m_settings->value("LOCALHOSTS").toString();
@@ -1715,6 +1721,7 @@ void DroidStar::update_data(Mode::MODEINFO info)
         m_data2 = info.srcid ? QString::number(info.srcid) : "";
         m_data3 = info.dstid ? QString::number(info.dstid) : "";
         m_data4 = info.gwid ? QString::number(info.gwid) : "";
+        m_data6 = info.usertxt;   // received Talker Alias, empty until complete
         QString s = "Slot" + QString::number(info.slot);
         QString flco;
 
@@ -1958,6 +1965,50 @@ void DroidStar::set_tx_tone(int tone)
     m_txTone = qBound(0, tone, 2);
     save_settings();
     emit tx_tone_changed(m_txTone);
+}
+
+void DroidStar::set_talker_alias(const QString &text)
+{
+    m_talkerAlias = text.simplified().left(27);
+    save_settings();
+    emit talker_alias_changed(effective_talker_alias());
+}
+
+void DroidStar::set_talker_alias_on(bool on)
+{
+    m_talkerAliasOn = on;
+    save_settings();
+    emit talker_alias_changed(effective_talker_alias());
+}
+
+QString DroidStar::effective_talker_alias() const
+{
+    if(!m_talkerAliasOn){
+        return QString();
+    }
+    QString src = m_talkerAlias.simplified();
+    if(src.isEmpty()){
+        src = m_callsign.simplified();
+    }
+    // Sent as ISO 8-bit; keep it plain ASCII so every radio renders it.
+    static const QString from = QStringLiteral("\u011F\u011E\u015F\u015E\u0131\u0130\u00F6\u00D6\u00FC\u00DC\u00E7\u00C7");
+    static const QString to   = QStringLiteral("gGsSiIoOuUcC");
+    QString out;
+    for(const QChar c : src){
+        const qsizetype i = from.indexOf(c);
+        if(i >= 0){
+            out += to.at(i);
+            continue;
+        }
+        const QString base = QString(c).normalized(QString::NormalizationForm_D);
+        for(const QChar b : base){
+            const ushort u = b.unicode();
+            if(u >= 0x20 && u < 0x7F){
+                out += b;
+            }
+        }
+    }
+    return out.simplified().left(27);
 }
 
 void DroidStar::set_roger_beep(int mode)
