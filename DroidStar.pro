@@ -35,6 +35,7 @@ SOURCES += \
         CRCenc.cpp \
         vuidupdater.cpp \
         iosshare.mm \
+        rxrecorder.cpp \
         LogHandler.cpp \
        Golay24128.cpp \
         M17Convolution.cpp \
@@ -135,6 +136,7 @@ resources.files = main.qml AboutTab.qml HostsTab.qml LogTab.qml MainTab.qml Sett
                   ui2026/components/AppCard.qml \
                   ui2026/components/DrawerItem.qml \
                   ui2026/components/CollapsibleSection.qml \
+                  ui2026/components/ReplayList.qml \
                   ui2026/pages/MainPage.qml \
                   ui2026/pages/SettingsPage.qml \
                   ui2026/pages/QsoPage.qml \
@@ -216,7 +218,8 @@ HEADERS += \
 	xrf.h \
 	ysf.h \
         LiveActivityQtBridge.h \
-        ios_live_activity.h
+        ios_live_activity.h \
+        rxrecorder.h
 
 !contains(DEFINES, USE_EXTERNAL_CODEC2){
 HEADERS += \

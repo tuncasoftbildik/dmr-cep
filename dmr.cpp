@@ -949,6 +949,28 @@ void DMR::get_ambe()
 #endif
 }
 
+// Keep a copy of what we play so the transmission can be replayed later.
+// A different src/dst means a new transmission started before the old one was closed.
+void DMR::record_rx(const int16_t *pcm)
+{
+    if (m_recorder.active() &&
+        ((m_recorder.streamSrc() != m_modeinfo.srcid) || (m_recorder.streamDst() != m_modeinfo.dstid))) {
+        finish_recording();
+    }
+    if (!m_recorder.active()) {
+        m_recorder.begin(m_modeinfo.srcid, m_modeinfo.dstid);
+    }
+    m_recorder.append(pcm, 160);
+}
+
+void DMR::finish_recording()
+{
+    const QString path = m_recorder.finish();
+    if (!path.isEmpty()) {
+        emit recording_saved(path);
+    }
+}
+
 void DMR::process_rx_data()
 {
     int16_t pcm[160];
@@ -987,6 +1009,7 @@ void DMR::process_rx_data()
             m_ambedev->decode(ambe);
 
             if(m_ambedev->get_audio(pcm)){
+                record_rx(pcm);
                 m_audio->write(pcm, 160);
                 emit update_output_level(m_audio->level());
             }
@@ -1003,6 +1026,7 @@ void DMR::process_rx_data()
             else{
                 memset(pcm, 0, 160 * sizeof(int16_t));
             }
+            record_rx(pcm);
             m_audio->write(pcm, 160);
             emit update_output_level(m_audio->level());
         }
@@ -1014,6 +1038,7 @@ void DMR::process_rx_data()
         m_modeinfo.streamid = 0;
         m_rxcodecq.clear();
         qDebug() << "DMR playback stopped";
+        finish_recording();
         m_modeinfo.stream_state = STREAM_IDLE;
         return;
     }

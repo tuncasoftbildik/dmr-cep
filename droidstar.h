@@ -48,11 +48,16 @@ public:
     Q_INVOKABLE void removeFavoriteTG(const QString &tg);
     Q_INVOKABLE void moveFavoriteTG(int from, int to);
     Q_INVOKABLE bool isFavoriteTG(const QString &tg) const;
+    // Received transmissions saved for replay, newest first:
+    // {url, file, src, dst, callsign, time (ms), seconds}
+    Q_INVOKABLE QVariantList loadRecordings() const;
+    Q_INVOKABLE void deleteRecording(const QString &file);
     Q_INVOKABLE void updateNowPlayingRX(const QString& callsign, const QString& name, const QString& country);
     void setup_state_change_listeners();
     
 
 signals:
+    void recordings_changed();
     void playbackDevicesChanged();
         void captureDevicesChanged();
 

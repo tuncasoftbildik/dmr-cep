@@ -18,6 +18,8 @@
 
 #include "droidstar.h"
 #include "httpmanager.h"
+#include "rxrecorder.h"
+#include <QUrl>
 #include <QGuiApplication>
 #include <QTimer>
 #include <QNetworkInformation>
@@ -474,6 +476,7 @@ void DroidStar::process_connect()
         connect(m_mode, SIGNAL(update(Mode::MODEINFO)), this, SLOT(update_data(Mode::MODEINFO)));
         connect(m_mode, SIGNAL(update_log(QString)), this, SLOT(updatelog(QString)));
         connect(m_mode, SIGNAL(connection_lost(QString)), this, SLOT(handle_connection_lost(QString)));
+        connect(m_mode, SIGNAL(recording_saved(QString)), this, SIGNAL(recordings_changed()));
         connect(m_mode, SIGNAL(update_output_level(unsigned short)), this, SLOT(update_output_level(unsigned short)));
         connect(m_modethread, SIGNAL(started()), m_mode, SLOT(begin_connect()));
         connect(m_modethread, SIGNAL(finished()), m_mode, SLOT(deleteLater()));
@@ -1792,6 +1795,35 @@ void DroidStar::moveFavoriteTG(int from, int to) {
 
 bool DroidStar::isFavoriteTG(const QString &tg) const {
     return favoriteTGIndex(favoriteTGEntries(), tg.simplified()) >= 0;
+}
+
+QVariantList DroidStar::loadRecordings() const {
+    QVariantList out;
+    QDir dir(RxRecorder::recordingsDir());
+    const QFileInfoList files = dir.entryInfoList(QStringList() << "*.wav", QDir::Files, QDir::Name | QDir::Reversed);
+    for (const QFileInfo &fi : files) {
+        // <yyyyMMdd-HHmmss>_<src>_<dst>.wav
+        const QStringList parts = fi.completeBaseName().split('_');
+        if (parts.size() != 3) continue;
+        const QDateTime ts = QDateTime::fromString(parts.at(0), "yyyyMMdd-HHmmss");
+        const uint32_t src = parts.at(1).toUInt();
+        QVariantMap m;
+        m["url"] = QUrl::fromLocalFile(fi.absoluteFilePath()).toString();
+        m["file"] = fi.fileName();
+        m["src"] = src;
+        m["dst"] = parts.at(2).toUInt();
+        m["callsign"] = m_dmrids.contains(src) ? m_dmrids.value(src) : QString::number(src);
+        m["time"] = ts.isValid() ? ts.toMSecsSinceEpoch() : fi.lastModified().toMSecsSinceEpoch();
+        m["seconds"] = qMax<qint64>(0, (fi.size() - 44) / (RxRecorder::kSampleRate * 2));
+        out.append(m);
+    }
+    return out;
+}
+
+void DroidStar::deleteRecording(const QString &file) {
+    // Only bare file names from loadRecordings() are accepted.
+    if (file.contains('/') || !file.endsWith(".wav")) return;
+    if (QDir(RxRecorder::recordingsDir()).remove(file)) emit recordings_changed();
 }
 
 QStringList DroidStar::loadRecentTGIDs() const {

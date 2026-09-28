@@ -848,6 +848,13 @@ Page {
                         Label { text: appState ? appState.lastHeard1 : ""; font.pixelSize: 11; opacity: 0.85; wrapMode: Text.WordWrap }
                         Label { text: appState ? appState.lastHeard2 : ""; font.pixelSize: 11; opacity: 0.7; wrapMode: Text.WordWrap; visible: !!(appState && appState.lastHeard2 !== "") }
                     }
+
+                    // Replay the most recent received transmission (full list on the QSO page)
+                    ReplayList {
+                        Layout.fillWidth: true
+                        droidstarRef: page.droidstarRef
+                        maxItems: 1
+                    }
                 }
             }
 

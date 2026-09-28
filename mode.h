@@ -138,6 +138,8 @@ signals:
     // Emitted once when an established link dies (master close/NAK or silent timeout).
     // DroidStar tears the mode down and schedules a reconnect.
     void connection_lost(QString reason);
+    // A received transmission was saved for replay (see RxRecorder).
+    void recording_saved(QString path);
 protected slots:
     virtual void send_disconnect(){}
     virtual void hostname_lookup(QHostInfo){}

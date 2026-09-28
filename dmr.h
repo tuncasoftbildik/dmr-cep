@@ -19,6 +19,7 @@
 #define DMR_H
 
 #include "mode.h"
+#include "rxrecorder.h"
 #include "DMRDefines.h"
 #include "cbptc19696.h"
 
@@ -47,6 +48,9 @@ private slots:
 private:
     static const qint64 RX_WATCHDOG_MS = 20000;
     void report_connection_lost(const QString &reason);
+    void record_rx(const int16_t *pcm);
+    void finish_recording();
+    RxRecorder m_recorder;
     qint64 m_last_rx_ms = 0;
     bool m_link_lost = false;
     uint32_t m_essid;

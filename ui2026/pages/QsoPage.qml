@@ -416,6 +416,17 @@ Page {
         spacing: 12
 
         CollapsibleSection {
+            title: qsTr("Recordings")
+            expanded: false
+            Layout.fillWidth: true
+
+            content: ReplayList {
+                width: parent.width
+                droidstarRef: page.droidstarRef
+            }
+        }
+
+        CollapsibleSection {
             id: logSettingsSection
             title: qsTr("QSO log settings")
             expanded: false  // Collapsed by default
