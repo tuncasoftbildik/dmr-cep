@@ -55,6 +55,12 @@ private:
     QTimer *m_handshake_timer = nullptr;
     QByteArray m_last_handshake;
     int m_handshake_resends = 0;
+    // TX diagnostics / recovery
+    int m_tx_frames = 0;
+    int m_tx_starved = 0;
+    int m_tx_peak = 0;
+    bool m_tx_logged = false;
+    bool m_tx_mic_restarted = false;
     static const qint64 RX_WATCHDOG_MS = 20000;
     void report_connection_lost(const QString &reason);
     void record_rx(const int16_t *pcm);

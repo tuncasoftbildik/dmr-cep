@@ -46,6 +46,8 @@ public:
     QStringList discover_audio_devices(uint8_t d);
     void init();
     void start_capture();
+    // Bytes delivered by the microphone since the last start_capture() (TX diagnostics).
+    qint64 captured_bytes() const { return m_captured_bytes; }
     void stop_capture();
     void start_playback();
     void stop_playback();
@@ -73,6 +75,7 @@ signals:
     void audioEngineChanged();
 
 private:
+    qint64 m_captured_bytes = 0;
     QString m_outputdevice;
     QString m_inputdevice;
 #if QT_VERSION < QT_VERSION_CHECK(6, 3, 0)

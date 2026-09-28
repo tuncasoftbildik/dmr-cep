@@ -151,6 +151,8 @@ protected slots:
     void input_src_changed(int id, QString t) { m_ttsid = id; m_ttstext = t; }
     void start_tx();
     void stop_tx();
+    // Reopen the microphone during TX (e.g. after iOS PushToTalk activated the audio session).
+    void restart_capture();
     void toggle_tx(bool);
     void deleteLater();
     void in_audio_vol_changed(qreal);

@@ -65,6 +65,7 @@ public:
 
 signals:
     void recordings_changed();
+    void restart_capture_requested();
     // TX started/stopped outside the app UI (system PTT button, handsfree accessory).
     void system_tx_changed(bool on);
     void playbackDevicesChanged();
@@ -318,6 +319,7 @@ public slots:
     void on_transport_medium_changed(QNetworkInformation::TransportMedium medium);
     void ptt_system_begin_tx();
     void ptt_system_end_tx();
+    void ptt_audio_activated();
     
 private:
     AudioEngine *m_audioEngine;

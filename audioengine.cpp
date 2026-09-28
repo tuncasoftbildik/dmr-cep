@@ -252,6 +252,7 @@ void AudioEngine::init()
 void AudioEngine::start_capture()
 {
     m_audioinq.clear();
+    m_captured_bytes = 0;
    // setupAVAudioSession();
     //setPreferredInputDevice();
     if(m_in != nullptr){
@@ -294,6 +295,7 @@ void AudioEngine::stop_playback()
 void AudioEngine::input_data_received()
 {
     QByteArray data = m_indev->readAll();
+    m_captured_bytes += data.size();
 
     if (data.size() > 0){
 /*

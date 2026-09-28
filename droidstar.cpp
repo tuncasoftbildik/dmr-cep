@@ -72,6 +72,12 @@ static void pttSystemEndCallback() {
     }
 }
 
+static void pttAudioActivatedCallback() {
+    if (s_droidStarInstance) {
+        QMetaObject::invokeMethod(s_droidStarInstance, "ptt_audio_activated", Qt::QueuedConnection);
+    }
+}
+
 static void pttStatusCallback(const char *message) {
     if (s_droidStarInstance) {
         const QString m = QString::fromUtf8(message);
@@ -166,7 +172,7 @@ DroidStar::DroidStar(QObject *parent) :
     s_droidStarInstance = this;
     setPTTCallbacks(pttPressCallback, pttReleaseCallback);
     setRemotePTTEnabled(m_headphonePtt);
-    ptt_set_callbacks(pttSystemBeginCallback, pttSystemEndCallback, pttStatusCallback);
+    ptt_set_callbacks(pttSystemBeginCallback, pttSystemEndCallback, pttStatusCallback, pttAudioActivatedCallback);
 #endif
 }
 
@@ -531,6 +537,7 @@ void DroidStar::process_connect()
         connect(this, SIGNAL(tx_clicked(bool)), m_mode, SLOT(toggle_tx(bool)));
         connect(this, SIGNAL(tx_pressed()), m_mode, SLOT(start_tx()));
         connect(this, SIGNAL(tx_released()), m_mode, SLOT(stop_tx()));
+        connect(this, SIGNAL(restart_capture_requested()), m_mode, SLOT(restart_capture()));
         connect(this, SIGNAL(in_audio_vol_changed(qreal)), m_mode, SLOT(in_audio_vol_changed(qreal)));
         connect(this, SIGNAL(mycall_changed(QString)), m_mode, SLOT(mycall_changed(QString)));
         connect(this, SIGNAL(urcall_changed(QString)), m_mode, SLOT(urcall_changed(QString)));
@@ -1756,6 +1763,7 @@ void DroidStar::set_input_volume(qreal v)
 
 void DroidStar::press_tx()
 {
+    qDebug() << "TX press (app button / headphone)";
 #ifdef Q_OS_IOS
     setAudioTXState(true);
     if (m_pttFramework) ptt_app_tx(true);
@@ -1765,6 +1773,7 @@ void DroidStar::press_tx()
 
 void DroidStar::release_tx()
 {
+    qDebug() << "TX release (app button / headphone)";
 #ifdef Q_OS_IOS
     setAudioTXState(false);
     if (m_pttFramework) ptt_app_tx(false);
@@ -1774,6 +1783,7 @@ void DroidStar::release_tx()
 
 void DroidStar::click_tx(bool tx)
 {
+    qDebug() << "TX toggle (app button):" << tx;
 #ifdef Q_OS_IOS
     if (m_pttFramework) ptt_app_tx(tx);
 #endif
@@ -1783,6 +1793,7 @@ void DroidStar::click_tx(bool tx)
 // TX requested by the system PTT UI or a handsfree button: do the TX without echoing it back.
 void DroidStar::ptt_system_begin_tx()
 {
+    qDebug() << "TX begin from system PTT, connected:" << (connect_status == Mode::CONNECTED_RW);
     if (connect_status != Mode::CONNECTED_RW) return;
 #ifdef Q_OS_IOS
     setAudioTXState(true);
@@ -1793,11 +1804,19 @@ void DroidStar::ptt_system_begin_tx()
 
 void DroidStar::ptt_system_end_tx()
 {
+    qDebug() << "TX end from system PTT";
 #ifdef Q_OS_IOS
     setAudioTXState(false);
 #endif
     emit tx_released();
     emit system_tx_changed(false);
+}
+
+// The system just activated the audio session; if we are transmitting, the mic opened before
+// that may be dead, so reopen it.
+void DroidStar::ptt_audio_activated()
+{
+    if (connect_status == Mode::CONNECTED_RW) emit restart_capture_requested();
 }
 
 bool DroidStar::ptt_framework_available() const

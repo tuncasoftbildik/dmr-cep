@@ -36,7 +36,8 @@ typedef void (*PTTSystemCallback)(void);
 typedef void (*PTTStatusCallback)(const char *message);
 
 bool ptt_is_available(void);
-void ptt_set_callbacks(PTTSystemCallback beginTx, PTTSystemCallback endTx, PTTStatusCallback status);
+// audioActivated: the system activated the audio session (TX or RX); the app should (re)open audio I/O.
+void ptt_set_callbacks(PTTSystemCallback beginTx, PTTSystemCallback endTx, PTTStatusCallback status, PTTSystemCallback audioActivated);
 // Must be called while the app is in the foreground (user tapped Connect).
 void ptt_join(const char *channelName);
 void ptt_update_name(const char *channelName);

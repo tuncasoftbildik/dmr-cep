@@ -527,10 +527,31 @@ void DMR::transmit()
         }
     }
 #endif
+    if(m_tx && !m_tx_logged){
+        m_tx_logged = true;
+        m_tx_frames = 0;
+        m_tx_starved = 0;
+        m_tx_peak = 0;
+        m_tx_mic_restarted = false;
+        qDebug() << "DMR TX start: src" << m_dmrid << "dst" << m_txdstid << (m_flco == FLCO_USER_USER ? "private" : "group") << "slot" << m_txslot;
+    }
     if(m_ttsid == 0){
         if(m_audio->read(pcm, 160)){
+            if(m_audio->level() > m_tx_peak) m_tx_peak = m_audio->level();
+        }
+        else if(!m_tx){
+            // Released while the mic had nothing buffered: still close the stream with an EOT.
+            send_frame();
+            return;
         }
         else{
+            // No microphone data yet. If it stays silent for ~0.5 s, reopen the mic once.
+            if((++m_tx_starved == 8) && !m_tx_mic_restarted){
+                m_tx_mic_restarted = true;
+                qDebug() << "DMR TX: microphone delivered" << m_audio->captured_bytes() << "bytes, restarting capture";
+                m_audio->stop_capture();
+                m_audio->start_capture();
+            }
             return;
         }
     }
@@ -589,6 +610,7 @@ void DMR::send_frame()
         txdata.append((char *)m_dmrFrame, 55);
         m_udp->writeDatagram(txdata, m_address, m_modeinfo.port);
         ++m_dmrcnt;
+        ++m_tx_frames;
 /*
         if(!m_dmrcnt){
             for (int i = 0U; i < 3; i++) {
@@ -607,6 +629,9 @@ void DMR::send_frame()
 */
     }
     else{
+        qDebug() << "DMR TX end: voice frames" << m_tx_frames << "mic starved ticks" << m_tx_starved
+                 << "mic bytes" << m_audio->captured_bytes() << "peak level" << m_tx_peak;
+        m_tx_logged = false;
         get_eot();
         build_frame();
         m_ttscnt = 0;

@@ -24,6 +24,7 @@
 static PTTSystemCallback g_beginTx = NULL;
 static PTTSystemCallback g_endTx = NULL;
 static PTTStatusCallback g_status = NULL;
+static PTTSystemCallback g_audioActivated = NULL;
 
 static void ptt_status(NSString *msg)
 {
@@ -205,6 +206,7 @@ API_AVAILABLE(ios(16.0))
 - (void)channelManager:(PTChannelManager *)channelManager didActivateAudioSession:(AVAudioSession *)audioSession
 {
     NSLog(@"[PTT] audio session activated by system");
+    if (g_audioActivated) g_audioActivated();
 }
 
 - (void)channelManager:(PTChannelManager *)channelManager didDeactivateAudioSession:(AVAudioSession *)audioSession
@@ -253,8 +255,9 @@ extern "C" bool ptt_is_available(void)
     return false;
 }
 
-extern "C" void ptt_set_callbacks(PTTSystemCallback beginTx, PTTSystemCallback endTx, PTTStatusCallback status)
+extern "C" void ptt_set_callbacks(PTTSystemCallback beginTx, PTTSystemCallback endTx, PTTStatusCallback status, PTTSystemCallback audioActivated)
 {
+    g_audioActivated = audioActivated;
     g_beginTx = beginTx;
     g_endTx = endTx;
     g_status = status;

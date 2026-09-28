@@ -283,6 +283,15 @@ void Mode::stop_tx()
     m_tx = false;
 }
 
+void Mode::restart_capture()
+{
+    if(m_tx && (m_ttsid == 0) && m_audio){
+        qDebug() << "TX: restarting microphone capture";
+        m_audio->stop_capture();
+        m_audio->start_capture();
+    }
+}
+
 bool Mode::load_vocoder_plugin()
 {
 #ifdef VOCODER_PLUGIN
