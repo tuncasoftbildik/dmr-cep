@@ -136,6 +136,9 @@ DroidStar::DroidStar(QObject *parent) :
 
     
     qRegisterMetaType<Mode::MODEINFO>("Mode::MODEINFO");
+    m_subtitles = new SubtitleController(this);
+    // A subtitle sidecar (<recording>.json) was written: QSO page / replay rows show it.
+    connect(m_subtitles, &SubtitleController::subtitleSaved, this, &DroidStar::recordings_changed);
     m_settings_processed = false;
     m_modelchange = false;
     connect_status = Mode::DISCONNECTED;
@@ -2558,6 +2561,9 @@ QVariantList DroidStar::loadRecordings() const {
         m["own"] = (src == m_dmrid);
         m["time"] = ts.isValid() ? ts.toMSecsSinceEpoch() : fi.lastModified().toMSecsSinceEpoch();
         m["seconds"] = qMax<qint64>(0, (fi.size() - 44) / (RxRecorder::kSampleRate * 2));
+        const QVariantMap sub = SubtitleController::readSidecar(fi.absoluteFilePath());
+        m["subEn"] = sub.value("en").toString();
+        m["subTr"] = sub.value("tr").toString();
         out.append(m);
     }
     return out;
@@ -2566,7 +2572,9 @@ QVariantList DroidStar::loadRecordings() const {
 void DroidStar::deleteRecording(const QString &file) {
     // Only bare file names from loadRecordings() are accepted.
     if (file.contains('/') || !file.endsWith(".wav")) return;
-    if (QDir(RxRecorder::recordingsDir()).remove(file)) emit recordings_changed();
+    QDir dir(RxRecorder::recordingsDir());
+    dir.remove(file.chopped(4) + ".json");     // subtitle sidecar, if any
+    if (dir.remove(file)) emit recordings_changed();
 }
 
 QString DroidStar::lookupDmrId(uint id) const {

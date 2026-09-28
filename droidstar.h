@@ -23,12 +23,15 @@
 #include "mode.h"
 #include "audioengine.h"  // Make sure AudioEngine is included
 #include "phonegps.h"
+#include "subtitles.h"
 
 class DroidStar : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QStringList playbackDevices READ getPlaybackDevices NOTIFY playbackDevicesChanged)
     Q_PROPERTY(QStringList captureDevices READ getCaptureDevices NOTIFY captureDevicesChanged)
+    // Live subtitles (SubtitleController, subtitles.h): droidStar.subtitles.tr etc. in QML.
+    Q_PROPERTY(QObject* subtitles READ subtitles CONSTANT)
     //Q_PROPERTY(AudioEngine* audioEngine READ getAudioEngine NOTIFY audioEngineChanged)
 
 
@@ -38,6 +41,7 @@ public:
     QStringList getPlaybackDevices() const { return m_playbackDevices; }
        QStringList getCaptureDevices() const { return m_captureDevices; }
     AudioEngine* getAudioEngine() const { return m_audioEngine; }
+    QObject *subtitles() const { return m_subtitles; }
     ~DroidStar();
     
     Q_INVOKABLE void addRecentTGID(const QString& tgid);
@@ -384,6 +388,7 @@ public slots:
     void hw_ptt_log(const QString &line);
     
 private:
+    SubtitleController *m_subtitles = nullptr;
     AudioEngine *m_audioEngine;
     QStringList m_playbackDevices;
        QStringList m_captureDevices;

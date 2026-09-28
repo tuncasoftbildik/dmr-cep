@@ -41,19 +41,20 @@ Page {
     property var recs: []
     property string playingUrl: ""
     function refreshRecs() { if (droidstarRef) recs = droidstarRef.loadRecordings() }
-    function recFor(dmrId, timeStr) {
-        if (!timeStr || !recs || recs.length === 0) return ""
+    function recObjFor(dmrId, timeStr) {
+        if (!timeStr || !recs || recs.length === 0) return null
         var p = ("" + timeStr).split(/[- :]/)
-        if (p.length < 6) return ""
+        if (p.length < 6) return null
         var t = new Date(+p[0], +p[1] - 1, +p[2], +p[3], +p[4], +p[5]).getTime()
-        var best = "", bestDt = 20001
+        var best = null, bestDt = 20001
         for (var i = 0; i < recs.length; ++i) {
             if (recs[i].src !== +dmrId) continue
             var dt = Math.abs(recs[i].time - t)
-            if (dt < bestDt) { bestDt = dt; best = recs[i].url }
+            if (dt < bestDt) { bestDt = dt; best = recs[i] }
         }
         return best
     }
+    function recFor(dmrId, timeStr) { var r = recObjFor(dmrId, timeStr); return r ? r.url : "" }
     function togglePlay(url) {
         if (playingUrl === url && qsoPlayer.playbackState === MediaPlayer.PlayingState) { qsoPlayer.stop(); return }
         qsoPlayer.stop(); playingUrl = url; qsoPlayer.source = url; qsoPlayer.play()
@@ -633,6 +634,35 @@ Page {
                         text: (fname || "") + (country ? (" (" + country + ")") : "")
                         opacity: 0.85
                         visible: (fname && fname.length > 0) || (country && country.length > 0)
+                    }
+                    // Live subtitle saved with the matching recording; tap to expand.
+                    Column {
+                        id: subCol
+                        readonly property var rec: page.recObjFor(dmrID, currentTime)
+                        readonly property string main: rec ? (rec.subTr || rec.subEn || "") : ""
+                        readonly property string orig: (rec && rec.subTr && rec.subEn) ? rec.subEn : ""
+                        property bool open: false
+                        width: parent.width
+                        spacing: 2
+                        visible: main !== ""
+                        Label {
+                            width: parent.width
+                            text: "“" + subCol.main + "”"
+                            wrapMode: Text.Wrap
+                            maximumLineCount: subCol.open ? 1000 : 2
+                            elide: Text.ElideRight
+                            font.pixelSize: 13
+                            color: t.text
+                        }
+                        Label {
+                            width: parent.width
+                            visible: subCol.open && subCol.orig !== ""
+                            text: subCol.orig
+                            wrapMode: Text.Wrap
+                            font.pixelSize: 11
+                            color: t.textMuted
+                        }
+                        TapHandler { onTapped: subCol.open = !subCol.open }
                     }
                 }
 

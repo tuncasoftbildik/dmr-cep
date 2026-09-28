@@ -303,6 +303,14 @@ You should have received a copy of the GNU General Public License along with thi
         <source>+ Add talkgroup</source>
         <translation>+ Konuşma grubu ekle</translation>
     </message>
+    <message>
+        <source>Subtitles on for this talkgroup</source>
+        <translation>Bu grupta altyazı açık</translation>
+    </message>
+    <message>
+        <source>Subtitles off for this talkgroup</source>
+        <translation>Bu grupta altyazı kapalı</translation>
+    </message>
 </context>
 <context>
     <name>HostsPage</name>
@@ -730,6 +738,18 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <location filename="../ui2026/pages/MainPage.qml" line="908" />
         <source>Saved channels</source>
         <translation>Kayıtlı kanallar</translation>
+    </message>
+    <message>
+        <source>Downloading subtitle model… %1%</source>
+        <translation>Altyazı modeli indiriliyor… %%1</translation>
+    </message>
+    <message>
+        <source>Subtitles are not ready yet</source>
+        <translation>Altyazı henüz hazır değil</translation>
+    </message>
+    <message>
+        <source>Listening…</source>
+        <translation>Dinleniyor…</translation>
     </message>
 </context>
 <context>
@@ -1646,6 +1666,106 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <location filename="../ui2026/pages/SettingsPage.qml" line="1260" />
         <source>Text to speak</source>
         <translation>Seslendirilecek metin</translation>
+    </message>
+    <message>
+        <source>Needs iOS 26 or later</source>
+        <translation>iOS 26 veya üstü gerekir</translation>
+    </message>
+    <message>
+        <source>Speech model ready (on this phone)</source>
+        <translation>Konuşma modeli hazır (telefonda)</translation>
+    </message>
+    <message>
+        <source>Downloading subtitle model… %1%</source>
+        <translation>Altyazı modeli indiriliyor… %%1</translation>
+    </message>
+    <message>
+        <source>Checking speech model…</source>
+        <translation>Konuşma modeli denetleniyor…</translation>
+    </message>
+    <message>
+        <source>Speech recognition for this language is not available on this phone</source>
+        <translation>Bu dil için konuşma tanıma bu telefonda yok</translation>
+    </message>
+    <message>
+        <source>Speech model download failed; it is retried when you turn subtitles on</source>
+        <translation>Konuşma modeli indirilemedi; altyazıyı açınca yeniden denenir</translation>
+    </message>
+    <message>
+        <source>English → Turkish pack installed</source>
+        <translation>İngilizce → Türkçe paketi yüklü</translation>
+    </message>
+    <message>
+        <source>English → Turkish pack not downloaded: subtitles stay in English</source>
+        <translation>İngilizce → Türkçe paketi indirilmedi: altyazı İngilizce kalır</translation>
+    </message>
+    <message>
+        <source>Translation to Turkish is not available on this phone</source>
+        <translation>Bu telefonda Türkçeye çeviri yok</translation>
+    </message>
+    <message>
+        <source>Checking translation…</source>
+        <translation>Çeviri denetleniyor…</translation>
+    </message>
+    <message>
+        <source>Subtitles</source>
+        <translation>Altyazı</translation>
+    </message>
+    <message>
+        <source>TG %1</source>
+        <translation>TG %1</translation>
+    </message>
+    <message>
+        <source>Turkish</source>
+        <translation>Türkçe</translation>
+    </message>
+    <message>
+        <source>English → Turkish</source>
+        <translation>İngilizce → Türkçe</translation>
+    </message>
+    <message>
+        <source>English</source>
+        <translation>İngilizce</translation>
+    </message>
+    <message>
+        <source>Live subtitles</source>
+        <translation>Canlı altyazı</translation>
+    </message>
+    <message>
+        <source>Talkgroups with subtitles</source>
+        <translation>Altyazılı konuşma grupları</translation>
+    </message>
+    <message>
+        <source>e.g. 91, 2862</source>
+        <translation>örn. 91, 2862</translation>
+    </message>
+    <message>
+        <source>Comma separated. Received overs on these talkgroups are transcribed on this phone; nothing is sent anywhere.</source>
+        <translation>Virgülle ayır. Bu gruplarda gelen konuşmalar telefonda yazıya dökülür; hiçbir yere gönderilmez.</translation>
+    </message>
+    <message>
+        <source>Speech language</source>
+        <translation>Konuşma dili</translation>
+    </message>
+    <message>
+        <source>English is translated to Turkish; Turkish is shown as spoken</source>
+        <translation>İngilizce Türkçeye çevrilir; Türkçe olduğu gibi yazılır</translation>
+    </message>
+    <message>
+        <source>Translate to Turkish</source>
+        <translation>Türkçeye çevir</translation>
+    </message>
+    <message>
+        <source>Download Turkish translation pack</source>
+        <translation>Türkçe çeviri paketini indir</translation>
+    </message>
+    <message>
+        <source>Show original</source>
+        <translation>Orijinali göster</translation>
+    </message>
+    <message>
+        <source>Small English text under the Turkish subtitle</source>
+        <translation>Türkçe altyazının altında küçük İngilizce metin</translation>
     </message>
 </context>
 <context>

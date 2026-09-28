@@ -39,6 +39,7 @@ SOURCES += \
         vuidupdater.cpp \
         iosshare.mm \
         rxrecorder.cpp \
+        subtitles.cpp \
         LogHandler.cpp \
        Golay24128.cpp \
         M17Convolution.cpp \
@@ -111,6 +112,9 @@ ios:HEADERS += PushToTalkManager.h
 ios:LIBS += -weak_framework PushToTalk
 # App Intents (Action Button PTT, PttIntents.swift): iOS 16+, the app still deploys to 15.
 ios:LIBS += -weak_framework AppIntents
+# Live subtitles (SubtitleEngine.swift): SpeechAnalyzer is iOS 26+, Translation iOS 18+ (the
+# framework does not exist before 17.4), so both are weak; the app still deploys to 15.
+ios:LIBS += -weak_framework Speech -weak_framework Translation
 ios:PTT_ENTITLEMENTS.name = CODE_SIGN_ENTITLEMENTS
 ios:PTT_ENTITLEMENTS.value = $$PWD/DroidStar.entitlements
 ios:QMAKE_MAC_XCODE_SETTINGS += PTT_ENTITLEMENTS
@@ -129,7 +133,8 @@ ios:QMAKE_CXXFLAGS += -fobjc-arc
 # only puts files with a known source extension into "Compile Sources" (otherwise they are
 # listed but never built, and NSClassFromString(@"LiveActivityManager") fails at runtime),
 # so .swift is registered as a source extension here. Xcode picks the Swift compiler by type.
-LA_SWIFT_SOURCES = LiveActivityManager.swift DroidStarActivityAttributes.swift PttIntents.swift
+LA_SWIFT_SOURCES = LiveActivityManager.swift DroidStarActivityAttributes.swift PttIntents.swift \
+                   SubtitleGlossary.swift SubtitleEngine.swift SubtitleTranslationUI.swift
 ios:SOURCES += $$LA_SWIFT_SOURCES
 ios:QMAKE_EXT_CPP += .swift
 # ...which types them as C++ in the project file. This preprocess step (part of
@@ -274,6 +279,7 @@ HEADERS += \
         LiveActivityQtBridge.h \
         ios_live_activity.h \
         rxrecorder.h \
+        subtitles.h \
         languagemanager.h
 
 !contains(DEFINES, USE_EXTERNAL_CODEC2){

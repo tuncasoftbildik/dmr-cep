@@ -23,6 +23,7 @@
 #include <QFile>
 #include <QDir>
 #include "dmr.h"
+#include "subtitles.h"
 #include "cgolay2087.h"
 #include "crs129.h"
 #include "SHA256.h"
@@ -61,6 +62,7 @@ DMR::DMR() :
 
 DMR::~DMR()
 {
+    if (m_subtitle_on) SubtitleTap::end();   // disconnected mid-over: close the caption
 }
 
 void DMR::set_dmr_params(uint8_t essid, QString password, QString lat, QString lon, QString location, QString desc, QString freq, QString url, QString swid, QString pkid, QString options)
@@ -1508,13 +1510,22 @@ void DMR::record_rx(const int16_t *pcm)
     }
     if (!m_recorder.active()) {
         m_recorder.begin(m_modeinfo.srcid, m_modeinfo.dstid);
+        // Live subtitles: decided once per transmission (TG list in Settings > Subtitles).
+        m_subtitle_on = SubtitleTap::wants(m_modeinfo.dstid);
+        if (m_subtitle_on) SubtitleTap::begin(m_modeinfo.srcid, m_modeinfo.dstid, m_recorder.baseName());
     }
     m_recorder.append(pcm, 160);
+    // Post-gain PCM, same frames as the speaker; only queued, never waits for the recognizer.
+    if (m_subtitle_on) SubtitleTap::push(pcm, 160);
 }
 
 void DMR::finish_recording()
 {
     const QString path = m_recorder.finish();
+    if (m_subtitle_on) {
+        m_subtitle_on = false;
+        SubtitleTap::end();
+    }
     if (!path.isEmpty()) {
         emit recording_saved(path);
     }

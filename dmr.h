@@ -147,6 +147,7 @@ private:
     void record_rx(const int16_t *pcm);
     void finish_recording();
     RxRecorder m_recorder;
+    bool m_subtitle_on = false;          // this transmission goes to the subtitle engine
     qint64 m_last_rx_ms = 0;
     bool m_link_lost = false;
     uint32_t m_essid;

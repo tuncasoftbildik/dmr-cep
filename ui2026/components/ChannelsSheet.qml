@@ -331,6 +331,14 @@ Drawer {
                 readonly property color tint: isContact ? t.accent : t.lcd
                 readonly property bool active: root.host ? root.host.isActive(root.kind, modelData.id) : false
                 readonly property bool armed: root.armedDeleteId === modelData.id
+                // Live subtitles for this talkgroup (Settings > Subtitles keeps the same list).
+                readonly property var subs: (root.host && root.host.subs) ? root.host.subs : null
+                readonly property bool ccAvailable: !row.isContact && !!row.subs && row.subs.supported && row.subs.enabled
+                readonly property bool cc: {
+                    if (!row.ccAvailable) return false
+                    var list = row.subs.talkgroups      // re-evaluate when the list changes
+                    return list !== "" && row.subs.tgHasSubtitles("" + row.modelData.id)
+                }
                 readonly property string fallbackName: {
                     if (modelData.name || !root.host) return ""
                     var a = root.host.dmrIdNames, b = root.host.tgNames
@@ -413,6 +421,27 @@ Drawer {
                             Accessible.name: qsTr("Move down")
                             onClicked: { root.armedDeleteId = ""; root.host.moveChannel(root.kind, row.index, row.index + 1) }
                         }
+                    }
+                    ToolButton {
+                        implicitWidth: 40; implicitHeight: 44
+                        visible: row.ccAvailable && !row.armed
+                        contentItem: Label {
+                            text: "CC"
+                            font.pixelSize: 12
+                            font.weight: Font.Bold
+                            color: row.cc ? t.success : Qt.rgba(t.textMuted.r, t.textMuted.g, t.textMuted.b, 0.5)
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            anchors.centerIn: parent
+                            width: 32; height: 22; radius: 6
+                            color: "transparent"
+                            border.width: 1
+                            border.color: row.cc ? t.success : Qt.rgba(t.textMuted.r, t.textMuted.g, t.textMuted.b, 0.35)
+                        }
+                        Accessible.name: row.cc ? qsTr("Subtitles on for this talkgroup") : qsTr("Subtitles off for this talkgroup")
+                        onClicked: { root.armedDeleteId = ""; row.subs.setTgSubtitles("" + row.modelData.id, !row.cc) }
                     }
                     ToolButton {
                         implicitWidth: 40; implicitHeight: 44

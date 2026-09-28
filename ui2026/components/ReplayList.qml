@@ -85,58 +85,97 @@ ColumnLayout {
 
     Repeater {
         model: root.recordings
-        delegate: RowLayout {
+        delegate: ColumnLayout {
+            id: recRow
             required property var modelData
-            readonly property bool playing: root.playingUrl === modelData.url
+            // Subtitle saved with the recording (<file>.json from the live subtitles), if any.
+            readonly property string subMain: recRow.modelData.subTr ? recRow.modelData.subTr : (recRow.modelData.subEn || "")
+            readonly property string subOrig: (recRow.modelData.subTr && recRow.modelData.subEn) ? recRow.modelData.subEn : ""
+            property bool subOpen: false
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 2
 
-            RoundButton {
-                id: playBtn
-                Layout.preferredWidth: 44
-                Layout.preferredHeight: 44
-                onClicked: root.toggle(modelData.url)
-                contentItem: Label {
-                    text: parent.parent.playing ? "■" : "▶"
-                    color: t.text
-                    font.pixelSize: 18
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+            RowLayout {
+                id: recLine
+                readonly property bool playing: root.playingUrl === recRow.modelData.url
+                Layout.fillWidth: true
+                spacing: 8
+
+                RoundButton {
+                    id: playBtn
+                    Layout.preferredWidth: 44
+                    Layout.preferredHeight: 44
+                    onClicked: root.toggle(recRow.modelData.url)
+                    contentItem: Label {
+                        text: recLine.playing ? "■" : "▶"
+                        color: t.text
+                        font.pixelSize: 18
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        radius: width / 2
+                        color: recLine.playing ? Qt.rgba(t.success.r, t.success.g, t.success.b, 0.25) : t.surface2
+                        border.color: recLine.playing ? t.success : t.stroke
+                        border.width: 1
+                    }
                 }
-                background: Rectangle {
-                    radius: width / 2
-                    color: parent.parent.playing ? Qt.rgba(t.success.r, t.success.g, t.success.b, 0.25) : t.surface2
-                    border.color: parent.parent.playing ? t.success : t.stroke
-                    border.width: 1
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+                    Label {
+                        text: (root.maxItems > 0 ? qsTr("Replay last: ") : "")
+                              + (recRow.modelData.own ? qsTr("You (as heard by others)") : recRow.modelData.callsign)
+                        color: recRow.modelData.own ? t.warning : t.text
+                        font.pixelSize: 13
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        text: "TG " + recRow.modelData.dst + " · " + root.fmtTime(recRow.modelData.time) + " · " + recRow.modelData.seconds + " s"
+                        font.pixelSize: 11
+                        opacity: 0.6
+                        Layout.fillWidth: true
+                    }
+                }
+
+                ToolButton {
+                    visible: root.allowDelete
+                    text: "✕"
+                    onClicked: {
+                        if (recLine.playing) player.stop()
+                        root.droidstarRef.deleteRecording(recRow.modelData.file)
+                    }
                 }
             }
 
+            // Tap to expand: Turkish subtitle, then the original English.
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 0
+                Layout.leftMargin: 52
+                Layout.bottomMargin: 4
+                visible: recRow.subMain !== ""
+                spacing: 2
                 Label {
-                    text: (root.maxItems > 0 ? qsTr("Replay last: ") : "")
-                          + (modelData.own ? qsTr("You (as heard by others)") : modelData.callsign)
-                    color: modelData.own ? t.warning : t.text
+                    Layout.fillWidth: true
+                    text: "“" + recRow.subMain + "”"
+                    color: t.text
                     font.pixelSize: 13
+                    opacity: 0.9
+                    wrapMode: Text.Wrap
+                    maximumLineCount: recRow.subOpen ? 1000 : 2
                     elide: Text.ElideRight
-                    Layout.fillWidth: true
                 }
                 Label {
-                    text: "TG " + modelData.dst + " · " + root.fmtTime(modelData.time) + " · " + modelData.seconds + " s"
-                    font.pixelSize: 11
-                    opacity: 0.6
                     Layout.fillWidth: true
+                    visible: recRow.subOpen && recRow.subOrig !== ""
+                    text: recRow.subOrig
+                    color: t.textMuted
+                    font.pixelSize: 11
+                    wrapMode: Text.Wrap
                 }
-            }
-
-            ToolButton {
-                visible: root.allowDelete
-                text: "✕"
-                onClicked: {
-                    if (parent.playing) player.stop()
-                    root.droidstarRef.deleteRecording(modelData.file)
-                }
+                TapHandler { onTapped: recRow.subOpen = !recRow.subOpen }
             }
         }
     }

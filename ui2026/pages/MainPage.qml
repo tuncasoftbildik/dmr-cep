@@ -55,6 +55,21 @@ Page {
     readonly property var linkQuality: (appState && appState.linkQuality) ? appState.linkQuality : ({ bars: -1 })
     readonly property bool showLinkQuality: connected && !!(appState && appState.mode === "DMR")
 
+    // Live subtitles (SubtitleController, droidStar.subtitles). Shown while an over on a subtitle
+    // TG is being captioned and for 8 s after it ends.
+    readonly property var subs: (droidstarRef && droidstarRef.subtitles) ? droidstarRef.subtitles : null
+    readonly property bool captionShowing: !!subs && subs.enabled && subs.showing && !onAir
+    // Turkish is the main line when a translation is expected (or the recognizer itself is Turkish).
+    readonly property bool captionTurkishMain: !!subs && (subs.language === "tr"
+        || (subs.translate && subs.translationStatus === "installed"))
+    function esc(s) { return ("" + s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") }
+    // Final text in full color, the part still being recognized/translated lighter.
+    function captionRich(finalText, volatileText, volatileColor) {
+        var out = esc(finalText || "")
+        if (volatileText) out += (out !== "" ? " " : "") + "<font color=\"" + volatileColor + "\">" + esc(volatileText) + "</font>"
+        return out
+    }
+
     function lqValue(v, unit) { return (v === undefined || v < 0) ? "–" : (v + " " + unit) }
     // Loss shown next to the bars: last received transmission if measured, else ping loss.
     readonly property int lossPct: {
@@ -1029,10 +1044,102 @@ Page {
                 opacity: 0.8
             }
 
+            // ── Live subtitles: Turkish (main), original English smaller beneath; newest at the bottom ──
+            Rectangle {
+                id: captionBox
+                visible: page.captionShowing
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.topMargin: 6
+                Layout.minimumHeight: 52
+                Layout.preferredHeight: 150
+                Layout.maximumHeight: 210
+                radius: 14
+                color: t.surface
+                border.color: (page.subs && page.subs.active) ? Qt.rgba(t.success.r, t.success.g, t.success.b, 0.45) : t.stroke
+                border.width: 1
+
+                readonly property string mainText: {
+                    var s = page.subs
+                    if (!s) return ""
+                    if (page.captionTurkishMain) return page.captionRich(s.tr, s.trVolatile, "" + t.textMuted)
+                    return page.captionRich(s.en, s.enVolatile, "" + t.textMuted)
+                }
+                readonly property string origText: {
+                    var s = page.subs
+                    if (!s || !page.captionTurkishMain || s.language === "tr" || !s.showOriginal) return ""
+                    return page.captionRich(s.en, s.enVolatile, "#6E7580")
+                }
+                readonly property string placeholder: {
+                    var s = page.subs
+                    if (!s) return ""
+                    if (s.modelStatus === "downloading")
+                        return qsTr("Downloading subtitle model… %1%").arg(Math.round(s.modelProgress * 100))
+                    if (s.modelStatus !== "ready") return qsTr("Subtitles are not ready yet")
+                    return s.active ? qsTr("Listening…") : ""
+                }
+
+                Label {
+                    id: ccBadge
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: 8
+                    text: "CC"
+                    font.pixelSize: 10
+                    font.weight: Font.Bold
+                    color: t.textMuted
+                    opacity: 0.8
+                }
+
+                Flickable {
+                    id: capFlick
+                    anchors.fill: parent
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 26
+                    anchors.topMargin: 10
+                    anchors.bottomMargin: 10
+                    clip: true
+                    contentWidth: width
+                    contentHeight: capCol.implicitHeight
+                    boundsBehavior: Flickable.StopAtBounds
+                    // Follow the newest line unless the user is scrolling back.
+                    function toBottom() { if (!moving && !dragging) contentY = Math.max(0, contentHeight - height) }
+                    onContentHeightChanged: toBottom()
+                    onHeightChanged: toBottom()
+
+                    Column {
+                        id: capCol
+                        width: capFlick.width
+                        spacing: 6
+
+                        Label {
+                            width: parent.width
+                            visible: text !== ""
+                            text: captionBox.mainText !== "" ? captionBox.mainText : captionBox.placeholder
+                            textFormat: captionBox.mainText !== "" ? Text.StyledText : Text.PlainText
+                            color: captionBox.mainText !== "" ? t.text : t.textMuted
+                            font.pixelSize: 19
+                            font.weight: Font.Medium
+                            lineHeight: 1.1
+                            wrapMode: Text.Wrap
+                        }
+                        Label {
+                            width: parent.width
+                            visible: captionBox.origText !== ""
+                            text: captionBox.origText
+                            textFormat: Text.StyledText
+                            color: t.textMuted
+                            font.pixelSize: 13
+                            wrapMode: Text.Wrap
+                        }
+                    }
+                }
+            }
+
             ReplayList {
                 Layout.fillWidth: true
                 Layout.topMargin: 6
-                visible: !page.receiving && !page.onAir
+                visible: !page.receiving && !page.onAir && !page.captionShowing
                 droidstarRef: page.droidstarRef
                 maxItems: 1
                 excludeOwn: true

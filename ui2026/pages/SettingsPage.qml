@@ -326,6 +326,32 @@ Page {
     property bool identityExpanded: true
     property bool pttExpanded: true
     property bool audioExpanded: false
+    property bool subtitlesExpanded: false
+
+    // Live subtitles (SubtitleController, droidStar.subtitles)
+    readonly property var subs: (droidstarRef && droidstarRef.subtitles) ? droidstarRef.subtitles : null
+    function subsModelText() {
+        var s = page.subs
+        if (!s || !s.supported) return qsTr("Needs iOS 26 or later")
+        switch (s.modelStatus) {
+        case "ready": return qsTr("Speech model ready (on this phone)")
+        case "downloading": return qsTr("Downloading subtitle model… %1%").arg(Math.round(s.modelProgress * 100))
+        case "checking": return qsTr("Checking speech model…")
+        case "unsupported": return qsTr("Speech recognition for this language is not available on this phone")
+        case "failed": return qsTr("Speech model download failed; it is retried when you turn subtitles on")
+        default: return s.enabled ? qsTr("Checking speech model…") : qsTr("Off")
+        }
+    }
+    function subsTranslationText() {
+        var s = page.subs
+        if (!s) return ""
+        switch (s.translationStatus) {
+        case "installed": return qsTr("English → Turkish pack installed")
+        case "supported": return qsTr("English → Turkish pack not downloaded: subtitles stay in English")
+        case "unsupported": return qsTr("Translation to Turkish is not available on this phone")
+        default: return qsTr("Checking translation…")
+        }
+    }
     property bool locationExpanded: false
     property bool profileExpanded: false
     property bool languageExpanded: false
@@ -776,6 +802,106 @@ Page {
                         text: page.appState && page.appState.ambestatus ? page.appState.ambestatus : ""
                         wrapMode: Text.WordWrap
                         visible: !!(page.appState && page.appState.ambestatus && page.appState.ambestatus !== "")
+                    }
+                }
+            }
+
+            // ─────────────────────────────────────────────────────────
+            // SUBTITLES (live captions of received overs, on-device)
+            // ─────────────────────────────────────────────────────────
+            Section {
+                title: qsTr("Subtitles")
+                summary: {
+                    var s = page.subs
+                    if (!s || !s.supported) return qsTr("Needs iOS 26 or later")
+                    if (!s.enabled) return qsTr("Off")
+                    return qsTr("TG %1").arg(s.talkgroups) + "  ·  "
+                           + (s.language === "tr" ? qsTr("Turkish") : (s.translate && s.translationStatus === "installed" ? qsTr("English → Turkish") : qsTr("English")))
+                }
+                expanded: page.subtitlesExpanded
+                onExpandedChanged: {
+                    page.subtitlesExpanded = expanded
+                    if (expanded && page.subs) page.subs.refreshStatus()
+                }
+
+                SettingRow {
+                    title: qsTr("Live subtitles")
+                    hint: page.subsModelText()
+                    Switch {
+                        enabled: !!(page.subs && page.subs.supported)
+                        checked: !!(page.subs && page.subs.enabled)
+                        onToggled: if (page.subs) page.subs.enabled = checked
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    visible: !!(page.subs && page.subs.supported && page.subs.enabled)
+                    spacing: 0
+
+                    Rule {}
+
+                    FieldBlock {
+                        Caption { text: qsTr("Talkgroups with subtitles") }
+                        Input {
+                            text: page.subs ? page.subs.talkgroups : "91"
+                            inputMethodHints: Qt.ImhFormattedNumbersOnly | Qt.ImhNoPredictiveText
+                            hint: qsTr("e.g. 91, 2862")
+                            onEditingFinished: if (page.subs) { page.subs.talkgroups = text; text = page.subs.talkgroups }
+                        }
+                        Caption {
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            text: qsTr("Comma separated. Received overs on these talkgroups are transcribed on this phone; nothing is sent anywhere.")
+                        }
+                    }
+
+                    Rule {}
+
+                    SettingRow {
+                        stacked: true
+                        title: qsTr("Speech language")
+                        hint: qsTr("English is translated to Turkish; Turkish is shown as spoken")
+                        Chips {
+                            options: [qsTr("English"), qsTr("Turkish")]
+                            current: (page.subs && page.subs.language === "tr") ? 1 : 0
+                            onPicked: function(i) { if (page.subs) page.subs.language = (i === 1 ? "tr" : "en") }
+                        }
+                    }
+
+                    Rule {}
+
+                    SettingRow {
+                        visible: !!(page.subs && page.subs.language === "en")
+                        title: qsTr("Translate to Turkish")
+                        hint: page.subsTranslationText()
+                        Switch {
+                            checked: !!(page.subs && page.subs.translate)
+                            onToggled: if (page.subs) page.subs.translate = checked
+                        }
+                    }
+
+                    FieldBlock {
+                        Layout.topMargin: 0
+                        visible: !!(page.subs && page.subs.language === "en" && page.subs.translate
+                                    && page.subs.translationStatus !== "installed" && page.subs.translationStatus !== "unsupported")
+                        ActionButton {
+                            Layout.fillWidth: true
+                            text: qsTr("Download Turkish translation pack")
+                            onClicked: page.subs.openTranslationDownload()
+                        }
+                    }
+
+                    Rule { visible: !!(page.subs && page.subs.language === "en") }
+
+                    SettingRow {
+                        visible: !!(page.subs && page.subs.language === "en")
+                        title: qsTr("Show original")
+                        hint: qsTr("Small English text under the Turkish subtitle")
+                        Switch {
+                            checked: !!(page.subs && page.subs.showOriginal)
+                            onToggled: if (page.subs) page.subs.showOriginal = checked
+                        }
                     }
                 }
             }

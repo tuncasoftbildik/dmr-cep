@@ -41,6 +41,10 @@ public:
     uint32_t streamDst() const { return m_dst; }
 
     void begin(uint32_t src, uint32_t dst);
+    // "<yyyyMMdd-HHmmss-zzz>_<src>_<dst>": the file name (without .wav) this transmission will get.
+    // Subtitles use it to put <name>.json next to the recording.
+    QString baseName() const { return makeBaseName(m_src, m_dst, m_startMs); }
+    static QString makeBaseName(uint32_t src, uint32_t dst, qint64 startMs);
     void append(const int16_t *pcm, size_t samples);
     // Writes the file if long enough. Returns the file path, or an empty string when nothing was saved.
     QString finish();

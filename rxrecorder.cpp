@@ -49,6 +49,12 @@ void RxRecorder::append(const int16_t *pcm, size_t samples)
     }
 }
 
+QString RxRecorder::makeBaseName(uint32_t src, uint32_t dst, qint64 startMs)
+{
+    return QDateTime::fromMSecsSinceEpoch(startMs).toString("yyyyMMdd-HHmmss-zzz")
+           + "_" + QString::number(src) + "_" + QString::number(dst);
+}
+
 static void putLE32(QByteArray &b, quint32 v) { v = qToLittleEndian(v); b.append(reinterpret_cast<const char *>(&v), 4); }
 static void putLE16(QByteArray &b, quint16 v) { v = qToLittleEndian(v); b.append(reinterpret_cast<const char *>(&v), 2); }
 
@@ -67,8 +73,7 @@ QString RxRecorder::writeRecording(uint32_t src, uint32_t dst, qint64 startMs, c
     if (durMs < kMinMs) return QString();
 
     QDir().mkpath(recordingsDir());
-    const QString name = QDateTime::fromMSecsSinceEpoch(startMs).toString("yyyyMMdd-HHmmss-zzz")
-                         + "_" + QString::number(src) + "_" + QString::number(dst) + ".wav";
+    const QString name = makeBaseName(src, dst, startMs) + ".wav";
     const QString path = recordingsDir() + "/" + name;
 
     QByteArray hdr;
@@ -106,5 +111,6 @@ void RxRecorder::prune()
     QStringList files = dir.entryList(QStringList() << "*.wav", QDir::Files, QDir::Name | QDir::Reversed);
     for (int i = kMaxFiles; i < files.size(); ++i) {
         dir.remove(files.at(i));
+        dir.remove(files.at(i).chopped(4) + ".json");   // subtitle sidecar, if any
     }
 }
