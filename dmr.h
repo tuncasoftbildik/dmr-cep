@@ -75,7 +75,7 @@ private:
     // TX automatic gain (iPhone mic arrives around -40 dBFS).
     float m_tx_gain = 4.0f;
     void apply_tx_gain(int16_t *pcm, int n);
-    // TX voice shaping at 8 kHz before the vocoder: 250 Hz high-pass + presence peak at 2.2 kHz.
+    // TX voice shaping at 8 kHz before the vocoder: 120 Hz high-pass + mild presence peak at 2.2 kHz.
 public:
     struct Bq { float b0, b1, b2, a1, a2, z1 = 0, z2 = 0; };
 private:

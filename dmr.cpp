@@ -392,12 +392,12 @@ void DMR::apply_tx_gain(int16_t *pcm, int n)
     for(int i = 0; i < n; ++i){ acc += double(pcm[i]) * pcm[i]; peak = qMax(peak, qAbs(int(pcm[i]))); }
     const double rms = std::sqrt(acc / n);
     if(rms > 150.0){
-        const float want = float(3276.0 / rms);          // -20 dBFS
+        const float want = float(2067.0 / rms);          // -24 dBFS
         const float target = qBound(1.0f, want, 16.0f);
         m_tx_gain += (target - m_tx_gain) * (target < m_tx_gain ? 0.3f : 0.05f);
     }
     float g = m_tx_gain;
-    if(peak * g > 30000.0f) g = 30000.0f / float(qMax(peak, 1));
+    if(peak * g > 20000.0f) g = 20000.0f / float(qMax(peak, 1));
     // Ramp from the previous block's gain to avoid zipper noise at 20 ms boundaries.
     static float last_g = 4.0f;
     for(int i = 0; i < n; ++i){
@@ -428,11 +428,11 @@ void DMR::tx_shape(int16_t *pcm, int n)
 {
     if(!m_tx_filters_ready){
         const double fs = 8000.0;
-        // RBJ high-pass, 250 Hz, Q 0.707
-        double w = 2 * M_PI * 250.0 / fs, al = std::sin(w) / (2 * 0.707), c = std::cos(w);
+        // RBJ high-pass, 120 Hz, Q 0.707 (keeps the male pitch fundamental for the encoder)
+        double w = 2 * M_PI * 120.0 / fs, al = std::sin(w) / (2 * 0.707), c = std::cos(w);
         m_tx_hpf = make_bq((1 + c) / 2, -(1 + c), (1 + c) / 2, 1 + al, -2 * c, 1 - al);
-        // RBJ peaking EQ, 2200 Hz, Q 0.9, +6 dB
-        const double A = std::pow(10.0, 6.0 / 40.0);
+        // RBJ peaking EQ, 2200 Hz, Q 0.9, +3 dB
+        const double A = std::pow(10.0, 3.0 / 40.0);
         w = 2 * M_PI * 2200.0 / fs; al = std::sin(w) / (2 * 0.9); c = std::cos(w);
         m_tx_peq = make_bq(1 + al * A, -2 * c, 1 - al * A, 1 + al / A, -2 * c, 1 - al / A);
         m_tx_filters_ready = true;
