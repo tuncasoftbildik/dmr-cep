@@ -222,6 +222,7 @@ HEADERS += \
 	dcs.h \
 	dmr.h \
 	dmrposition.h \
+	talkeralias.h \
 	droidstar.h \
 	phonegps.h \
 	httpmanager.h \

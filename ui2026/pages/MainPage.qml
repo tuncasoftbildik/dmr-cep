@@ -639,6 +639,19 @@ Page {
                 elide: Text.ElideRight
             }
 
+            // DMR Talker Alias the other station sends (e.g. "TB1BDL Tunca"), when it differs
+            // from the callsign shown above.
+            Label {
+                Layout.fillWidth: true
+                readonly property string alias: (page.appState && page.receiving && page.appState.mode === "DMR") ? page.appState.data6 : ""
+                visible: alias !== "" && alias !== page.appState.data1.split(" - ")[0]
+                text: "“" + alias + "”"
+                color: t.text
+                font.pixelSize: 17
+                font.weight: Font.Medium
+                elide: Text.ElideRight
+            }
+
             Label {
                 Layout.fillWidth: true
                 text: {

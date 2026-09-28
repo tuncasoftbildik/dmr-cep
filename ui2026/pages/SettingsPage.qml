@@ -513,6 +513,38 @@ Page {
 
                 Rule {}
 
+                SettingRow {
+                    id: talkerAliasRow
+                    property bool on: page.droidstarRef ? page.droidstarRef.get_talker_alias_on() : true
+                    title: qsTr("Send talker alias")
+                    hint: qsTr("Other radios show this text instead of only your DMR ID")
+                    Switch {
+                        checked: talkerAliasRow.on
+                        onToggled: {
+                            page.droidstarRef.set_talker_alias_on(checked)
+                            talkerAliasRow.on = checked
+                        }
+                    }
+                }
+
+                FieldBlock {
+                    Layout.topMargin: 0
+                    visible: talkerAliasRow.on
+                    Caption { text: qsTr("Talker alias") }
+                    Input {
+                        text: page.droidstarRef ? page.droidstarRef.get_talker_alias() : ""
+                        maximumLength: 27
+                        inputMethodHints: Qt.ImhNoPredictiveText
+                        hint: page.appState ? page.appState.callsign : ""
+                        onEditingFinished: {
+                            if (!page.droidstarRef) return
+                            page.droidstarRef.set_talker_alias(text)
+                        }
+                    }
+                }
+
+                Rule {}
+
                 FieldBlock {
                     Caption { text: qsTr("BrandMeister password") }
                     RowLayout {

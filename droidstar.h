@@ -68,6 +68,14 @@ public:
     // TX voice tone: 0 natural, 1 thin (300 Hz high-pass), 2 very thin (500 Hz)
     Q_INVOKABLE int get_tx_tone() const { return m_txTone; }
     Q_INVOKABLE void set_tx_tone(int tone);
+    // DMR Talker Alias: text other radios show instead of only the DMR ID. Empty text = callsign.
+    // Persisted as TALKERALIAS / TALKERALIASON (on by default).
+    Q_INVOKABLE QString get_talker_alias() const { return m_talkerAlias; }
+    Q_INVOKABLE void set_talker_alias(const QString &text);
+    Q_INVOKABLE bool get_talker_alias_on() const { return m_talkerAliasOn; }
+    Q_INVOKABLE void set_talker_alias_on(bool on);
+    // What is actually sent: transliterated to ASCII, max 27 chars, empty when off.
+    Q_INVOKABLE QString effective_talker_alias() const;
     // Phone position as DMR hotspot location (BrandMeister map / aprs.fi) instead of the manual
     // latitude/longitude. Persisted as USEPHONEGPS, off by default.
     Q_INVOKABLE bool get_use_phone_gps() const { return m_usePhoneGps; }
@@ -86,6 +94,7 @@ signals:
     void restart_capture_requested();
     void roger_beep_changed(int mode);
     void tx_tone_changed(int tone);
+    void talker_alias_changed(QString alias);   // to Mode::set_talker_alias (mode thread)
     // TX started/stopped outside the app UI (system PTT button, handsfree accessory).
     void system_tx_changed(bool on);
     void playbackDevicesChanged();
@@ -132,7 +141,7 @@ public slots:
     void updateDeviceListInQML();
     
 
-    void set_callsign(const QString &callsign) {  m_callsign = callsign.simplified(); save_settings(); }
+    void set_callsign(const QString &callsign) {  m_callsign = callsign.simplified(); save_settings(); emit talker_alias_changed(effective_talker_alias()); }
     void set_dmrtgid(const QString &dmrtgid) { m_dmr_destid = dmrtgid.simplified().toUInt(); save_settings(); if (m_pttFramework) ptt_sync_channel(); }
     void set_slot(const int slot) {emit slot_changed(slot); }
     void set_cc(const int cc) {emit cc_changed(cc); }
@@ -483,6 +492,8 @@ private:
     void dmr_login_position(QString &lat, QString &lon);
     int m_rogerBeep = 2;
     int m_txTone = 1;
+    QString m_talkerAlias;
+    bool m_talkerAliasOn = true;
     bool m_keepPttChannel = false;   // teardown for an automatic reconnect keeps the PTT channel
     QString m_pttTalker;
     // iOS Live Activity (lock screen / Dynamic Island card). DroidStar drives it directly so

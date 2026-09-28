@@ -702,6 +702,21 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <translation>ESSID</translation>
     </message>
     <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="518" />
+        <source>Send talker alias</source>
+        <translation>Konuşan adı (Talker Alias) gönder</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="518" />
+        <source>Other radios show this text instead of only your DMR ID</source>
+        <translation>Diğer telsizler sadece DMR ID&apos;n yerine bu yazıyı gösterir</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/SettingsPage.qml" line="518" />
+        <source>Talker alias</source>
+        <translation>Konuşan adı</translation>
+    </message>
+    <message>
         <location filename="../ui2026/pages/SettingsPage.qml" line="525" />
         <source>Brandmeister</source>
         <translation>Brandmeister</translation>
