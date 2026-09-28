@@ -885,20 +885,27 @@ QVector<int> DMR::build_ani() const
     return frames;
 }
 
-// CCIR selective-call five-tone, 100 ms (5 AMBE frames) per tone. Indices on the 31.25 Hz grid,
-// all within 1% of CCIR (1981, 1124, 1197, 1275, 1358, 1446, 1540, 1640, 1747, 1860; R 2110 Hz).
+// CCIR selective-call five-tone, played one whole tone (2 semitones) below CCIR for a deeper
+// sound: CCIR 1981, 1124, 1197, 1275, 1358, 1446, 1540, 1640, 1747, 1860, R 2110 Hz, each x 0.891
+// and rounded to the 31.25 Hz grid. No longer decodable as CCIR selcall; the melody is the point.
+// Tone lengths in 20 ms AMBE frames: 200, 80, 100, 80, 80 ms (the police-set rhythm; 90 ms is
+// not a whole frame, so the third tone is 100 ms).
 QVector<int> DMR::build_ccir(const QString &digits) const
 {
-    static const int ccir[10] = {63, 36, 38, 41, 43, 46, 49, 52, 56, 60};   // 0..9
-    static const int repeat_tone = 68;                                      // 2125 Hz
+    static const int ccir[10] = {56, 32, 34, 37, 38, 41, 44, 46, 50, 53};   // 0..9
+    static const int repeat_tone = 61;                                      // 1906 Hz
+    static const int tone_frames[5] = {10, 4, 5, 4, 4};
     QVector<int> frames;
     int prev = -1;
+    int pos = 0;
     for(const QChar c : digits){
         const int digit = c.digitValue();
         if(digit < 0) continue;
         const int id = (digit == prev) ? repeat_tone : ccir[digit];
         prev = (digit == prev) ? -1 : digit;
-        for(int k = 0; k < 5; ++k) frames.append(id);
+        const int n = (pos < 5) ? tone_frames[pos] : 4;
+        for(int k = 0; k < n; ++k) frames.append(id);
+        ++pos;
     }
     return frames;
 }
