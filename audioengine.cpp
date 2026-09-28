@@ -252,6 +252,9 @@ void AudioEngine::init()
 // Callers ask for 640 bytes, which is 40 ms at 8 kHz. On Apple platforms the mic runs at
 // 44.1/48 kHz, where 640 bytes is ~7 ms: Qt then hands us 640 bytes per 20 ms period and drops
 // the rest, which chops the TX audio into 7 ms fragments. Keep at least ~180 ms of headroom.
+// Real mic rate measured during the last TX; survives reconnects (a new AudioEngine per connection).
+static int s_measured_capture_rate = 0;
+
 void AudioEngine::set_input_buffer_size(uint32_t b)
 {
     if (m_in == nullptr) return;
@@ -289,9 +292,9 @@ void AudioEngine::start_capture()
             m_captureDeviceRate = m_in->format().sampleRate();
             m_srm = (m_captureDeviceRate > 0) ? (static_cast<float>(m_captureDeviceRate) / 8000.0f) : 1.0f;
             m_capLowpass = makeLowpassBiquad(static_cast<float>(m_captureDeviceRate), 3400.0f, 0.707f);
-#ifdef Q_OS_IOS
-            set_capture_rate(static_cast<int>(audioSessionSampleRate() + 0.5), "audio session");
-#endif
+            // The audio session reports 48 kHz while the mic actually delivers 44.1 kHz; start from
+            // the last measured rate instead and let the measurement confirm it.
+            if (s_measured_capture_rate > 0) set_capture_rate(s_measured_capture_rate, "last measured");
         }
         connect(m_indev, SIGNAL(readyRead()), SLOT(input_data_received()));
     }
@@ -348,6 +351,7 @@ void AudioEngine::input_data_received()
                 static const int rates[] = {8000, 16000, 22050, 24000, 32000, 44100, 48000};
                 int best = rates[0];
                 for (int r : rates) if (qAbs(r - measured) < qAbs(best - measured)) best = r;
+                s_measured_capture_rate = best;
                 if (qAbs(best - m_captureDeviceRate) > 0.08 * best) {
                     set_capture_rate(best, "measured");
                 }

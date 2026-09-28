@@ -69,6 +69,12 @@ private:
     VocoderPlugin *m_tx_loop_vocoder = nullptr;
 #endif
     void save_tx_debug_audio();
+    // RX diagnostics: voice frames queued vs decoded per stream.
+    int m_rx_frames_in = 0;
+    int m_rx_frames_decoded = 0;
+    // TX automatic gain (iPhone mic arrives around -40 dBFS).
+    float m_tx_gain = 4.0f;
+    void apply_tx_gain(int16_t *pcm, int n);
     static const qint64 RX_WATCHDOG_MS = 20000;
     void report_connection_lost(const QString &reason);
     void record_rx(const int16_t *pcm);

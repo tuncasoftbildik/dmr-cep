@@ -248,7 +248,9 @@ void DMR::process_udp()
             m_modeinfo.frame_number = (uint8_t)buf.data()[4];
             m_modeinfo.slot = (buf.data()[15] & 0x80) ? 2 : 1;
             t = 0x41;
-            qDebug() << "New DMR stream from " << m_modeinfo.srcid << " to " << m_modeinfo.dstid;
+            qDebug() << "New DMR stream from " << m_modeinfo.srcid << " to " << m_modeinfo.dstid << "m_tx" << m_tx << "rxtimer" << m_rxtimer->isActive();
+            m_rx_frames_in = 0;
+            m_rx_frames_decoded = 0;
             emit update(m_modeinfo);
         }
         if(m_modem){
@@ -318,6 +320,7 @@ void DMR::process_udp()
                 m_rxcodecq.append(dmr3ambe[j + (9*i)]);
             }
         }
+        ++m_rx_frames_in;
         //uint32_t id = (uint32_t)((buf.data()[5] << 16) | ((buf.data()[6] << 8) & 0xff00) | (buf.data()[7] & 0xff));
     }
     emit update(m_modeinfo);
@@ -377,6 +380,26 @@ void DMR::hostname_lookup(QHostInfo i)
             }
             debug << s;
         }
+    }
+}
+
+// Slow AGC towards ~-20 dBFS for voiced blocks, 1x..16x, never clipping. Quiet blocks keep the
+// current gain so background noise is not pumped up between words.
+void DMR::apply_tx_gain(int16_t *pcm, int n)
+{
+    double acc = 0;
+    int peak = 0;
+    for(int i = 0; i < n; ++i){ acc += double(pcm[i]) * pcm[i]; peak = qMax(peak, qAbs(int(pcm[i]))); }
+    const double rms = std::sqrt(acc / n);
+    if(rms > 150.0){
+        const float want = float(3276.0 / rms);          // -20 dBFS
+        const float target = qBound(1.0f, want, 16.0f);
+        m_tx_gain += (target - m_tx_gain) * (target < m_tx_gain ? 0.3f : 0.05f);
+    }
+    float g = m_tx_gain;
+    if(peak * g > 30000.0f) g = 30000.0f / float(qMax(peak, 1));
+    for(int i = 0; i < n; ++i){
+        pcm[i] = int16_t(qBound(-32767.0f, pcm[i] * g, 32767.0f));
     }
 }
 
@@ -578,6 +601,7 @@ void DMR::transmit()
     if(m_ttsid == 0){
         if(m_audio->read(pcm, 160)){
             if(m_audio->level() > m_tx_peak) m_tx_peak = m_audio->level();
+            apply_tx_gain(pcm, 160);
         }
         else if(!m_tx){
             // Released while the mic had nothing buffered: still close the stream with an EOT.
@@ -1135,6 +1159,7 @@ void DMR::process_rx_data()
                 memset(pcm, 0, 160 * sizeof(int16_t));
             }
             record_rx(pcm);
+            ++m_rx_frames_decoded;
             m_audio->write(pcm, 160);
             emit update_output_level(m_audio->level());
         }
@@ -1145,7 +1170,7 @@ void DMR::process_rx_data()
         m_rxwatchdog = 0;
         m_modeinfo.streamid = 0;
         m_rxcodecq.clear();
-        qDebug() << "DMR playback stopped";
+        qDebug() << "DMR playback stopped: voice frames in" << m_rx_frames_in << "decoded 20ms blocks" << m_rx_frames_decoded << "m_tx" << m_tx;
         finish_recording();
         m_modeinfo.stream_state = STREAM_IDLE;
         return;

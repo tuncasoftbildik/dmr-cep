@@ -83,7 +83,8 @@ private:
     QElapsedTimer m_cap_clock;
     qint64 m_cap_measure_bytes = 0;
     int m_cap_checks = 0;
-    int m_cap_chunk_log = 0;   // log the first chunks after each start_capture()
+    int m_cap_chunk_log = 0;
+    int m_measured_capture_rate = 0;   // log the first chunks after each start_capture()
     QString m_outputdevice;
     QString m_inputdevice;
 #if QT_VERSION < QT_VERSION_CHECK(6, 3, 0)
