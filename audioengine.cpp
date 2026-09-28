@@ -249,6 +249,16 @@ void AudioEngine::init()
 
 
 
+// Callers ask for 640 bytes, which is 40 ms at 8 kHz. On Apple platforms the mic runs at
+// 44.1/48 kHz, where 640 bytes is ~7 ms: Qt then hands us 640 bytes per 20 ms period and drops
+// the rest, which chops the TX audio into 7 ms fragments. Keep at least ~180 ms of headroom.
+void AudioEngine::set_input_buffer_size(uint32_t b)
+{
+    if (m_in == nullptr) return;
+    if (MACHAK && b < 16384) b = 16384;
+    m_in->setBufferSize(b);
+}
+
 void AudioEngine::set_capture_rate(int rate, const char *why)
 {
     if (rate <= 0 || rate == m_captureDeviceRate) return;
