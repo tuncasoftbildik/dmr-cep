@@ -19,17 +19,23 @@ import QtQuick
 import QtQuick.Controls.Material
 
 QtObject {
-    // 2026 dark theme tokens (Material-friendly, iOS readable)
-    readonly property color bg: "#0B0F14"
-    readonly property color surface: "#111827"
-    readonly property color surface2: "#0F172A"
-    readonly property color stroke: "#233044"
-    readonly property color text: "#E5E7EB"
-    readonly property color textMuted: "#9CA3AF"
-    readonly property color accent: "#60A5FA"     // blue-400
-    readonly property color success: "#34D399"    // emerald-400
-    readonly property color danger: "#F87171"     // red-400
-    readonly property color warning: "#FBBF24"    // amber-400
+    // DMR Cep: graphite radio body + amber LCD. Green = receiving, red = on air.
+    readonly property color bg: "#15171B"          // graphite body
+    readonly property color surface: "#1E2127"
+    readonly property color surface2: "#252932"
+    readonly property color stroke: "#343B46"
+    readonly property color text: "#ECEDEF"
+    readonly property color textMuted: "#9AA1AC"
+    readonly property color accent: "#5AA2F8"      // antenna-wave blue from the icon
+    readonly property color success: "#3DD68C"     // RX / connected
+    readonly property color danger: "#FF5147"      // TX / on air
+    readonly property color warning: "#F4A62A"     // amber
+
+    // Amber LCD panel
+    readonly property color lcd: "#F4A62A"
+    readonly property color lcdHi: "#FFC45C"
+    readonly property color lcdInk: "#2B1702"
+    readonly property color lcdGhost: "#DB9223"     // unlit 7-segment "8"s behind the digits
 
     readonly property int rSm: 12
     readonly property int rMd: 16
