@@ -38,6 +38,8 @@ API_AVAILABLE(ios(16.0))
 @property (nonatomic, copy) NSString *channelName;
 @property (nonatomic) BOOL joined;
 @property (nonatomic) BOOL joinPending;
+// Join requested while in the background; requestJoinChannel needs the foreground.
+@property (nonatomic) BOOL joinWhenActive;
 // YES while the app itself owns TX (in-app button). System begin/end echoes are ignored then.
 @property (nonatomic) BOOL appTransmitting;
 // YES while TX was started by the system (lock screen / handsfree) and handed to the app.
@@ -67,8 +69,18 @@ API_AVAILABLE(ios(16.0))
         }
         _channelUUID = [[NSUUID alloc] initWithUUIDString:u];
         _channelName = @"DroidStar";
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive)
+                                                     name:UIApplicationDidBecomeActiveNotification object:nil];
     }
     return self;
+}
+
+- (void)appDidBecomeActive
+{
+    if (self.joinWhenActive && self.joinPending && !self.joined) {
+        self.joinWhenActive = NO;
+        [self join];
+    }
 }
 
 - (PTChannelDescriptor *)descriptor
@@ -101,6 +113,12 @@ API_AVAILABLE(ios(16.0))
             [m setChannelDescriptor:[self descriptor] forChannelUUID:self.channelUUID completionHandler:nil];
             return;
         }
+        if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive) {
+            // e.g. an automatic reconnect finished while backgrounded: join on next foreground.
+            self.joinWhenActive = YES;
+            ptt_status(@"Push-to-Talk will be enabled when the app is opened");
+            return;
+        }
         [m requestJoinChannelWithUUID:self.channelUUID descriptor:[self descriptor]];
     }];
 }
@@ -108,6 +126,7 @@ API_AVAILABLE(ios(16.0))
 - (void)leave
 {
     self.joinPending = NO;
+    self.joinWhenActive = NO;
     if (self.manager && self.joined) {
         [self.manager leaveChannelWithUUID:self.channelUUID];
     }
@@ -117,45 +136,57 @@ API_AVAILABLE(ios(16.0))
 
 - (void)channelManager:(PTChannelManager *)channelManager didJoinChannelWithUUID:(NSUUID *)channelUUID reason:(PTChannelJoinReason)reason
 {
-    if (reason == PTChannelJoinReasonChannelRestoration && !self.joinPending) {
-        // Left over from a previous run: the app is not connected, so don't keep a dead PTT button around.
-        [channelManager leaveChannelWithUUID:channelUUID];
-        return;
-    }
-    self.joined = YES;
-    [channelManager setTransmissionMode:PTTransmissionModeHalfDuplex forChannelUUID:channelUUID completionHandler:nil];
-    if (@available(iOS 17.0, *)) {
-        [channelManager setAccessoryButtonEventsEnabled:YES forChannelUUID:channelUUID completionHandler:nil];
-    }
-    ptt_status(@"Push-to-Talk channel joined");
+    // PushToTalk may call delegates on its own queue; keep all state on the main queue.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (reason == PTChannelJoinReasonChannelRestoration && !self.joinPending) {
+            // Left over from a previous run: the app is not connected, so don't keep a dead PTT button around.
+            [channelManager leaveChannelWithUUID:channelUUID];
+            return;
+        }
+        self.joined = YES;
+        [channelManager setTransmissionMode:PTTransmissionModeHalfDuplex forChannelUUID:channelUUID completionHandler:nil];
+        if (@available(iOS 17.0, *)) {
+            [channelManager setAccessoryButtonEventsEnabled:YES forChannelUUID:channelUUID completionHandler:nil];
+        }
+        ptt_status(@"Push-to-Talk channel joined");
+    });
 }
 
 - (void)channelManager:(PTChannelManager *)channelManager didLeaveChannelWithUUID:(NSUUID *)channelUUID reason:(PTChannelLeaveReason)reason
 {
-    self.joined = NO;
-    if (self.systemTransmitting) {
-        self.systemTransmitting = NO;
-        if (g_endTx) g_endTx();
-    }
-    ptt_status(reason == PTChannelLeaveReasonUserRequest ? @"Push-to-Talk channel closed by user" : @"Push-to-Talk channel left");
+    // PushToTalk may call delegates on its own queue; keep all state on the main queue.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.joined = NO;
+        if (self.systemTransmitting) {
+            self.systemTransmitting = NO;
+            if (g_endTx) g_endTx();
+        }
+        ptt_status(reason == PTChannelLeaveReasonUserRequest ? @"Push-to-Talk channel closed by user" : @"Push-to-Talk channel left");
+    });
 }
 
 - (void)channelManager:(PTChannelManager *)channelManager channelUUID:(NSUUID *)channelUUID didBeginTransmittingFromSource:(PTChannelTransmitRequestSource)source
 {
-    if (self.appTransmitting || source == PTChannelTransmitRequestSourceDeveloperRequest) {
-        return; // echo of our own requestBeginTransmitting
-    }
-    self.systemTransmitting = YES;
-    if (g_beginTx) g_beginTx();
+    // PushToTalk may call delegates on its own queue; keep all state on the main queue.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.appTransmitting || source == PTChannelTransmitRequestSourceDeveloperRequest) {
+            return; // echo of our own requestBeginTransmitting
+        }
+        self.systemTransmitting = YES;
+        if (g_beginTx) g_beginTx();
+    });
 }
 
 - (void)channelManager:(PTChannelManager *)channelManager channelUUID:(NSUUID *)channelUUID didEndTransmittingFromSource:(PTChannelTransmitRequestSource)source
 {
-    if (!self.systemTransmitting) {
-        return; // app-owned TX (or already ended)
-    }
-    self.systemTransmitting = NO;
-    if (g_endTx) g_endTx();
+    // PushToTalk may call delegates on its own queue; keep all state on the main queue.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (!self.systemTransmitting) {
+            return; // app-owned TX (or already ended)
+        }
+        self.systemTransmitting = NO;
+        if (g_endTx) g_endTx();
+    });
 }
 
 - (void)channelManager:(PTChannelManager *)channelManager receivedEphemeralPushToken:(NSData *)pushToken
@@ -180,8 +211,11 @@ API_AVAILABLE(ios(16.0))
 
 - (void)channelManager:(PTChannelManager *)channelManager failedToJoinChannelWithUUID:(NSUUID *)channelUUID error:(NSError *)error
 {
-    self.joinPending = NO;
-    ptt_status([NSString stringWithFormat:@"Push-to-Talk join failed: %@", error.localizedDescription]);
+    // PushToTalk may call delegates on its own queue; keep all state on the main queue.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.joinPending = NO;
+        ptt_status([NSString stringWithFormat:@"Push-to-Talk join failed: %@", error.localizedDescription]);
+    });
 }
 
 - (void)channelManager:(PTChannelManager *)channelManager failedToBeginTransmittingInChannelWithUUID:(NSUUID *)channelUUID error:(NSError *)error

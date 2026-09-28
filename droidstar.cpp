@@ -365,6 +365,19 @@ void DroidStar::process_connect()
              << "module=" << QChar(m_module)
              << "saved_dmrhost=" << m_saved_dmrhost;
 
+    if((connect_status == Mode::DISCONNECTED) && m_autoReconnect && m_reconnectTimer->isActive()){
+        // Waiting between automatic attempts; the UI shows "Cancel", so this click cancels.
+        m_reconnectTimer->stop();
+        m_autoReconnect = false;
+        m_reconnectAttempt = 0;
+#ifdef Q_OS_IOS
+        ptt_leave();
+        m_pttTalker.clear();
+#endif
+        emit connect_status_changed(0);
+        emit update_log("Auto-reconnect cancelled");
+        return;
+    }
     if(connect_status != Mode::DISCONNECTED){
 #ifdef Q_OS_IOS
         if (!m_keepPttChannel) {
@@ -596,8 +609,11 @@ void DroidStar::schedule_reconnect(const QString &reason, int delayMs)
         delayMs = qMin(5000 << qMin(m_reconnectAttempt, 4), 60000);
     }
     m_reconnectAttempt++;
-    emit update_log(reason + " - retrying in " + QString::number(delayMs / 1000) + " s");
+    emit update_log(reason + " - retrying in " + QString::number(delayMs / 1000) + " s (" +
+                    QString::number(m_reconnectAttempt) + "/" + QString::number(kMaxReconnectAttempts) + ")");
     m_reconnectTimer->start(delayMs);
+    // Keep the UI in "connecting" so the button reads Cancel during the wait.
+    emit connect_status_changed(1);
 }
 
 // Link was up and died underneath us. Tear down like a manual disconnect, then re-arm.
@@ -623,8 +639,11 @@ void DroidStar::on_connect_timeout()
 // a failed manual connect is usually a config/password problem and should just be shown.
 void DroidStar::connect_failed(const QString &reason)
 {
-    const bool retry = m_autoReconnect && (m_reconnectAttempt > 0);
-    m_errortxt = reason;
+    const bool autoAttempt = m_autoReconnect && (m_reconnectAttempt > 0);
+    const bool retry = autoAttempt && (m_reconnectAttempt < kMaxReconnectAttempts);
+    m_errortxt = autoAttempt && !retry
+        ? reason + " (gave up after " + QString::number(m_reconnectAttempt) + " reconnect attempts)"
+        : reason;
     m_connectTimeoutTimer->stop();
     connect_status = Mode::DISCONNECTED;
     if (m_modethread) {
@@ -640,13 +659,18 @@ void DroidStar::connect_failed(const QString &reason)
     setAudioConnectionState(false, "", "");
 #endif
     emit update_log(m_errortxt);
-    emit connect_status_changed(5);
     if(retry){
+        // No error dialog for each automatic attempt; only when we give up.
         schedule_reconnect(reason);
     }
     else{
         m_autoReconnect = false;
         m_reconnectAttempt = 0;
+#ifdef Q_OS_IOS
+        ptt_leave();
+        m_pttTalker.clear();
+#endif
+        emit connect_status_changed(5);
     }
 }
 
@@ -1922,10 +1946,10 @@ QVariantList DroidStar::loadRecordings() const {
     QDir dir(RxRecorder::recordingsDir());
     const QFileInfoList files = dir.entryInfoList(QStringList() << "*.wav", QDir::Files, QDir::Name | QDir::Reversed);
     for (const QFileInfo &fi : files) {
-        // <yyyyMMdd-HHmmss>_<src>_<dst>.wav
+        // <yyyyMMdd-HHmmss-zzz>_<src>_<dst>.wav
         const QStringList parts = fi.completeBaseName().split('_');
         if (parts.size() != 3) continue;
-        const QDateTime ts = QDateTime::fromString(parts.at(0), "yyyyMMdd-HHmmss");
+        const QDateTime ts = QDateTime::fromString(parts.at(0), "yyyyMMdd-HHmmss-zzz");
         const uint32_t src = parts.at(1).toUInt();
         QVariantMap m;
         m["url"] = QUrl::fromLocalFile(fi.absoluteFilePath()).toString();

@@ -95,6 +95,9 @@ void DMR::process_udp()
 
     // While linked, MSTNAK (master forgot us, e.g. after a restart) and MSTCL (master closing)
     // mean the link is dead. Without this the app keeps showing "Connected" with no audio.
+    if(buf.size() < 6){
+        return;   // nothing valid in the HomeBrew protocol is this short
+    }
     if((m_modeinfo.status == CONNECTED_RW) &&
         ((::memcmp(buf.data(), "MSTNAK", 6U) == 0) || (::memcmp(buf.data(), "MSTCL", 5U) == 0))){
         report_connection_lost(::memcmp(buf.data(), "MSTCL", 5U) == 0 ? "master closed connection (MSTCL)" : "master dropped us (MSTNAK)");

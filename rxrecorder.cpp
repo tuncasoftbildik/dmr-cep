@@ -64,7 +64,7 @@ QString RxRecorder::finish()
     }
 
     QDir().mkpath(recordingsDir());
-    const QString name = QDateTime::fromMSecsSinceEpoch(m_startMs).toString("yyyyMMdd-HHmmss")
+    const QString name = QDateTime::fromMSecsSinceEpoch(m_startMs).toString("yyyyMMdd-HHmmss-zzz")
                          + "_" + QString::number(m_src) + "_" + QString::number(m_dst) + ".wav";
     const QString path = recordingsDir() + "/" + name;
 

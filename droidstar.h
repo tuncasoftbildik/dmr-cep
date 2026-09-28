@@ -112,7 +112,7 @@ public slots:
     
 
     void set_callsign(const QString &callsign) {  m_callsign = callsign.simplified(); save_settings(); }
-    void set_dmrtgid(const QString &dmrtgid) { m_dmr_destid = dmrtgid.simplified().toUInt(); save_settings(); ptt_sync_channel(); }
+    void set_dmrtgid(const QString &dmrtgid) { m_dmr_destid = dmrtgid.simplified().toUInt(); save_settings(); if (m_pttFramework) ptt_sync_channel(); }
     void set_slot(const int slot) {emit slot_changed(slot); }
     void set_cc(const int cc) {emit cc_changed(cc); }
     void tgid_text_changed(QString s){emit dmr_tgid_changed(s.toUInt());}
@@ -440,6 +440,7 @@ private:
     QTimer *m_connectTimeoutTimer;
     bool m_autoReconnect = false;
     int m_reconnectAttempt = 0;
+    static const int kMaxReconnectAttempts = 15;   // 5+10+20+40+60*11 s = ~12 min, then give up
     void schedule_reconnect(const QString &reason, int delayMs = -1);
     void connect_failed(const QString &reason);
     bool m_pttFramework = false;

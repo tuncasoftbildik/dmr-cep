@@ -25,7 +25,7 @@
 
 // Collects the decoded 8 kHz mono PCM of one received transmission and writes it
 // as a WAV file when the transmission ends, so it can be replayed from the QSO page.
-// File name: <yyyyMMdd-HHmmss>_<srcid>_<dstid>.wav in recordingsDir().
+// File name: <yyyyMMdd-HHmmss-zzz>_<srcid>_<dstid>.wav in recordingsDir().
 class RxRecorder
 {
 public:
