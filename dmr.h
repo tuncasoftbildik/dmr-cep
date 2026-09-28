@@ -73,7 +73,9 @@ private:
     int m_rx_frames_in = 0;
     int m_rx_frames_decoded = 0;
     // TX automatic gain (iPhone mic arrives around -40 dBFS).
-    float m_tx_gain = 4.0f;
+    float m_tx_gain = 2.0f;
+    float m_tx_noise_floor = 300.0f;   // tracked RMS of the room between words
+    float m_tx_gate = 1.0f;            // 1 = open, 0.25 = closed (-12 dB)
     void apply_tx_gain(int16_t *pcm, int n);
     // TX voice shaping at 8 kHz before the vocoder: 120 Hz high-pass + mild presence peak at 2.2 kHz.
 public:

@@ -383,25 +383,37 @@ void DMR::hostname_lookup(QHostInfo i)
     }
 }
 
-// Slow AGC towards ~-20 dBFS for voiced blocks, 1x..16x, never clipping. Quiet blocks keep the
-// current gain so background noise is not pumped up between words.
+// Speech-only AGC + noise gate. The room noise floor is tracked continuously; only blocks
+// clearly above it (3x) count as speech and steer the gain (1x..6x, towards -24 dBFS). Blocks
+// near the floor are attenuated 12 dB so the vocoder does not encode room hiss as "breath"
+// inside words, which is what made the TX sound robotic. Gain and gate are ramped per block.
 void DMR::apply_tx_gain(int16_t *pcm, int n)
 {
     double acc = 0;
     int peak = 0;
     for(int i = 0; i < n; ++i){ acc += double(pcm[i]) * pcm[i]; peak = qMax(peak, qAbs(int(pcm[i]))); }
-    const double rms = std::sqrt(acc / n);
-    if(rms > 150.0){
-        const float want = float(2067.0 / rms);          // -24 dBFS
-        const float target = qBound(1.0f, want, 16.0f);
+    const float rms = float(std::sqrt(acc / n));
+
+    // Noise floor: follow quiet blocks down quickly, creep up slowly otherwise.
+    if(rms < m_tx_noise_floor * 1.5f) m_tx_noise_floor += (rms - m_tx_noise_floor) * 0.05f;
+    else m_tx_noise_floor *= 1.002f;
+    m_tx_noise_floor = qBound(20.0f, m_tx_noise_floor, 4000.0f);
+
+    const bool speech = rms > qMax(m_tx_noise_floor * 3.0f, 250.0f);
+    if(speech){
+        const float target = qBound(1.0f, 2067.0f / rms, 6.0f);   // -24 dBFS
         m_tx_gain += (target - m_tx_gain) * (target < m_tx_gain ? 0.3f : 0.05f);
     }
+    const float gate_target = speech ? 1.0f : 0.25f;
+    const float gate_prev = m_tx_gate;
+    m_tx_gate += (gate_target - m_tx_gate) * (speech ? 0.6f : 0.15f);   // fast open, slow close
+
     float g = m_tx_gain;
     if(peak * g > 20000.0f) g = 20000.0f / float(qMax(peak, 1));
-    // Ramp from the previous block's gain to avoid zipper noise at 20 ms boundaries.
-    static float last_g = 4.0f;
+    static float last_g = 2.0f;
     for(int i = 0; i < n; ++i){
-        const float gi = last_g + (g - last_g) * float(i + 1) / float(n);
+        const float f = float(i + 1) / float(n);
+        const float gi = (last_g + (g - last_g) * f) * (gate_prev + (m_tx_gate - gate_prev) * f);
         pcm[i] = int16_t(qBound(-32767.0f, pcm[i] * gi, 32767.0f));
     }
     last_g = g;
