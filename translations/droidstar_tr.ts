@@ -147,6 +147,164 @@ You should have received a copy of the GNU General Public License along with thi
     </message>
 </context>
 <context>
+    <name>ChannelsSheet</name>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="143" />
+        <source>Saved channels</source>
+        <translation>Kayıtlı kanallar</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="150" />
+        <source>+ Add</source>
+        <translation>+ Ekle</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="170" />
+        <source>Talkgroups</source>
+        <translation>Konuşma grupları</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="171" />
+        <source>Private call</source>
+        <translation>Özel arama</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="236" />
+        <source>Edit contact</source>
+        <translation>Kişiyi düzenle</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="236" />
+        <source>Edit talkgroup</source>
+        <translation>Konuşma grubunu düzenle</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="237" />
+        <source>New contact</source>
+        <translation>Yeni kişi</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="237" />
+        <source>New talkgroup</source>
+        <translation>Yeni konuşma grubu</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="248" />
+        <source>DMR ID</source>
+        <translation>DMR ID</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="248" />
+        <source>Talkgroup ID</source>
+        <translation>Konuşma grubu (TG)</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="259" />
+        <source>Name (optional)</source>
+        <translation>İsim (isteğe bağlı)</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="272" />
+        <source>Already saved; saving updates that entry.</source>
+        <translation>Zaten kayıtlı; kaydedince o kayıt güncellenir.</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="274" />
+        <source>Looking up…</source>
+        <translation>Aranıyor…</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="275" />
+        <source>Unknown DMR ID</source>
+        <translation>Bilinmeyen DMR ID</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="275" />
+        <source>Unknown talkgroup</source>
+        <translation>Bilinmeyen konuşma grubu</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="276" />
+        <source>Could not look up a name (offline?)</source>
+        <translation>İsim bulunamadı (internet yok mu?)</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="277" />
+        <source>Leave empty to use this name</source>
+        <translation>Boş bırakırsan bu isim kullanılır</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="290" />
+        <source>Use “%1”</source>
+        <translation>“%1” kullan</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="300" />
+        <source>Cancel</source>
+        <translation>Vazgeç</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="305" />
+        <source>Save</source>
+        <translation>Kaydet</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="379" />
+        <source>No name</source>
+        <translation>İsimsiz</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="395" />
+        <source>Move up</source>
+        <translation>Yukarı taşı</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="403" />
+        <source>Move down</source>
+        <translation>Aşağı taşı</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="412" />
+        <source>Edit</source>
+        <translation>Düzenle</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="420" />
+        <source>Delete</source>
+        <translation>Sil</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="462" />
+        <source>No saved contacts yet</source>
+        <translation>Henüz kayıtlı kişi yok</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="462" />
+        <source>No saved talkgroups yet</source>
+        <translation>Henüz kayıtlı konuşma grubu yok</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="472" />
+        <source>Save the DMR IDs you call privately, with the names you know them by. One tap then starts a private call.</source>
+        <translation>Özel aradığın DMR ID'leri tanıdığın isimlerle kaydet. Sonra tek dokunuşla özel arama başlar.</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="473" />
+        <source>Save the talkgroups you use, with your own names. They appear as buttons on the main screen.</source>
+        <translation>Kullandığın konuşma gruplarını kendi verdiğin isimlerle kaydet. Ana ekranda düğme olarak görünürler.</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="481" />
+        <source>+ Add contact</source>
+        <translation>+ Kişi ekle</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/components/ChannelsSheet.qml" line="481" />
+        <source>+ Add talkgroup</source>
+        <translation>+ Konuşma grubu ekle</translation>
+    </message>
+</context>
+<context>
     <name>HostsPage</name>
     <message>
         <location filename="../ui2026/pages/HostsPage.qml" line="26" />
@@ -400,16 +558,6 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <translation>Hazır</translation>
     </message>
     <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="531" />
-        <source>Remove from favorites</source>
-        <translation>Favorilerden çıkar</translation>
-    </message>
-    <message>
-        <location filename="../ui2026/pages/MainPage.qml" line="531" />
-        <source>Add to favorites</source>
-        <translation>Favorilere ekle</translation>
-    </message>
-    <message>
         <location filename="../ui2026/pages/MainPage.qml" line="903" />
         <source>Recent</source>
         <translation>Son</translation>
@@ -491,6 +639,97 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <location filename="../ui2026/pages/MainPage.qml" line="751" />
         <source>Hold to transmit (PTT)</source>
         <translation>Konuşmak için basılı tut (PTT)</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="767" />
+        <source>Remove from saved channels</source>
+        <translation>Kayıtlılardan çıkar</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="767" />
+        <source>Save channel</source>
+        <translation>Kanalı kaydet</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="940" />
+        <source>Rename</source>
+        <translation>Yeniden adlandır</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="943" />
+        <source>Edit list</source>
+        <translation>Listeyi düzenle</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1263" />
+        <source>Saved</source>
+        <translation>Kayıtlı</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1263" />
+        <source>No saved channels yet</source>
+        <translation>Henüz kayıtlı kanal yok</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1270" />
+        <source>Manage</source>
+        <translation>Düzenle</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1270" />
+        <source>+ Save channel</source>
+        <translation>+ Kanal kaydet</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1414" />
+        <source>Rename contact</source>
+        <translation>Kişiyi yeniden adlandır</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1414" />
+        <source>Rename talkgroup</source>
+        <translation>Konuşma grubunu yeniden adlandır</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1415" />
+        <source>Contact saved</source>
+        <translation>Kişi kaydedildi</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1415" />
+        <source>Talkgroup saved</source>
+        <translation>Konuşma grubu kaydedildi</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1464" />
+        <source>Name, e.g. Ahmet (TA1ABC)</source>
+        <translation>İsim, ör. Ahmet (TA1ABC)</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1464" />
+        <source>Name, e.g. Club net</source>
+        <translation>İsim, ör. Kulüp sohbeti</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1471" />
+        <source>Give it any name you like. Leave it empty to use the automatic name.</source>
+        <translation>İstediğin ismi ver. Boş bırakırsan otomatik isim kullanılır.</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1480" />
+        <source>Save</source>
+        <translation>Kaydet</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="1479" />
+        <source>Cancel</source>
+        <comment>name dialog</comment>
+        <translation>Vazgeç</translation>
+    </message>
+    <message>
+        <location filename="../ui2026/pages/MainPage.qml" line="908" />
+        <source>Saved channels</source>
+        <translation>Kayıtlı kanallar</translation>
     </message>
 </context>
 <context>
