@@ -63,12 +63,14 @@
 	<string>We need Bluetooth access to use your device's microphone.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the microphone to transmit audio</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>DMR Cep yalnızca uygulamayı kullanırken konumunu kullanır ve arka planda konum istemez. Konum, ayarlardan açtığında hotspot konumu olarak BrandMeistera ve istersen APRS ile aprs.fiye gönderilir.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Konumun, ayarlardan açtığında hotspot konumu olarak DMR ağına (BrandMeister) yaklaşık 10 m hassasiyetle gönderilir; BrandMeister bunu haritasında ve aprs.fi'de gösterebilir.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>DMR Cep, altyazı açıkken seçtiğin konuşma gruplarında telsizden gelen konuşmayı yazıya döker. Tanıma ve çeviri tamamen telefonda yapılır; ses hiçbir yere gönderilmez.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>DMR Cep, bas-konuş tuşuna bastığında sesini telsiz ağına iletmek için mikrofonu kullanır.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>DMR Cep, altyazı açıkken seçtiğin konuşma gruplarında telsizden gelen konuşmayı yazıya döker. Tanıma ve çeviri tamamen telefonda yapılır; ses hiçbir yere gönderilmez.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIBackgroundModes</key>
