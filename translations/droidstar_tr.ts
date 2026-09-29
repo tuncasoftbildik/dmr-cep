@@ -963,6 +963,70 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 <context>
     <name>SettingsPage</name>
     <message>
+        <source>🏃 Person</source>
+        <translation>🏃 Yaya</translation>
+    </message>
+    <message>
+        <source>🚗 Car</source>
+        <translation>🚗 Araba</translation>
+    </message>
+    <message>
+        <source>🏍 Motorcycle</source>
+        <translation>🏍 Motosiklet</translation>
+    </message>
+    <message>
+        <source>🚲 Bicycle</source>
+        <translation>🚲 Bisiklet</translation>
+    </message>
+    <message>
+        <source>🚐 Van</source>
+        <translation>🚐 Minibüs</translation>
+    </message>
+    <message>
+        <source>🚚 Truck</source>
+        <translation>🚚 Kamyon</translation>
+    </message>
+    <message>
+        <source>🚌 Bus</source>
+        <translation>🚌 Otobüs</translation>
+    </message>
+    <message>
+        <source>🚙 Jeep</source>
+        <translation>🚙 Cip</translation>
+    </message>
+    <message>
+        <source>🏠 Home</source>
+        <translation>🏠 Ev</translation>
+    </message>
+    <message>
+        <source>⛺ Camp</source>
+        <translation>⛺ Kamp</translation>
+    </message>
+    <message>
+        <source>⛵ Boat</source>
+        <translation>⛵ Tekne</translation>
+    </message>
+    <message>
+        <source>✈ Aircraft</source>
+        <translation>✈ Uçak</translation>
+    </message>
+    <message>
+        <source>APRS text</source>
+        <translation>APRS metni</translation>
+    </message>
+    <message>
+        <source>Shown next to you on aprs.fi, max 43 characters</source>
+        <translation>aprs.fi'de adının yanında görünür, en fazla 43 karakter</translation>
+    </message>
+    <message>
+        <source>APRS symbol</source>
+        <translation>APRS simgesi</translation>
+    </message>
+    <message>
+        <source>Icon on the aprs.fi map</source>
+        <translation>aprs.fi haritasındaki simge</translation>
+    </message>
+    <message>
         <source>Send position to APRS</source>
         <translation>Konumu APRS'e gönder</translation>
     </message>

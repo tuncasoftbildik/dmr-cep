@@ -998,6 +998,8 @@ void DroidStar::save_settings()
     m_settings->setValue("HWPTTMODE", m_hwPttMode);
     m_settings->setValue("USEPHONEGPS", m_usePhoneGps ? "true" : "false");
     m_settings->setValue("APRSON", m_aprsOn ? "true" : "false");
+    m_settings->setValue("APRSCOMMENT", m_aprsComment);
+    m_settings->setValue("APRSSYMBOL", m_aprsSymbol);
     m_settings->setValue("AUTOCONNECT", m_autoConnect ? "true" : "false");
     m_settings->setValue("ROGERBEEP", m_rogerBeep);
     m_settings->setValue("TXTONE", m_txTone);
@@ -1085,6 +1087,11 @@ void DroidStar::process_settings()
     m_hwPttMode = qBound(0, m_settings->value("HWPTTMODE", 0).toInt(), 1);
     m_usePhoneGps = (m_settings->value("USEPHONEGPS", "false").toString().simplified() == "true");
     m_aprsOn = (m_settings->value("APRSON", "false").toString().simplified() == "true");
+    m_aprsComment = AprsBeacon::clean_comment(m_settings->value("APRSCOMMENT", "DMR Cep").toString());
+    m_aprsSymbol = m_settings->value("APRSSYMBOL", "/[").toString();
+    if(m_aprsSymbol.size() != 2){
+        m_aprsSymbol = "/[";
+    }
     m_autoConnect = (m_settings->value("AUTOCONNECT", "true").toString().simplified() == "true");
     m_rogerBeep = m_settings->value("ROGERBEEP", 2).toInt();
     m_txTone = m_settings->value("TXTONE", 1).toInt();
@@ -2109,6 +2116,31 @@ void DroidStar::set_aprs_on(bool on)
     emit aprs_status_changed();
 }
 
+void DroidStar::set_aprs_comment(const QString &text)
+{
+    const QString c = AprsBeacon::clean_comment(text);
+    if(c == m_aprsComment){
+        return;
+    }
+    m_aprsComment = c;
+    save_settings();
+    if(m_aprs){
+        m_aprs->set_comment(c);
+    }
+}
+
+void DroidStar::set_aprs_symbol(const QString &symbol)
+{
+    if((symbol.size() != 2) || (symbol == m_aprsSymbol)){
+        return;
+    }
+    m_aprsSymbol = symbol;
+    save_settings();
+    if(m_aprs){
+        m_aprs->set_symbol(symbol);
+    }
+}
+
 QString DroidStar::get_aprs_status() const
 {
     if(!m_aprsOn || !m_aprs){
@@ -2128,6 +2160,8 @@ void DroidStar::apply_aprs()
         return;
     }
     m_aprs->set_callsign(m_callsign);
+    m_aprs->set_comment(m_aprsComment);
+    m_aprs->set_symbol(m_aprsSymbol);
     m_aprs->set_enabled(m_aprsOn);
     if(m_aprsOn && m_phoneGps && m_phoneGps->has_fix()){
         m_aprs->update_position(m_phoneGps->latitude(), m_phoneGps->longitude());

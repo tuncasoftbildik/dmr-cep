@@ -36,6 +36,11 @@ public:
     void set_enabled(bool on);
     bool enabled() const { return m_enabled; }
     void set_callsign(const QString &callsign);
+    // Free text after the position (UTF-8, max 43 chars). A change is sent right away.
+    void set_comment(const QString &comment);
+    // Two characters: symbol table ('/' or '\\') + symbol code, e.g. "/[" person, "/>" car.
+    void set_symbol(const QString &symbol);
+    static QString clean_comment(const QString &comment);
     // Latest phone fix; beacons if due.
     void update_position(double lat, double lon);
     // Short English status for the settings page, e.g. "Sent 09:58 as TB1BDL-7".
@@ -52,12 +57,14 @@ private:
     void on_connected();
     void on_ready_read();
     void on_disconnected();
-    void maybe_send(bool periodic);
+    void maybe_send(bool periodic, bool force = false);
     void set_status(const QString &s);
     QString station() const;
 
     bool m_enabled = false;
     QString m_callsign;
+    QString m_comment = "DMR Cep";
+    QString m_symbol = "/[";
     QTcpSocket *m_socket = nullptr;
     QTimer *m_periodic = nullptr;
     QTimer *m_retry = nullptr;

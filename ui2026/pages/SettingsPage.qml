@@ -392,6 +392,11 @@ Page {
     readonly property bool aprsApi: !!page.droidstarRef && typeof page.droidstarRef.set_aprs_on === "function"
     property bool aprsOn: false
     property string aprsStatus: ""
+    // APRS map symbols (table + code); labels in the same order.
+    readonly property var aprsSymbols: ["/[", "/>", "/<", "/b", "/v", "/k", "/U", "/j", "/-", "/;", "/Y", "/'"]
+    readonly property var aprsSymbolOptions: [qsTr("🏃 Person"), qsTr("🚗 Car"), qsTr("🏍 Motorcycle"), qsTr("🚲 Bicycle"),
+        qsTr("🚐 Van"), qsTr("🚚 Truck"), qsTr("🚌 Bus"), qsTr("🚙 Jeep"), qsTr("🏠 Home"), qsTr("⛺ Camp"),
+        qsTr("⛵ Boat"), qsTr("✈ Aircraft")]
     function refreshAprs() {
         if (!page.aprsApi) return
         page.aprsOn = !!page.droidstarRef.get_aprs_on()
@@ -960,6 +965,29 @@ Page {
                             page.droidstarRef.set_aprs_on(checked)
                             page.refreshAprs()
                         }
+                    }
+                }
+
+                FieldBlock {
+                    visible: page.aprsApi && page.aprsOn
+                    Caption { text: qsTr("APRS text") }
+                    Input {
+                        text: page.aprsApi ? page.droidstarRef.get_aprs_comment() : ""
+                        hint: qsTr("Shown next to you on aprs.fi, max 43 characters")
+                        maximumLength: 43
+                        onEditingFinished: page.droidstarRef.set_aprs_comment(text)
+                    }
+                }
+
+                SettingRow {
+                    visible: page.aprsApi && page.aprsOn
+                    stacked: true
+                    title: qsTr("APRS symbol")
+                    hint: qsTr("Icon on the aprs.fi map")
+                    Chips {
+                        options: page.aprsSymbolOptions
+                        current: page.aprsApi ? Math.max(0, page.aprsSymbols.indexOf(page.droidstarRef.get_aprs_symbol())) : 0
+                        onPicked: function(index) { page.droidstarRef.set_aprs_symbol(page.aprsSymbols[index]) }
                     }
                 }
 

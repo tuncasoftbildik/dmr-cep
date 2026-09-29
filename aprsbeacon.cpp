@@ -27,8 +27,7 @@ const char *kServer = "rotate.aprs2.net";
 const quint16 kPort = 14580;
 const char *kSsid = "-7";                 // handheld
 const char *kToCall = "APZDMR";           // APZ = experimental software
-const char *kSymbol = "/[";               // primary table, person
-const char *kComment = "DMR Cep";
+const int kMaxComment = 43;               // what fits a position report without timestamp
 const double kMinMoveMeters = 300.0;
 const qint64 kMinIntervalMs = 60 * 1000;
 const qint64 kMaxIntervalMs = 20 * 60 * 1000;
@@ -98,6 +97,30 @@ void AprsBeacon::set_callsign(const QString &callsign)
         // Log in again under the new callsign.
         m_socket->abort();
     }
+}
+
+QString AprsBeacon::clean_comment(const QString &comment)
+{
+    QString out;
+    for (const QChar ch : comment) {
+        if (ch.isPrint() && ch != '|' && ch != '~') out += ch;   // | and ~ are reserved in APRS
+    }
+    return out.simplified().left(kMaxComment);
+}
+
+void AprsBeacon::set_comment(const QString &comment)
+{
+    const QString c = clean_comment(comment);
+    if (c == m_comment) return;
+    m_comment = c;
+    maybe_send(false, true);
+}
+
+void AprsBeacon::set_symbol(const QString &symbol)
+{
+    if (symbol.size() != 2 || (symbol[0] != '/' && symbol[0] != '\\') || symbol == m_symbol) return;
+    m_symbol = symbol;
+    maybe_send(false, true);
 }
 
 void AprsBeacon::set_enabled(bool on)
@@ -191,7 +214,7 @@ void AprsBeacon::on_disconnected()
     }
 }
 
-void AprsBeacon::maybe_send(bool periodic)
+void AprsBeacon::maybe_send(bool periodic, bool force)
 {
     if (!m_enabled || !m_hasFix) return;
     if (!m_loggedIn || !m_socket) {
@@ -200,7 +223,7 @@ void AprsBeacon::maybe_send(bool periodic)
         return;
     }
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (m_sentMs != 0) {
+    if (m_sentMs != 0 && !force) {
         const qint64 since = now - m_sentMs;
         const bool moved = distance_m(m_sentLat, m_sentLon, m_lat, m_lon) >= kMinMoveMeters;
         if (!(moved && since >= kMinIntervalMs) && !(periodic && since >= kMaxIntervalMs))
@@ -209,9 +232,9 @@ void AprsBeacon::maybe_send(bool periodic)
     const QString pos = format_position(m_lat, m_lon);
     const QString packet = QString("%1>%2,TCPIP*:!%3%4%5%6%7\r\n")
                                .arg(station(), kToCall,
-                                    pos.section('|', 0, 0), QChar(kSymbol[0]),
-                                    pos.section('|', 1, 1), QChar(kSymbol[1]), kComment);
-    m_socket->write(packet.toLatin1());
+                                    pos.section('|', 0, 0), m_symbol.at(0),
+                                    pos.section('|', 1, 1), m_symbol.at(1), m_comment);
+    m_socket->write(packet.toUtf8());
     m_sentMs = now;
     m_sentLat = m_lat;
     m_sentLon = m_lon;

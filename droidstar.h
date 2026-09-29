@@ -106,6 +106,12 @@ public:
     Q_INVOKABLE void set_aprs_on(bool on);
     // Short English status, e.g. "Sent 09:58 as TB1BDL-7". Signalled by aprs_status_changed().
     Q_INVOKABLE QString get_aprs_status() const;
+    // Text shown next to the station on aprs.fi (APRSCOMMENT, default "DMR Cep") and its map
+    // symbol as table+code (APRSSYMBOL, default "/[" person). Changes are beaconed at once.
+    Q_INVOKABLE QString get_aprs_comment() const { return m_aprsComment; }
+    Q_INVOKABLE void set_aprs_comment(const QString &text);
+    Q_INVOKABLE QString get_aprs_symbol() const { return m_aprsSymbol; }
+    Q_INVOKABLE void set_aprs_symbol(const QString &symbol);
     // Connect to the last server/TG when the app opens. Persisted as AUTOCONNECT, on by default.
     Q_INVOKABLE bool get_auto_connect() const { return m_autoConnect; }
     Q_INVOKABLE void set_auto_connect(bool on);
@@ -542,6 +548,8 @@ private:
     PhoneGps *m_phoneGps = nullptr;
     AprsBeacon *m_aprs = nullptr;
     bool m_aprsOn = false;
+    QString m_aprsComment = "DMR Cep";
+    QString m_aprsSymbol = "/[";
     bool m_usePhoneGps = false;
     QTimer *m_gpsThrottleTimer = nullptr;
     double m_gpsSentLat = 0.0;
