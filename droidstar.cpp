@@ -192,6 +192,7 @@ DroidStar::DroidStar(QObject *parent) :
 #endif
     m_phoneGps = new PhoneGps(this);
     connect(m_phoneGps, &PhoneGps::status_changed, this, &DroidStar::gps_status_changed);
+    connect(m_phoneGps, &PhoneGps::status_changed, this, &DroidStar::aprs_status_changed);
     connect(m_phoneGps, &PhoneGps::position_changed, this, &DroidStar::on_phone_position);
     m_aprs = new AprsBeacon(this);
     connect(m_aprs, &AprsBeacon::status_changed, this, &DroidStar::aprs_status_changed);
@@ -2112,6 +2113,11 @@ QString DroidStar::get_aprs_status() const
 {
     if(!m_aprsOn || !m_aprs){
         return "Off";
+    }
+    // Without a usable phone location nothing can be sent; say why instead of "waiting".
+    if(m_phoneGps && (m_phoneGps->state() == PhoneGps::Denied || m_phoneGps->state() == PhoneGps::ServicesOff
+                      || m_phoneGps->state() == PhoneGps::Unavailable)){
+        return m_phoneGps->status_text();
     }
     return m_aprs->status_text();
 }
