@@ -64,7 +64,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the microphone to transmit audio</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>DMR Cep yalnızca uygulamayı kullanırken konumunu kullanır ve arka planda konum istemez. Konum, ayarlardan açtığında hotspot konumu olarak BrandMeistera ve istersen APRS ile aprs.fiye gönderilir.</string>
+	<string>DMR Cep yalnızca uygulamayı kullanırken konumunu kullanır ve arka planda konum istemez. Konum, ayarlardan açtığında hotspot konumu olarak BrandMeister'a ve istersen APRS ile aprs.fi'ye gönderilir.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Konumun, ayarlardan açtığında hotspot konumu olarak DMR ağına (BrandMeister) yaklaşık 10 m hassasiyetle gönderilir; BrandMeister bunu haritasında ve aprs.fi'de gösterebilir.</string>
 	<key>NSMicrophoneUsageDescription</key>
