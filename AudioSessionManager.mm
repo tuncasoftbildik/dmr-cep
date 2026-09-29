@@ -316,8 +316,10 @@ static void (*g_pttReleaseCallback)(void) = NULL;
             return;
         }
 
-        // VoiceChat mode for echo cancellation and voice processing
-        success = [session setMode:AVAudioSessionModeVoiceChat error:&error];
+        // Default mode, not VoiceChat: VoiceChat's call processing plays the speaker at the much
+        // lower call volume, and half-duplex radio needs no echo cancellation (RX level measured
+        // at -14 dBFS RMS / -0.5 dBFS peak, so the loss was all in iOS).
+        success = [session setMode:AVAudioSessionModeDefault error:&error];
         if (!success || error) {
             NSLog(@"[AudioSessionManager] Error setting mode: %@", error.localizedDescription);
         }
@@ -372,7 +374,7 @@ static void (*g_pttReleaseCallback)(void) = NULL;
         }
         
         error = nil;
-        [session setMode:AVAudioSessionModeVoiceChat error:&error];
+        [session setMode:AVAudioSessionModeDefault error:&error];   // see setupAVAudioSession
         
         // Activate session
         error = nil;
