@@ -54,6 +54,14 @@ Drawer {
         return out
     }
     readonly property int tgCount: host ? host.favoriteTgs.length : 0
+    // Bumped when a talkgroup is muted/unmuted so the speaker icons re-evaluate.
+    property int muteRev: 0
+    readonly property var ds: (host && host.droidstarRef) ? host.droidstarRef : null
+    Connections {
+        target: root.ds
+        ignoreUnknownSignals: true
+        function onMuted_tgs_changed() { root.muteRev++ }
+    }
     readonly property int pcCount: host ? host.favoritePcs.length : 0
 
     function openFor(k) {
@@ -339,6 +347,12 @@ Drawer {
                     var list = row.subs.talkgroups      // re-evaluate when the list changes
                     return list !== "" && row.subs.tgHasSubtitles("" + row.modelData.id)
                 }
+                // Listen filter: a muted talkgroup is not heard (unless it is the TX talkgroup).
+                readonly property bool muteAvailable: !row.isContact && !!root.ds && typeof root.ds.isTgMuted === "function"
+                readonly property bool muted: {
+                    var rev = root.muteRev
+                    return row.muteAvailable && root.ds.isTgMuted("" + row.modelData.id)
+                }
                 readonly property string fallbackName: {
                     if (modelData.name || !root.host) return ""
                     var a = root.host.dmrIdNames, b = root.host.tgNames
@@ -421,6 +435,21 @@ Drawer {
                             Accessible.name: qsTr("Move down")
                             onClicked: { root.armedDeleteId = ""; root.host.moveChannel(root.kind, row.index, row.index + 1) }
                         }
+                    }
+                    ToolButton {
+                        implicitWidth: 40; implicitHeight: 44
+                        visible: row.muteAvailable && !row.armed
+                        contentItem: Label {
+                            text: row.muted ? "\uf026" : "\uf028"
+                            font.family: faFont.name
+                            font.pixelSize: 18
+                            color: row.muted ? t.danger : t.success
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Item {}
+                        Accessible.name: row.muted ? qsTr("Muted: not heard") : qsTr("Heard")
+                        onClicked: { root.armedDeleteId = ""; root.ds.setTgMuted("" + row.modelData.id, !row.muted) }
                     }
                     ToolButton {
                         implicitWidth: 40; implicitHeight: 44

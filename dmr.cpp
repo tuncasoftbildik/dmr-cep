@@ -100,6 +100,44 @@ void DMR::send_position(QString lat, QString lon)
     emit update_log("DMR: position update sent (" + lat + ", " + lon + ")");
 }
 
+void DMR::set_rx_filter(QString filter)
+{
+    m_rx_allow.clear();
+    m_rx_filter_on = filter.startsWith("on:");
+    if(m_rx_filter_on){
+        const QStringList tgs = filter.mid(3).split(',', Qt::SkipEmptyParts);
+        for(const QString &tg : tgs){
+            m_rx_allow.insert(tg.trimmed().toUInt());
+        }
+    }
+    m_rx_muted_stream = 0;
+    qDebug() << "DMR RX filter" << (m_rx_filter_on ? filter.mid(3) : QString("off (all talkgroups)"));
+}
+
+// Group call to a talkgroup the user does not listen to. Private calls and the talkgroup we
+// transmit on always come through.
+bool DMR::rx_muted(const QByteArray &buf)
+{
+    if(!m_rx_filter_on || m_tx){
+        return false;
+    }
+    const uint8_t flags = (uint8_t)buf.data()[15];
+    if(flags & 0x40){
+        return false;   // private call
+    }
+    const uint32_t dst = (uint32_t)(((uint8_t)buf.data()[8] << 16) | ((uint8_t)buf.data()[9] << 8) | (uint8_t)buf.data()[10]);
+    if((dst == m_txdstid) || m_rx_allow.contains(dst)){
+        return false;
+    }
+    const uint32_t streamid = (uint32_t)(((uint8_t)buf.data()[16] << 24) | ((uint8_t)buf.data()[17] << 16) | ((uint8_t)buf.data()[18] << 8) | (uint8_t)buf.data()[19]);
+    if(streamid != m_rx_muted_stream){
+        m_rx_muted_stream = streamid;
+        const uint32_t src = (uint32_t)(((uint8_t)buf.data()[5] << 16) | ((uint8_t)buf.data()[6] << 8) | (uint8_t)buf.data()[7]);
+        qDebug() << "DMR RX muted: stream from" << src << "to TG" << dst;
+    }
+    return true;
+}
+
 void DMR::process_udp()
 {
     QByteArray buf;
@@ -236,6 +274,9 @@ void DMR::process_udp()
         if((id == m_modeinfo.srcid) && m_rx_ta.addBlock(d[7], d + 8)){
             rx_talker_alias_update();
         }
+    }
+    if((buf.size() == 55) && (::memcmp(buf.data(), "DMRD", 4U) == 0) && rx_muted(buf)){
+        return;
     }
     if((buf.size() != 55) && ( (m_modeinfo.stream_state == STREAM_LOST) || (m_modeinfo.stream_state == STREAM_END) )){
         m_modeinfo.stream_state = STREAM_IDLE;

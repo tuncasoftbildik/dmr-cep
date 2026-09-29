@@ -24,6 +24,7 @@
 #include "cbptc19696.h"
 #include <QElapsedTimer>
 #include "talkeralias.h"
+#include <QSet>
 
 class DMR : public Mode
 {
@@ -54,7 +55,14 @@ private slots:
     // New hotspot position (strings with 4 decimals). Stored for the next RPTC login and,
     // while linked, sent to the master as RPTG (DMRGateway's writeHomePosition format).
     void send_position(QString lat, QString lon);
+    // Listen filter: "" = hear every talkgroup; "on:91,28634" = only these group calls (plus the
+    // TX talkgroup and private calls). Muted streams are dropped before audio, UI and recording.
+    void set_rx_filter(QString filter);
 private:
+    bool rx_muted(const QByteArray &buf);
+    bool m_rx_filter_on = false;
+    QSet<uint32_t> m_rx_allow;
+    uint32_t m_rx_muted_stream = 0;
     // Login/auth/config are single UDP packets with no retransmit in the protocol; one lost
     // reply used to leave the connect hanging until the 15 s timeout.
     static const int HANDSHAKE_RESEND_MS = 3000;

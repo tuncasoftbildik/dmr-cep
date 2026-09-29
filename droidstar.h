@@ -54,6 +54,11 @@ public:
     Q_INVOKABLE void removeFavoriteTG(const QString &tg);
     Q_INVOKABLE void moveFavoriteTG(int from, int to);
     Q_INVOKABLE bool isFavoriteTG(const QString &tg) const;
+    // Listen filter over the saved talkgroups: a muted one is not heard. With at least one saved
+    // talkgroup, only the saved, unmuted ones (plus the TX talkgroup) are heard; with none, all.
+    // Persisted as FavoriteTGs/muted. Changes are signalled by muted_tgs_changed().
+    Q_INVOKABLE bool isTgMuted(const QString &tg) const;
+    Q_INVOKABLE void setTgMuted(const QString &tg, bool muted);
     // Rename and/or renumber in place; returns false for an invalid new number.
     Q_INVOKABLE bool updateFavoriteTG(const QString &oldTg, const QString &newTg, const QString &name);
     // Saved private-call contacts: ordered list of {id, name} ("FavoritePCs/list")
@@ -141,6 +146,8 @@ signals:
     void roger_beep_changed(int mode);
     void tx_tone_changed(int tone);
     void talker_alias_changed(QString alias);   // to Mode::set_talker_alias (mode thread)
+    void rx_filter_changed(QString filter);     // to DMR::set_rx_filter (mode thread)
+    void muted_tgs_changed();
     // TX started/stopped outside the app UI (system PTT button, handsfree accessory).
     void system_tx_changed(bool on);
     void playbackDevicesChanged();
@@ -561,6 +568,8 @@ private:
     static constexpr double kGpsUpdateMinMeters = 200.0;
     void apply_phone_gps();
     void apply_aprs();
+    QString rx_filter() const;
+    void emit_rx_filter();
     void dmr_login_position(QString &lat, QString &lon);
     int m_rogerBeep = 2;
     int m_txTone = 1;

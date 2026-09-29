@@ -616,6 +616,10 @@ void DroidStar::process_connect()
         connect(this, SIGNAL(tx_tone_changed(int)), m_mode, SLOT(set_tx_tone(int)));
         QMetaObject::invokeMethod(m_mode, "set_tx_tone", Qt::QueuedConnection, Q_ARG(int, m_txTone));
         connect(this, SIGNAL(talker_alias_changed(QString)), m_mode, SLOT(set_talker_alias(QString)));
+        if(m_protocol == "DMR"){
+            connect(this, SIGNAL(rx_filter_changed(QString)), m_mode, SLOT(set_rx_filter(QString)));
+            QMetaObject::invokeMethod(m_mode, "set_rx_filter", Qt::QueuedConnection, Q_ARG(QString, rx_filter()));
+        }
         QMetaObject::invokeMethod(m_mode, "set_talker_alias", Qt::QueuedConnection, Q_ARG(QString, effective_talker_alias()));
         connect(this, SIGNAL(in_audio_vol_changed(qreal)), m_mode, SLOT(in_audio_vol_changed(qreal)));
         connect(this, SIGNAL(mycall_changed(QString)), m_mode, SLOT(mycall_changed(QString)));
@@ -2612,9 +2616,65 @@ static bool isFavorite(const char *key, const QString &id)
 }
 
 QVariantList DroidStar::loadFavoriteTGs() const { return loadFavorites(kFavoriteTGKey, "tg"); }
-void DroidStar::addFavoriteTG(const QString &tg, const QString &name) { addFavorite(kFavoriteTGKey, tg, name); }
-bool DroidStar::updateFavoriteTG(const QString &oldTg, const QString &newTg, const QString &name) { return updateFavorite(kFavoriteTGKey, oldTg, newTg, name); }
-void DroidStar::removeFavoriteTG(const QString &tg) { removeFavorite(kFavoriteTGKey, tg); }
+void DroidStar::addFavoriteTG(const QString &tg, const QString &name) { addFavorite(kFavoriteTGKey, tg, name); emit_rx_filter(); }
+bool DroidStar::updateFavoriteTG(const QString &oldTg, const QString &newTg, const QString &name)
+{
+    const bool ok = updateFavorite(kFavoriteTGKey, oldTg, newTg, name);
+    if(ok && (oldTg.simplified() != newTg.simplified()) && isTgMuted(oldTg)){
+        setTgMuted(oldTg, false);
+        setTgMuted(newTg, true);
+    }
+    emit_rx_filter();
+    return ok;
+}
+void DroidStar::removeFavoriteTG(const QString &tg) { removeFavorite(kFavoriteTGKey, tg); setTgMuted(tg, false); emit_rx_filter(); }
+
+static const char *kMutedTGSetting = "FavoriteTGs/muted";
+
+bool DroidStar::isTgMuted(const QString &tg) const
+{
+    return QSettings().value(kMutedTGSetting).toStringList().contains(tg.simplified());
+}
+
+void DroidStar::setTgMuted(const QString &tg, bool muted)
+{
+    QSettings settings;
+    QStringList list = settings.value(kMutedTGSetting).toStringList();
+    const QString id = tg.simplified();
+    if(muted == list.contains(id)){
+        return;
+    }
+    if(muted){
+        list.append(id);
+    }
+    else{
+        list.removeAll(id);
+    }
+    settings.setValue(kMutedTGSetting, list);
+    emit muted_tgs_changed();
+    emit_rx_filter();
+}
+
+QString DroidStar::rx_filter() const
+{
+    const QVariantList favs = loadFavoriteTGs();
+    if(favs.isEmpty()){
+        return QString();
+    }
+    QStringList allow;
+    for(const QVariant &v : favs){
+        const QString tg = v.toMap().value("tg").toString().simplified();
+        if(!tg.isEmpty() && !isTgMuted(tg)){
+            allow.append(tg);
+        }
+    }
+    return "on:" + allow.join(',');
+}
+
+void DroidStar::emit_rx_filter()
+{
+    emit rx_filter_changed(rx_filter());
+}
 void DroidStar::moveFavoriteTG(int from, int to) { moveFavorite(kFavoriteTGKey, from, to); }
 bool DroidStar::isFavoriteTG(const QString &tg) const { return isFavorite(kFavoriteTGKey, tg); }
 
