@@ -103,19 +103,23 @@ void DMR::send_position(QString lat, QString lon)
 void DMR::set_rx_filter(QString filter)
 {
     m_rx_allow.clear();
+    m_rx_mute.clear();
     m_rx_filter_on = filter.startsWith("on:");
     if(m_rx_filter_on){
-        const QStringList tgs = filter.mid(3).split(',', Qt::SkipEmptyParts);
-        for(const QString &tg : tgs){
+        const QString body = filter.mid(3);
+        for(const QString &tg : body.section('|', 0, 0).split(',', Qt::SkipEmptyParts)){
             m_rx_allow.insert(tg.trimmed().toUInt());
+        }
+        for(const QString &tg : body.section('|', 1, 1).split(',', Qt::SkipEmptyParts)){
+            m_rx_mute.insert(tg.trimmed().toUInt());
         }
     }
     m_rx_muted_stream = 0;
     qDebug() << "DMR RX filter" << (m_rx_filter_on ? filter.mid(3) : QString("off (all talkgroups)"));
 }
 
-// Group call to a talkgroup the user does not listen to. Private calls and the talkgroup we
-// transmit on always come through.
+// Group call to a talkgroup the user does not listen to. Private calls always come through, and
+// the talkgroup we transmit on too unless the user muted it.
 bool DMR::rx_muted(const QByteArray &buf)
 {
     if(!m_rx_filter_on || m_tx){
@@ -126,7 +130,7 @@ bool DMR::rx_muted(const QByteArray &buf)
         return false;   // private call
     }
     const uint32_t dst = (uint32_t)(((uint8_t)buf.data()[8] << 16) | ((uint8_t)buf.data()[9] << 8) | (uint8_t)buf.data()[10]);
-    if((dst == m_txdstid) || m_rx_allow.contains(dst)){
+    if(!m_rx_mute.contains(dst) && ((dst == m_txdstid) || m_rx_allow.contains(dst))){
         return false;
     }
     const uint32_t streamid = (uint32_t)(((uint8_t)buf.data()[16] << 24) | ((uint8_t)buf.data()[17] << 16) | ((uint8_t)buf.data()[18] << 8) | (uint8_t)buf.data()[19]);

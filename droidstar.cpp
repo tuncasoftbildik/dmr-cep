@@ -2671,14 +2671,15 @@ QString DroidStar::rx_filter() const
     if(favs.isEmpty()){
         return QString();
     }
-    QStringList allow;
+    QStringList allow, mute;
     for(const QVariant &v : favs){
         const QString tg = v.toMap().value("tg").toString().simplified();
-        if(!tg.isEmpty() && !isTgMuted(tg)){
-            allow.append(tg);
+        if(tg.isEmpty()){
+            continue;
         }
+        (isTgMuted(tg) ? mute : allow).append(tg);
     }
-    return "on:" + allow.join(',');
+    return "on:" + allow.join(',') + "|" + mute.join(',');
 }
 
 void DroidStar::emit_rx_filter()
