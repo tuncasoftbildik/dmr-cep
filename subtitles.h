@@ -116,7 +116,7 @@ private:
     bool m_enabled = true;
     QString m_talkgroups = "91";
     bool m_translate = true;
-    bool m_showOriginal = true;
+    bool m_showOriginal = false;
     QString m_language = "en";
 
     QString m_modelStatus = "unknown";

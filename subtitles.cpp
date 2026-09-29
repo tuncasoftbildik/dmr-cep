@@ -134,7 +134,8 @@ SubtitleController::SubtitleController(QObject *parent) : QObject(parent)
     m_enabled = s.value("enabled", true).toBool();
     m_talkgroups = s.value("talkgroups", "91").toString();
     m_translate = s.value("translate", true).toBool();
-    m_showOriginal = s.value("showOriginal", true).toBool();
+    // Original English line is off by default; v2 key turns it off once for existing installs.
+    m_showOriginal = s.value("showOriginalV2", false).toBool();
     m_language = s.value("language", "en").toString() == "tr" ? "tr" : "en";
     s.endGroup();
 
@@ -165,7 +166,7 @@ void SubtitleController::save()
     s.setValue("enabled", m_enabled);
     s.setValue("talkgroups", m_talkgroups);
     s.setValue("translate", m_translate);
-    s.setValue("showOriginal", m_showOriginal);
+    s.setValue("showOriginalV2", m_showOriginal);
     s.setValue("language", m_language);
     s.endGroup();
 }

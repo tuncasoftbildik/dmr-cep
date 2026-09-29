@@ -751,6 +751,10 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <source>Listening…</source>
         <translation>Dinleniyor…</translation>
     </message>
+    <message>
+        <source>Translating…</source>
+        <translation>Çevriliyor…</translation>
+    </message>
 </context>
 <context>
     <name>PhoneGps</name>

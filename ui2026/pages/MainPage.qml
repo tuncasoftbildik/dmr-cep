@@ -59,9 +59,10 @@ Page {
     // TG is being captioned and for 8 s after it ends.
     readonly property var subs: (droidstarRef && droidstarRef.subtitles) ? droidstarRef.subtitles : null
     readonly property bool captionShowing: !!subs && subs.enabled && subs.showing && !onAir
-    // Turkish is the main line when a translation is expected (or the recognizer itself is Turkish).
-    readonly property bool captionTurkishMain: !!subs && (subs.language === "tr"
-        || (subs.translate && subs.translationStatus === "installed"))
+    // Turkish is the main line whenever translation is on; English takes it only when translation
+    // is definitely impossible (pack missing/unsupported). A late or lost status must not show English.
+    readonly property bool captionTurkishMain: !!subs && (subs.language === "tr" || subs.tr !== ""
+        || (subs.translate && ["supported", "unsupported", "unavailable"].indexOf(subs.translationStatus) < 0))
     function esc(s) { return ("" + s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") }
     // Final text in full color, the part still being recognized/translated lighter.
     function captionRich(finalText, volatileText, volatileColor) {
@@ -1077,7 +1078,10 @@ Page {
                     if (s.modelStatus === "downloading")
                         return qsTr("Downloading subtitle model… %1%").arg(Math.round(s.modelProgress * 100))
                     if (s.modelStatus !== "ready") return qsTr("Subtitles are not ready yet")
-                    return s.active ? qsTr("Listening…") : ""
+                    if (!s.active) return ""
+                    // English heard but its Turkish not in yet: say so instead of showing English.
+                    if (page.captionTurkishMain && (s.en !== "" || s.enVolatile !== "")) return qsTr("Translating…")
+                    return qsTr("Listening…")
                 }
 
                 Label {
