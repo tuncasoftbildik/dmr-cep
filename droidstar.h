@@ -23,6 +23,7 @@
 #include "mode.h"
 #include "audioengine.h"  // Make sure AudioEngine is included
 #include "phonegps.h"
+#include "aprsbeacon.h"
 #include "subtitles.h"
 
 class DroidStar : public QObject
@@ -99,6 +100,12 @@ public:
     // latitude/longitude. Persisted as USEPHONEGPS, off by default.
     Q_INVOKABLE bool get_use_phone_gps() const { return m_usePhoneGps; }
     Q_INVOKABLE void set_use_phone_gps(bool on);
+    // Phone position to APRS-IS (aprs.fi) as <callsign>-7 while the app runs. Only when the user
+    // turns it on: persisted as APRSON, off by default. Starts the phone location by itself.
+    Q_INVOKABLE bool get_aprs_on() const { return m_aprsOn; }
+    Q_INVOKABLE void set_aprs_on(bool on);
+    // Short English status, e.g. "Sent 09:58 as TB1BDL-7". Signalled by aprs_status_changed().
+    Q_INVOKABLE QString get_aprs_status() const;
     // Connect to the last server/TG when the app opens. Persisted as AUTOCONNECT, on by default.
     Q_INVOKABLE bool get_auto_connect() const { return m_autoConnect; }
     Q_INVOKABLE void set_auto_connect(bool on);
@@ -120,6 +127,7 @@ public:
 
 signals:
     void gps_status_changed();
+    void aprs_status_changed();
     void link_quality_changed();
     void dmr_position_changed(QString lat, QString lon);   // to DMR::send_position (mode thread)
     void recordings_changed();
@@ -173,7 +181,7 @@ public slots:
     void updateDeviceListInQML();
     
 
-    void set_callsign(const QString &callsign) {  m_callsign = callsign.simplified(); save_settings(); emit talker_alias_changed(effective_talker_alias()); }
+    void set_callsign(const QString &callsign) {  m_callsign = callsign.simplified(); save_settings(); emit talker_alias_changed(effective_talker_alias()); apply_aprs(); }
     void set_dmrtgid(const QString &dmrtgid) { m_dmr_destid = dmrtgid.simplified().toUInt(); save_settings(); if (m_pttFramework) ptt_sync_channel(); }
     void set_slot(const int slot) {emit slot_changed(slot); }
     void set_cc(const int cc) {emit cc_changed(cc); }
@@ -532,6 +540,8 @@ private:
     // Phone GPS as hotspot position. Live updates (RPTG) go to BrandMeister only, at most
     // every kGpsUpdateMinMs and only after moving more than kGpsUpdateMinMeters.
     PhoneGps *m_phoneGps = nullptr;
+    AprsBeacon *m_aprs = nullptr;
+    bool m_aprsOn = false;
     bool m_usePhoneGps = false;
     QTimer *m_gpsThrottleTimer = nullptr;
     double m_gpsSentLat = 0.0;
@@ -542,6 +552,7 @@ private:
     static const qint64 kGpsUpdateMinMs = 5 * 60 * 1000;
     static constexpr double kGpsUpdateMinMeters = 200.0;
     void apply_phone_gps();
+    void apply_aprs();
     void dmr_login_position(QString &lat, QString &lon);
     int m_rogerBeep = 2;
     int m_txTone = 1;

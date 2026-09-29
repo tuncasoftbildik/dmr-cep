@@ -193,6 +193,13 @@ DroidStar::DroidStar(QObject *parent) :
     m_phoneGps = new PhoneGps(this);
     connect(m_phoneGps, &PhoneGps::status_changed, this, &DroidStar::gps_status_changed);
     connect(m_phoneGps, &PhoneGps::position_changed, this, &DroidStar::on_phone_position);
+    m_aprs = new AprsBeacon(this);
+    connect(m_aprs, &AprsBeacon::status_changed, this, &DroidStar::aprs_status_changed);
+    connect(m_phoneGps, &PhoneGps::position_changed, this, [this]() {
+        if(m_aprsOn && m_phoneGps->has_fix()){
+            m_aprs->update_position(m_phoneGps->latitude(), m_phoneGps->longitude());
+        }
+    });
     m_gpsThrottleTimer = new QTimer(this);
     m_gpsThrottleTimer->setSingleShot(true);
     connect(m_gpsThrottleTimer, &QTimer::timeout, this, &DroidStar::on_phone_position);
@@ -989,6 +996,7 @@ void DroidStar::save_settings()
     m_settings->setValue("HWPTTBUTTONS", m_hwPttButtons);
     m_settings->setValue("HWPTTMODE", m_hwPttMode);
     m_settings->setValue("USEPHONEGPS", m_usePhoneGps ? "true" : "false");
+    m_settings->setValue("APRSON", m_aprsOn ? "true" : "false");
     m_settings->setValue("AUTOCONNECT", m_autoConnect ? "true" : "false");
     m_settings->setValue("ROGERBEEP", m_rogerBeep);
     m_settings->setValue("TXTONE", m_txTone);
@@ -1075,6 +1083,7 @@ void DroidStar::process_settings()
     m_hwPttButtons = qBound(0, m_settings->value("HWPTTBUTTONS", 0).toInt(), 3);
     m_hwPttMode = qBound(0, m_settings->value("HWPTTMODE", 0).toInt(), 1);
     m_usePhoneGps = (m_settings->value("USEPHONEGPS", "false").toString().simplified() == "true");
+    m_aprsOn = (m_settings->value("APRSON", "false").toString().simplified() == "true");
     m_autoConnect = (m_settings->value("AUTOCONNECT", "true").toString().simplified() == "true");
     m_rogerBeep = m_settings->value("ROGERBEEP", 2).toInt();
     m_txTone = m_settings->value("TXTONE", 1).toInt();
@@ -1121,6 +1130,7 @@ void DroidStar::process_settings()
              << "DMRHOST=" << m_saved_dmrhost;
     m_settings_processed = true;
     apply_phone_gps();
+    apply_aprs();
     emit update_settings();
 }
 
@@ -2086,6 +2096,38 @@ void DroidStar::set_use_phone_gps(bool on)
     emit gps_status_changed();
 }
 
+void DroidStar::set_aprs_on(bool on)
+{
+    if(on == m_aprsOn){
+        return;
+    }
+    m_aprsOn = on;
+    save_settings();
+    apply_phone_gps();
+    apply_aprs();
+    emit aprs_status_changed();
+}
+
+QString DroidStar::get_aprs_status() const
+{
+    if(!m_aprsOn || !m_aprs){
+        return "Off";
+    }
+    return m_aprs->status_text();
+}
+
+void DroidStar::apply_aprs()
+{
+    if(!m_aprs){
+        return;
+    }
+    m_aprs->set_callsign(m_callsign);
+    m_aprs->set_enabled(m_aprsOn);
+    if(m_aprsOn && m_phoneGps && m_phoneGps->has_fix()){
+        m_aprs->update_position(m_phoneGps->latitude(), m_phoneGps->longitude());
+    }
+}
+
 void DroidStar::set_auto_connect(bool on)
 {
     if(on == m_autoConnect){
@@ -2136,7 +2178,8 @@ void DroidStar::apply_phone_gps()
     if(!m_phoneGps){
         return;
     }
-    if(m_usePhoneGps){
+    // APRS needs the phone position too, even when the DMR login uses the manual one.
+    if(m_usePhoneGps || m_aprsOn){
         m_phoneGps->start();
     }
     else{

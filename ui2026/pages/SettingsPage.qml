@@ -388,12 +388,22 @@ Page {
         page.gpsStatus = (typeof page.droidstarRef.get_gps_status === "function")
                          ? String(page.droidstarRef.get_gps_status() || "") : ""
     }
-    Component.onCompleted: refreshGps()
+    // APRS (aprs.fi) beacon: off unless the user turns it on.
+    readonly property bool aprsApi: !!page.droidstarRef && typeof page.droidstarRef.set_aprs_on === "function"
+    property bool aprsOn: false
+    property string aprsStatus: ""
+    function refreshAprs() {
+        if (!page.aprsApi) return
+        page.aprsOn = !!page.droidstarRef.get_aprs_on()
+        page.aprsStatus = String(page.droidstarRef.get_aprs_status() || "")
+    }
+    Component.onCompleted: { refreshGps(); refreshAprs() }
 
     Connections {
         target: page.gpsApi ? page.droidstarRef : null
         ignoreUnknownSignals: true
         function onGps_status_changed() { page.refreshGps() }
+        function onAprs_status_changed() { page.refreshAprs() }
     }
 
     background: Rectangle { color: t.bg }
@@ -931,6 +941,24 @@ Page {
                             page.droidstarRef.set_use_phone_gps(checked)
                             page.usePhoneGps = checked
                             page.refreshGps()
+                        }
+                    }
+                }
+
+                Rule { visible: page.aprsApi }
+
+                SettingRow {
+                    visible: page.aprsApi
+                    title: qsTr("Send position to APRS")
+                    hint: page.aprsOn && page.aprsStatus !== ""
+                          ? page.aprsStatus
+                          : qsTr("While the app runs, your phone position is shown publicly on aprs.fi as %1-7")
+                                .arg(page.appState && page.appState.callsign ? page.appState.callsign.toUpperCase() : "CALL")
+                    Switch {
+                        checked: page.aprsOn
+                        onToggled: {
+                            page.droidstarRef.set_aprs_on(checked)
+                            page.refreshAprs()
                         }
                     }
                 }

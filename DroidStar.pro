@@ -55,6 +55,7 @@ SOURCES += \
         dmr.cpp \
         droidstar.cpp \
         phonegps.cpp \
+        aprsbeacon.cpp \
         httpmanager.cpp \
         iax.cpp \
         imbe_vocoder/aux_sub.cc \
@@ -237,6 +238,7 @@ HEADERS += \
 	talkeralias.h \
 	droidstar.h \
 	phonegps.h \
+	aprsbeacon.h \
 	httpmanager.h \
 	iax.h \
 	iaxdefines.h \

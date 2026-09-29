@@ -963,6 +963,14 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 <context>
     <name>SettingsPage</name>
     <message>
+        <source>Send position to APRS</source>
+        <translation>Konumu APRS'e gönder</translation>
+    </message>
+    <message>
+        <source>While the app runs, your phone position is shown publicly on aprs.fi as %1-7</source>
+        <translation>Uygulama açıkken telefon konumun aprs.fi'de herkese açık olarak %1-7 adıyla görünür</translation>
+    </message>
+    <message>
         <source>Auto-connect on launch</source>
         <translation>Açılışta otomatik bağlan</translation>
     </message>
@@ -1808,6 +1816,41 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
         <location filename="../ui2026/components/SignalBars.qml" line="53" />
         <source>Link quality: %1</source>
         <translation>Bağlantı kalitesi: %1</translation>
+    </message>
+</context>
+<context>
+    <name>AprsBeacon</name>
+    <message>
+        <source>Off</source>
+        <translation>Kapalı</translation>
+    </message>
+    <message>
+        <source>No callsign set</source>
+        <translation>Çağrı işareti girilmemiş</translation>
+    </message>
+    <message>
+        <source>Connecting to APRS-IS</source>
+        <translation>APRS-IS'e bağlanıyor</translation>
+    </message>
+    <message>
+        <source>Connected as %1</source>
+        <translation>%1 olarak bağlı</translation>
+    </message>
+    <message>
+        <source>Connected as %1, waiting for location</source>
+        <translation>%1 olarak bağlı, konum bekleniyor</translation>
+    </message>
+    <message>
+        <source>APRS-IS rejected the login</source>
+        <translation>APRS-IS girişi reddetti</translation>
+    </message>
+    <message>
+        <source>APRS-IS connection lost, retrying</source>
+        <translation>APRS-IS bağlantısı koptu, yeniden deneniyor</translation>
+    </message>
+    <message>
+        <source>Sent %1 as %2</source>
+        <translation>%1'de %2 olarak gönderildi</translation>
     </message>
 </context>
 </TS>
