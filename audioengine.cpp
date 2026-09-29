@@ -17,6 +17,7 @@
 */
 
 #include "audioengine.h"
+#include <atomic>
 #include <QDebug>
 #include <cmath>
 #include <algorithm>
@@ -536,6 +537,13 @@ uint16_t AudioEngine::read(int16_t *pcm)
     return s;
 }
 
+static std::atomic<int> s_rx_boost_level{2};
+
+void AudioEngine::set_rx_boost_level(int level)
+{
+    s_rx_boost_level = qBound(0, level, 2);
+}
+
 // process_audio() based on code from DSD https://github.com/szechyjs/dsd
 void AudioEngine::process_audio(int16_t *pcm, size_t s)
 {
@@ -614,8 +622,18 @@ void AudioEngine::process_audio(int16_t *pcm, size_t s)
     m_aout_gain += (static_cast<float>(s) * gaindelta);
     m_audio_out_temp_buf_p = m_audio_out_temp_buf;
 
+    static const float kBoost[3] = { 1.0f, 2.0f, 4.0f };
+    const float boost = kBoost[qBound(0, s_rx_boost_level.load(), 2)];
     for (size_t i = 0; i < s; i++){
-        *m_audio_out_temp_buf_p *= m_volume;
+        *m_audio_out_temp_buf_p *= m_volume * boost;
+        if (boost > 1.0f){
+            // Peak limiter: instant attack, ~25 ms release at 8 kHz, ceiling just under full scale.
+            const float a = fabsf(*m_audio_out_temp_buf_p);
+            m_lim_env = (a > m_lim_env) ? a : (m_lim_env * 0.995f + a * 0.005f);
+            if (m_lim_env > 29000.0f){
+                *m_audio_out_temp_buf_p *= 29000.0f / m_lim_env;
+            }
+        }
         if (*m_audio_out_temp_buf_p > static_cast<float>(32760)){
             *m_audio_out_temp_buf_p = static_cast<float>(32760);
         }

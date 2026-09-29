@@ -756,6 +756,18 @@ Page {
                 // TX voice tone (high-pass corner before the vocoder)
                 SettingRow {
                     stacked: true
+                    title: qsTr("Received loudness")
+                    hint: qsTr("Makes incoming voices louder; a limiter keeps them from distorting")
+                    Chips {
+                        options: [qsTr("Normal"), qsTr("Loud"), qsTr("Louder")]
+                        current: (page.droidstarRef && typeof page.droidstarRef.get_rx_boost === "function") ? page.droidstarRef.get_rx_boost() : 2
+                        onPicked: function(index) { page.droidstarRef.set_rx_boost(index) }
+                    }
+                }
+                Rule {}
+
+                SettingRow {
+                    stacked: true
                     title: qsTr("Voice tone")
                     hint: qsTr("Cuts the low end of your voice before it is sent. Thinner sounds clearer on radios")
                     Chips {

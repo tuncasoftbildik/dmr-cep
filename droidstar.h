@@ -107,6 +107,9 @@ public:
     Q_INVOKABLE void set_use_phone_gps(bool on);
     // Phone position to APRS-IS (aprs.fi) as <callsign>-7 while the app runs. Only when the user
     // turns it on: persisted as APRSON, off by default. Starts the phone location by itself.
+    // Received audio loudness: 0 normal, 1 loud, 2 louder (default). RXBOOST.
+    Q_INVOKABLE int get_rx_boost() const { return m_rxBoost; }
+    Q_INVOKABLE void set_rx_boost(int level);
     Q_INVOKABLE bool get_aprs_on() const { return m_aprsOn; }
     Q_INVOKABLE void set_aprs_on(bool on);
     // Short English status, e.g. "Sent 09:58 as TB1BDL-7". Signalled by aprs_status_changed().
@@ -555,6 +558,7 @@ private:
     PhoneGps *m_phoneGps = nullptr;
     AprsBeacon *m_aprs = nullptr;
     bool m_aprsOn = false;
+    int m_rxBoost = 2;
     QString m_aprsComment = "DMR Cep";
     QString m_aprsSymbol = "/[";
     bool m_usePhoneGps = false;

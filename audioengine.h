@@ -58,6 +58,9 @@ public:
     void set_output_volume(qreal v){ m_out->setVolume(v); }
     void set_input_volume(qreal v){ if(m_in != nullptr) m_in->setVolume(v); }
     void set_agc(bool agc) { m_agc = agc; }
+    // Loudness for received audio, shared by every engine: 0 normal, 1 loud (x2), 2 louder (x4);
+    // measured +4 / +5 dB speech RMS. A peak limiter follows, so nothing clips.
+    static void set_rx_boost_level(int level);
     bool frame_available() { return (m_audioinq.size() >= 320) ? true : false; }
     uint16_t read(int16_t *, int);
     uint16_t read(int16_t *);
@@ -145,6 +148,7 @@ private:
 
     float m_aout_gain;
     float m_volume;
+    float m_lim_env = 0.0f;   // limiter envelope (peak follower)
 
 private slots:
     void input_data_received();

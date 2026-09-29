@@ -252,6 +252,18 @@ Page {
     property var favoriteTgs: []
     property var favoritePcs: []
 
+    // Listen filter (droidStar.isTgMuted); muteRev re-evaluates the chips after a change.
+    property int muteRev: 0
+    function tgMuted(tg) {
+        var rev = muteRev
+        return !!droidstarRef && typeof droidstarRef.isTgMuted === "function" && droidstarRef.isTgMuted("" + tg)
+    }
+    Connections {
+        target: page.droidstarRef
+        ignoreUnknownSignals: true
+        function onMuted_tgs_changed() { page.muteRev++ }
+    }
+
     // Chip row / saved list model: talkgroups first, then contacts (DMR only).
     // Each entry: { kind: "tg" | "pc", id, name, idx (position in its own list), count }
     readonly property var channels: {
@@ -857,6 +869,8 @@ Page {
                     readonly property bool isContact: modelData.kind === "pc"
                     readonly property bool active: page.isActive(modelData.kind, modelData.id)
                     readonly property color tint: isContact ? t.accent : t.lcd
+                    readonly property bool muted: !isContact && page.tgMuted(modelData.id)
+                    opacity: muted ? 0.5 : 1.0
                     readonly property string subtitle: {
                         var dn = page.dmrIdNames
                         if (modelData.name) return modelData.name
@@ -878,6 +892,14 @@ Page {
                             id: chipNum
                             anchors.horizontalCenter: parent.horizontalCenter
                             spacing: 5
+                            Label {
+                                visible: chip.muted
+                                text: "\uf026"   // volume off
+                                font.family: faFont.name
+                                font.pixelSize: 12
+                                color: t.danger
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
                             Label {
                                 visible: chip.isContact
                                 text: "\uf007"   // person
@@ -960,6 +982,12 @@ Page {
             function openFor(ch) {
                 kind = ch.kind; chId = ch.id; chName = ch.name || ""; idx = ch.idx; chCount = ch.count
                 popup()
+            }
+            MenuItem {
+                visible: chipMenu.kind === "tg"
+                height: visible ? implicitHeight : 0
+                text: page.tgMuted(chipMenu.chId) ? qsTr("Unmute (hear this talkgroup)") : qsTr("Mute (do not hear)")
+                onTriggered: page.droidstarRef.setTgMuted(chipMenu.chId, !page.tgMuted(chipMenu.chId))
             }
             MenuItem { text: qsTr("Rename"); onTriggered: nameDialog.openFor(chipMenu.kind, chipMenu.chId, chipMenu.chName, true) }
             MenuItem { text: qsTr("Move left"); enabled: chipMenu.idx > 0; onTriggered: page.moveChannel(chipMenu.kind, chipMenu.idx, chipMenu.idx - 1) }

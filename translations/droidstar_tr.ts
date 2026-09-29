@@ -149,6 +149,14 @@ You should have received a copy of the GNU General Public License along with thi
 <context>
     <name>ChannelsSheet</name>
     <message>
+        <source>Muted: not heard</source>
+        <translation>Kısık: duyulmuyor</translation>
+    </message>
+    <message>
+        <source>Heard</source>
+        <translation>Duyuluyor</translation>
+    </message>
+    <message>
         <location filename="../ui2026/components/ChannelsSheet.qml" line="143" />
         <source>Saved channels</source>
         <translation>Kayıtlı kanallar</translation>
@@ -361,6 +369,14 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 </context>
 <context>
     <name>MainPage</name>
+    <message>
+        <source>Unmute (hear this talkgroup)</source>
+        <translation>Sesi aç (bu kanalı duy)</translation>
+    </message>
+    <message>
+        <source>Mute (do not hear)</source>
+        <translation>Sustur (duyma)</translation>
+    </message>
     <message>
         <source>Auto-connecting…</source>
         <translation>Otomatik bağlanıyor…</translation>
@@ -962,6 +978,26 @@ Example: IAX 12345 192.168.1.1 4569 iaxclient iaxpass</source>
 </context>
 <context>
     <name>SettingsPage</name>
+    <message>
+        <source>Received loudness</source>
+        <translation>Dinleme sesi</translation>
+    </message>
+    <message>
+        <source>Makes incoming voices louder; a limiter keeps them from distorting</source>
+        <translation>Gelen sesleri gürleştirir; sınırlayıcı bozulmayı önler</translation>
+    </message>
+    <message>
+        <source>Normal</source>
+        <translation>Normal</translation>
+    </message>
+    <message>
+        <source>Loud</source>
+        <translation>Yüksek</translation>
+    </message>
+    <message>
+        <source>Louder</source>
+        <translation>Çok yüksek</translation>
+    </message>
     <message>
         <source>🏃 Person</source>
         <translation>🏃 Yaya</translation>

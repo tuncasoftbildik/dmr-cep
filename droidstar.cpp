@@ -1002,6 +1002,7 @@ void DroidStar::save_settings()
     m_settings->setValue("HWPTTMODE", m_hwPttMode);
     m_settings->setValue("USEPHONEGPS", m_usePhoneGps ? "true" : "false");
     m_settings->setValue("APRSON", m_aprsOn ? "true" : "false");
+    m_settings->setValue("RXBOOST", m_rxBoost);
     m_settings->setValue("APRSCOMMENT", m_aprsComment);
     m_settings->setValue("APRSSYMBOL", m_aprsSymbol);
     m_settings->setValue("AUTOCONNECT", m_autoConnect ? "true" : "false");
@@ -1091,6 +1092,8 @@ void DroidStar::process_settings()
     m_hwPttMode = qBound(0, m_settings->value("HWPTTMODE", 0).toInt(), 1);
     m_usePhoneGps = (m_settings->value("USEPHONEGPS", "false").toString().simplified() == "true");
     m_aprsOn = (m_settings->value("APRSON", "false").toString().simplified() == "true");
+    m_rxBoost = qBound(0, m_settings->value("RXBOOST", 2).toInt(), 2);
+    AudioEngine::set_rx_boost_level(m_rxBoost);
     m_aprsComment = AprsBeacon::clean_comment(m_settings->value("APRSCOMMENT", "DMR Cep").toString());
     m_aprsSymbol = m_settings->value("APRSSYMBOL", "/[").toString();
     if(m_aprsSymbol.size() != 2){
@@ -2106,6 +2109,13 @@ void DroidStar::set_use_phone_gps(bool on)
     save_settings();
     apply_phone_gps();
     emit gps_status_changed();
+}
+
+void DroidStar::set_rx_boost(int level)
+{
+    m_rxBoost = qBound(0, level, 2);
+    AudioEngine::set_rx_boost_level(m_rxBoost);
+    save_settings();
 }
 
 void DroidStar::set_aprs_on(bool on)
