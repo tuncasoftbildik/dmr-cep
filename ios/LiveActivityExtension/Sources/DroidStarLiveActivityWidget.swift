@@ -106,7 +106,9 @@ private struct CardModel {
     }
 
     var callsign: String {
-        if !state.callsign.isEmpty { return state.callsign.uppercased() }
+        // The app may hand over "CALL - Name"; the name already has its own line.
+        let call = state.callsign.components(separatedBy: " - ").first?.trimmingCharacters(in: .whitespaces) ?? ""
+        if !call.isEmpty { return call.uppercased() }
         return kind == .tx ? station.uppercased() : "— — —"
     }
 
@@ -153,9 +155,17 @@ private struct ElapsedText: View {
     let since: Date
     let size: CGFloat
     let color: Color
+    var clock: Bool = false   // idle: show when we last heard someone (08:54) instead of a counter
+
+    // The 7-segment font has no letters: a relative/long timer ("27 dak.") turns into garbage,
+    // so only ever feed it digits and colons.
+    private var label: Text {
+        if clock { return Text(since, style: .time) }
+        return Text(timerInterval: since...since.addingTimeInterval(12 * 3600), countsDown: false)
+    }
 
     var body: some View {
-        Text(since, style: .timer)
+        label
             .font(lcdDigits(size))
             .monospacedDigit()
             .foregroundColor(color)
@@ -234,7 +244,7 @@ private struct LockScreenView: View {
                     .foregroundColor(Palette.text)
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                ElapsedText(since: model.state.since, size: 15, color: model.tint)
+                ElapsedText(since: model.state.since, size: 15, color: model.tint, clock: model.kind == .idle)
                     .frame(maxWidth: 90, alignment: .trailing)
             }
             LcdPanel(model: model)
@@ -279,7 +289,7 @@ struct DroidStarLiveActivityWidget: Widget {
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    ElapsedText(since: model.state.since, size: 14, color: model.tint)
+                    ElapsedText(since: model.state.since, size: 14, color: model.tint, clock: model.kind == .idle)
                         .frame(maxWidth: 80, alignment: .trailing)
                         .padding(.trailing, 4)
                 }

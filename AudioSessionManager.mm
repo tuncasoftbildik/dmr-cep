@@ -522,25 +522,25 @@ static void (*g_pttReleaseCallback)(void) = NULL;
     // Title: Show current activity
     NSString *title;
     if (_isTransmitting) {
-        title = @"📡 Transmitting";
+        title = @"📡 Yayındasın";
     } else if (_isReceiving && _currentCallsign.length > 0) {
         title = [NSString stringWithFormat:@"📻 %@", _currentCallsign];
     } else {
-        title = @"📻 Listening...";
+        title = @"📻 Dinleniyor";
     }
     nowPlayingInfo[MPMediaItemPropertyTitle] = title;
     
     // Artist: Show name and country for RX, or "TX" for transmit
     NSString *artist;
     if (_isTransmitting) {
-        artist = @"Push-to-Talk Active";
+        artist = @"Bas-konuş etkin";
     } else if (_currentName.length > 0 || _currentCountry.length > 0) {
         NSMutableArray *parts = [NSMutableArray array];
         if (_currentName.length > 0) [parts addObject:_currentName];
         if (_currentCountry.length > 0) [parts addObject:_currentCountry];
         artist = [parts componentsJoinedByString:@" • "];
     } else {
-        artist = @"Awaiting Signal";
+        artist = @"Sinyal bekleniyor";
     }
     nowPlayingInfo[MPMediaItemPropertyArtist] = artist;
     
