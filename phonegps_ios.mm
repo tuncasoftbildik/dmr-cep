@@ -63,6 +63,8 @@
 
 - (void)apply
 {
+    NSLog(@"[Konum] auth %d, services %d, accuracy auth %d", (int)[self authStatus],
+          (int)[CLLocationManager locationServicesEnabled], (int)self.manager.accuracyAuthorization);
     switch([self authStatus]){
     case kCLAuthorizationStatusNotDetermined:
         [self report:PhoneGps::NeedPermission];
@@ -125,7 +127,17 @@
     if(!self.owner){
         return;
     }
+    NSLog(@"[Konum] error %@ (auth %d)", error, (int)[self authStatus]);
     if(error.code == kCLErrorDenied){
+        const CLAuthorizationStatus st = [self authStatus];
+        if((st == kCLAuthorizationStatusAuthorizedWhenInUse) || (st == kCLAuthorizationStatusAuthorizedAlways)){
+            // Permission is there: this comes e.g. when updates start while the app is in the
+            // background (no background location mode). Keep going; updates resume in the foreground.
+            if(!self.owner->has_fix()){
+                [self report:PhoneGps::Waiting];
+            }
+            return;
+        }
         [self report:PhoneGps::Denied];
         [self.manager stopUpdatingLocation];
     }
