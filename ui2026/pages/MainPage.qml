@@ -1051,7 +1051,8 @@ Page {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.topMargin: 6
-                Layout.minimumHeight: 52
+                // Room for one Turkish line + one original line (10+23+6+17+10), so the main line is never clipped.
+                Layout.minimumHeight: 72
                 Layout.preferredHeight: 150
                 Layout.maximumHeight: 210
                 radius: 14
@@ -1145,7 +1146,8 @@ Page {
                 excludeOwn: true
             }
 
-            Item { Layout.fillHeight: true }
+            // Spacer only when there are no subtitles; otherwise it would halve the caption box.
+            Item { Layout.fillHeight: true; visible: !page.captionShowing }
         }
 
         // ── The key: connect when idle, push-to-talk when connected ──
