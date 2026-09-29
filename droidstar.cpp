@@ -676,8 +676,9 @@ void DroidStar::process_connect()
 /*
     qDebug() << "process_connect called m_callsign == " << m_callsign;
     qDebug() << "process_connect called m_dmrid == " << m_dmrid;
-    qDebug() << "process_connect called m_bm_password == " << m_bm_password;
-    qDebug() << "process_connect called m_tgif_password == " << m_tgif_password;
+    // Never log the passwords themselves (debug.log can be shared); only whether they are set.
+    qDebug() << "process_connect: BM password set" << !m_bm_password.isEmpty()
+             << "TGIF password set" << !m_tgif_password.isEmpty();
     qDebug() << "process_connect called m_dmropts == " << m_dmropts;
     qDebug() << "process_connect called m_refname == " << m_refname;
     qDebug() << "process_connect called m_host == " << m_host;
